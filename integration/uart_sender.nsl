@@ -1,0 +1,82 @@
+#include "uart_sender.h"
+module uart_sender {
+	reg buffer[8];
+	reg writebuf[8];
+	reg cnt[32] = 0;
+	reg txd = 0;
+	reg idx[3] = 0;
+	reg int_flag = 0;
+	proc_name idle();
+	proc_name send_start_bit(buffer);
+	proc_name send_data_bit(buffer);
+	proc_name send_stop_bit;
+	uart_tx_stat_t reg status;
+
+	TXD = txd;
+
+	func reset {
+		status := 0;
+		idle();
+	}
+	proc idle {
+		if(status.en && ~status.busy) {
+			status.en := 0;
+			status.busy := 1;
+			send_start_bit(writebuf);	
+		}
+	}
+	proc send_start_bit {
+		if(cnt == TX_BAUD_RATE_CNT) {
+			cnt := 0;
+			send_data_bit(buffer);
+		} else {
+			cnt++;
+		}
+		txd := 0;
+	}
+	proc send_data_bit {
+		if(cnt == TX_BAUD_RATE_CNT) {
+			if(idx == 7) {
+				send_stop_bit();
+				idx := 0;
+			} else {
+				idx++;
+			}
+			cnt := 0;
+		} else {
+			cnt++;
+		}
+		txd := buffer[idx];
+	}
+	proc send_stop_bit {
+		if(cnt == TX_BAUD_RATE_CNT) {
+			idle();
+			done();
+			int_flag := 1;
+			status.busy := 0;
+			cnt := 0;
+		} else {
+			cnt++;
+		}
+		txd := 1;
+	}
+	if(int_flag && ~status.busy && ~status.en) {
+		int_flag := 0;
+		int_req();
+	}
+	
+	func read {
+		any {
+			adrs == 0x0: return writebuf;
+			adrs == 0x4: return status;
+		}
+		valid();
+	}
+	func write {
+		any {
+			adrs == 0x0: writebuf := data[7:0];
+			adrs == 0x4: status := data[7:0] & 0x01;
+		}
+		valid();
+	}
+}

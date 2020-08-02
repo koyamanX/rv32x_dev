@@ -1,0 +1,65 @@
+[*]
+[*] GTKWave Analyzer v3.3.105 (w)1999-2020 BSI
+[*] Fri Jul 24 19:24:02 2020
+[*]
+[dumpfile] "/home/koyaman/rv32x_dev/simulation/rv32x_simulation.vcd"
+[dumpfile_mtime] "Fri Jul 24 19:23:49 2020"
+[dumpfile_size] 515836
+[savefile] "/home/koyaman/rv32x_dev/simulation/rv32x.gtkw"
+[timestart] 1
+[size] 1528 836
+[pos] -51 -51
+*-4.388018 487 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[treeopen] TOP.rv32x_simulation.
+[treeopen] TOP.rv32x_simulation.core.
+[treeopen] TOP.rv32x_simulation.core.rv32x.
+[treeopen] TOP.rv32x_simulation.core.rv32x.rv32x.
+[treeopen] TOP.rv32x_simulation.core.rv32x.rv32x.rv32x_munit32.
+[sst_width] 333
+[signals_width] 352
+[sst_expanded] 1
+[sst_vpaned_height] 472
+@28
+TOP.rv32x_simulation.core.rv32x.rv32x.m_clock
+@22
+TOP.rv32x_simulation.core.rv32x.rv32x.PC[31:0]
+@28
+TOP.rv32x_simulation.core.rv32x.rv32x.ifetch
+@22
+TOP.rv32x_simulation.core.rv32x.rv32x._IDREG_pc[31:0]
+TOP.rv32x_simulation.core.rv32x.rv32x._IDREG_inst[31:0]
+@28
+TOP.rv32x_simulation.core.rv32x.rv32x.decode
+@22
+TOP.rv32x_simulation.core.rv32x.rv32x._DEREG_pc[31:0]
+TOP.rv32x_simulation.core.rv32x.rv32x._DEREG_inst[31:0]
+@28
+TOP.rv32x_simulation.core.rv32x.rv32x.execute
+@22
+TOP.rv32x_simulation.core.rv32x.rv32x._EMREG_pc[31:0]
+TOP.rv32x_simulation.core.rv32x.rv32x._EMREG_inst[31:0]
+@28
+TOP.rv32x_simulation.core.rv32x.rv32x.memory
+@22
+TOP.rv32x_simulation.core.rv32x.rv32x._MWREG_pc[31:0]
+TOP.rv32x_simulation.core.rv32x.rv32x._MWREG_inst[31:0]
+@28
+TOP.rv32x_simulation.core.rv32x.rv32x.writeback
+TOP.rv32x_simulation.core.rv32x.rv32x.stall
+@29
+TOP.rv32x_simulation.core.rv32x.rv32x.trap
+@28
+TOP.rv32x_simulation.core.rv32x.rv32x.load_interlock
+TOP.rv32x_simulation.core.rv32x.rv32x.taken
+TOP.rv32x_simulation.core.rv32x.rv32x._DEREG_jump
+@24
+TOP.rv32x_simulation.core.rv32x.rv32x.rv32x_munit32.div.a[31:0]
+TOP.rv32x_simulation.core.rv32x.rv32x.rv32x_munit32.div.b[31:0]
+TOP.rv32x_simulation.core.rv32x.rv32x.rv32x_munit32.div.q[31:0]
+@28
+TOP.rv32x_simulation.core.rv32x.rv32x.rv32x_munit32.div.exe
+TOP.rv32x_simulation.core.rv32x.rv32x.rv32x_munit32.div.done
+TOP.rv32x_simulation.core.rv32x.rv32x.rv32x_munit32.div.exe_div
+[pattern_trace] 1
+[pattern_trace] 0

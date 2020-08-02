@@ -1,0 +1,540 @@
+#include "rv32x5p.h"
+#include "opcode.h"
+#include "inc32.h"
+#include "inst_dec.h"
+#include "alu32.h"
+#include "reg32.h"
+#include "adder32.h"
+#include "munit32.h"
+#include "regs5p.h"
+
+module rv32x5p {
+	/* Pipeline registers */
+	reg PC[32];
+	idreg_t reg IDREG;
+	dereg_t reg DEREG;
+	emreg_t reg EMREG;
+	mwreg_t reg MWREG;
+	/* Pipeline stages */
+	proc_name ifetch(PC);
+	proc_name decode(IDREG);
+	proc_name execute(DEREG);
+	proc_name memory(EMREG);
+	proc_name writeback(MWREG);
+	func_self stall_ifetch();
+	func_self stall_decode();
+	func_self stall_execute();
+	func_self stall_memory();
+	func_self load_interlock();					/* stall pipeline until load finishes */
+	func_self ifetch_nop();						/* insert nop instruction in ifetch */
+	func_self decode_nop();						/* insert nop instruction in decode */
+	func_self execute_nop();					/* insert nop instruction in execute */
+	func_self memory_nop();						/* insert nop instruction in memory */
+	func_self nop();							/* no-op (indicating unimplemented instruction) */
+	wire execute_alu_a[32];						/* forwarded ALU input A */
+	wire execute_alu_b[32];						/* forwarded ALU input B */
+	reg32 rv32x_reg32;							/* General-purpose registers */
+	munit32 rv32x_munit32;						/* Extension unit for M-Extensions */
+
+	func reset {
+		/* Reset Extension Unit */
+		rv32x_munit32.reset();
+
+		ifetch(resetvector);
+		IDREG := 0;
+		DEREG := 0;
+		EMREG := 0;
+		MWREG := 0;
+	}
+	func trap {
+		/* Override current execution flow */
+		ifetch(vector);
+	}
+	proc ifetch {
+		wire pc4[32];
+		inc32 rv32x_inc32;
+
+		imem_read(PC, MEM_WORD);
+		pc4 = rv32x_inc32.exe(PC);
+
+		if(imem_valid) {
+			if(!stall_ifetch) {		
+#define NOP (0x00000013)
+				ifetch(pc4);
+				decode({PC, pc4, if(ifetch_nop) NOP else inst});
+			}
+		}
+	}
+	func flush_ifetch {
+		ifetch.finish();
+		ifetch_nop();
+	}
+	func stall_ifetch_req {
+		stall_ifetch();
+	}
+	proc decode {
+		dereg_t wire dereg;
+		inst_dec rv32x_inst_dec;
+		adder32 rv32x_adder32;
+		func_self system_csrrw;
+		func_self system_csrrs;
+		func_self system_csrrc;
+		func_self system_mret;
+		func_self system_sret;
+		func_self system_uret;
+		func_self system_ecall;
+		func_self system_ebreak;
+		func_self system_wfi;
+		func_self misc_mem_fencei;
+		func_self misc_mem_fence;
+		func_self uimm;
+		func_self system_priv;
+		wire alu_a[32];         /* ALU input A */
+		wire alu_b[32];         /* ALU input B */
+		wire alu_a_forward_en;
+		wire alu_b_forward_en;
+
+		rv32x_inst_dec.exe(IDREG.inst);
+		rv32x_reg32.reada(rv32x_inst_dec.rs1);
+		rv32x_reg32.readb(rv32x_inst_dec.rs2);
+		rv32x_adder32.exe(IDREG.pc, rv32x_inst_dec.imm);
+
+		alu_a_forward_en = if(rv32x_inst_dec.lui || rv32x_inst_dec.auipc 
+								|| rv32x_inst_dec.jal) 1'b0 else 1'b1;
+		alu_b_forward_en = if(rv32x_inst_dec.op 
+								|| rv32x_inst_dec.branch) 1'b1 else 1'b0;
+
+		dereg.pc = IDREG.pc;
+		dereg.pc4 = IDREG.pc4;
+		dereg.inst = IDREG.inst;
+		dereg.alu_fn = rv32x_inst_dec.alu_fn;
+		dereg.alu_sel = rv32x_inst_dec.m_ext;
+		dereg.alu_a = alu_a;
+		dereg.alu_b = alu_b;
+		dereg.alu_a_forward_en = if(decode_nop) 1'b0 else alu_a_forward_en;
+		dereg.alu_b_forward_en = if(decode_nop) 1'b0 else alu_b_forward_en;
+		dereg.funct3 = rv32x_inst_dec.funct3;
+		dereg.funct12 = rv32x_inst_dec.funct12;
+		dereg.rd = if(decode_nop) 5'b00000 else rv32x_inst_dec.rd;
+		dereg.rs1 = rv32x_inst_dec.rs1;
+		dereg.rs2 = rv32x_inst_dec.rs2;
+		dereg.rs1_data = rv32x_reg32.rdataa;
+		dereg.rs2_data = rv32x_reg32.rdatab;
+		dereg.load = if(decode_nop) 1'b0 else rv32x_inst_dec.load;
+		dereg.store = if(decode_nop) 1'b0 else rv32x_inst_dec.store;
+		dereg.jump = if(decode_nop) 1'b0 else rv32x_inst_dec.jal || rv32x_inst_dec.jalr;
+		dereg.branch = if(decode_nop) 1'b0 else rv32x_inst_dec.branch;
+		dereg.beq = rv32x_inst_dec.beq;
+		dereg.bne = rv32x_inst_dec.bne;
+		dereg.blt = rv32x_inst_dec.blt;
+		dereg.bltu = rv32x_inst_dec.bltu;
+		dereg.bge = rv32x_inst_dec.bge;
+		dereg.bgeu = rv32x_inst_dec.bgeu;
+		dereg.nextpc = rv32x_adder32.q;
+		dereg.csrrw = system_csrrw;
+		dereg.csrrs = system_csrrs;
+		dereg.csrrc = system_csrrc;
+		dereg.uimm = uimm;
+		dereg.fencei = misc_mem_fencei;
+		dereg.fence = misc_mem_fence;
+		dereg.wb = if(decode_nop) 1'b0 else rv32x_inst_dec.wb;
+		dereg.ecall = system_ecall;
+		dereg.mret = system_mret;
+		dereg.sret = system_sret;
+		dereg.uret = system_uret;
+
+		if(!stall_decode) {			
+			execute(dereg);
+		}
+	}
+	func flush_decode {
+		decode.finish();
+		decode_nop();
+	}
+	func stall_decode_req {
+		stall_decode();
+	}
+	func rv32x_inst_dec.op_imm {
+		alu_a = rv32x_reg32.rdataa;
+		alu_b = rv32x_inst_dec.imm;        
+	}
+	func rv32x_inst_dec.op {
+		alu_a = rv32x_reg32.rdataa;
+		alu_b = rv32x_reg32.rdatab;
+	}
+	func rv32x_inst_dec.lui {
+		alu_a = 0x00000000;
+		alu_b = rv32x_inst_dec.imm;
+	}
+	func rv32x_inst_dec.auipc {
+		alu_a = IDREG.pc;
+		alu_b = rv32x_inst_dec.imm;
+	}
+	func rv32x_inst_dec.jal {
+		alu_a = IDREG.pc;
+		alu_b = rv32x_inst_dec.imm;
+	}
+	func rv32x_inst_dec.jalr {
+		alu_a = rv32x_reg32.rdataa;
+		alu_b = rv32x_inst_dec.imm;
+	}
+	func rv32x_inst_dec.load {
+		alu_a = rv32x_reg32.rdataa;
+		alu_b = rv32x_inst_dec.imm;
+	}
+	func rv32x_inst_dec.store {
+		alu_a = rv32x_reg32.rdataa;
+		alu_b = rv32x_inst_dec.imm;
+	}
+	func rv32x_inst_dec.branch {
+		/* Condition check */
+		alu_a = rv32x_reg32.rdataa;
+		alu_b = rv32x_reg32.rdatab;
+	}
+	func rv32x_inst_dec.misc_mem {
+		any {
+			/* TODO: check if feild other than opcode and funct3 is zero */
+			rv32x_inst_dec.funct3 == FENCEI: 	{misc_mem_fencei();}
+			/* TODO: imeplement fence */
+			rv32x_inst_dec.funct3 == FENCE: 	{misc_mem_fence(); nop();}
+		}
+		/* TODO: stall until fence.i finishes */
+		/* set rd feild to zero */
+		decode_nop();
+	}
+	func rv32x_inst_dec.system {
+		any {
+			rv32x_inst_dec.funct3 == CSRRW:		{system_csrrw();}	
+			rv32x_inst_dec.funct3 == CSRRC:		{system_csrrc();}
+			rv32x_inst_dec.funct3 == CSRRS:		{system_csrrs();}
+			rv32x_inst_dec.funct3 == CSRRWI:	{system_csrrw(); uimm();}	
+			rv32x_inst_dec.funct3 == CSRRCI:	{system_csrrc(); uimm();}	
+			rv32x_inst_dec.funct3 == CSRRSI:	{system_csrrs(); uimm();}
+			rv32x_inst_dec.funct3 == PRIV:		system_priv();
+			/* TODO: else: illigal_instruction */
+		}
+	}
+	func system_priv {
+		any {
+			/* TODO: make sure rd&rs1==00000 */
+			rv32x_inst_dec.funct12 == ECALL:	{system_ecall();}
+			/* TODO: */
+			rv32x_inst_dec.funct12 == EBREAK:	{system_ebreak(); nop();}
+			rv32x_inst_dec.funct12 == MRET:		{system_mret();}
+			rv32x_inst_dec.funct12 == SRET:		{system_sret();}
+			rv32x_inst_dec.funct12 == URET:		{system_uret();}
+			/* TODO: */
+			rv32x_inst_dec.funct12 == WFI:		{system_wfi(); nop();}
+			/* TODO: else: illigal_instruction */
+		}
+		/* set rd feild to zero */
+		decode_nop();
+	}
+	func load_interlock {	
+		stall_ifetch();			
+		stall_decode();
+		stall_execute();
+	}
+	/* Forwarding Unit */
+	if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && !EMREG.load) {
+		execute_alu_a = EMREG.alu_q;
+	} else if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && EMREG.load && memory) {
+		load_interlock();
+	} else if((DEREG.rs1 == MWREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && MWREG.load) {
+		execute_alu_a = MWREG.wb_value;
+	} else if((DEREG.rs1 == MWREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && !MWREG.load) {
+		execute_alu_a = MWREG.alu_q;
+	} else {
+		execute_alu_a = DEREG.alu_a;
+	}
+	if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && !EMREG.load) {
+		execute_alu_b = EMREG.alu_q;
+	} else if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && EMREG.load && memory) {
+		load_interlock();
+	} else if((DEREG.rs2 == MWREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && MWREG.load) {
+		execute_alu_b = MWREG.wb_value;
+	} else if((DEREG.rs2 == MWREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && !MWREG.load) {
+		execute_alu_b = MWREG.alu_q;
+	} else {
+		execute_alu_b = DEREG.alu_b;
+	}
+	proc execute {
+		emreg_t wire emreg;
+		alu32 rv32x_alu32;
+		func_self taken;
+		func_self condcheck;
+		wire alu_q[32];
+		wire forwarded_alu_a[32];
+		wire forwarded_alu_b[32];
+
+		emreg.pc = DEREG.pc;
+		emreg.pc4 = DEREG.pc4;
+		emreg.inst = DEREG.inst;
+		emreg.funct3 = DEREG.funct3;
+		emreg.funct12 = DEREG.funct12;
+		emreg.rd = if(execute_nop) 0x00000000 else DEREG.rd;
+		emreg.rs1 = DEREG.rs1;
+		emreg.rs2 = DEREG.rs2;
+		emreg.rs1_data = execute_alu_a;
+		/* Forward from wb */
+		/* if rs2_data is imm, don't forward (!op || !branch) */
+		emreg.rs2_data = if(DEREG.store) if(DEREG.rs2 == MWREG.rd) MWREG.wb_value else DEREG.rs2_data else execute_alu_b;	
+		emreg.load = if(execute_nop) 1'b0 else DEREG.load;
+		emreg.store = if(execute_nop) 1'b0 else DEREG.store;
+		emreg.alu_q = if(DEREG.jump) DEREG.pc4 else alu_q;		/* address for link register */
+		emreg.csrrw = DEREG.csrrw;
+		emreg.csrrc = DEREG.csrrc;
+		emreg.csrrs = DEREG.csrrs;
+		emreg.uimm = DEREG.uimm;
+		emreg.fencei = DEREG.fencei;
+		emreg.fence = DEREG.fence;
+		emreg.wb = if(execute_nop) 1'b0 else DEREG.wb;
+
+		if(!load_interlock) {
+			any {
+				DEREG.alu_sel == ALU: {
+					alu_q = rv32x_alu32.exe(execute_alu_a, 
+											execute_alu_b, DEREG.alu_fn);	
+				}
+				DEREG.alu_sel == MUNIT: {
+					alu_q = rv32x_munit32.exe(execute_alu_a, 
+											execute_alu_b, DEREG.alu_fn);	
+					if(!rv32x_munit32.done) {
+						stall_ifetch();
+						stall_decode();
+						stall_execute();		/* Stall ifetch, decode */
+					}
+				}
+			}
+			if(DEREG.branch) {
+				condcheck();
+			}
+			if(DEREG.ecall) {
+				ecall();
+			}
+			if(DEREG.mret) {
+				mret();
+			}
+			if(DEREG.sret) {
+				sret();
+			}
+			if(DEREG.uret) {
+				uret();
+			}
+			if(taken && !stall_execute) {		
+				stall_ifetch();				
+				stall_decode();
+				ifetch_nop();
+				ifetch.finish();
+				decode_nop();
+				decode.finish();
+				ifetch(DEREG.nextpc);
+				memory(emreg);
+			} else if(DEREG.jump && !stall_execute) {
+				stall_ifetch();				
+				stall_decode();
+				ifetch_nop();
+				ifetch.finish();
+				decode_nop();
+				decode.finish();
+				ifetch(alu_q);
+				memory(emreg);
+			} else if(!taken && (DEREG.alu_sel == ALU) && !stall_execute) {		
+				memory(emreg);		
+			} else if(!taken && (DEREG.alu_sel == MUNIT) && rv32x_munit32.done && !stall_execute) {	
+				memory(emreg);		
+			}
+		}
+	}
+	func condcheck {
+		wire eq, lt;
+
+		/* OPTIMIZE: critical path ? */
+		/* OPTIMIZE: must split test branch condition then check condition then branch */
+		/* OPTIMIZE: should it be test eq, lt in decode stage then check result & branch in execute */
+		eq = rv32x_alu32.z; 	/* is equal? */
+		lt = rv32x_alu32.q[0]; 	/* is less than? */
+		any {
+			(DEREG.beq & eq): taken();
+			(DEREG.bne & ~eq): taken();
+			(DEREG.blt & lt): taken();
+			(DEREG.bltu & lt): taken();
+			(DEREG.bge & ~lt): taken();
+			(DEREG.bgeu & ~lt): taken();
+		}
+	} 
+	func flush_execute {
+		execute.finish();
+		execute_nop();
+		rv32x_munit32.reset();	/* cancel current operation */
+	}
+	func stall_execute_req {
+		stall_execute();
+	}
+	proc memory {
+		mwreg_t wire mwreg;
+		wire mem_adrs[32];
+		wire mem_data[32];
+		wire mem_byteen[3];
+		wire loaded_value[32]; 
+		func_self ext : loaded_value;
+
+		mwreg.pc = EMREG.pc;
+		mwreg.pc4 = EMREG.pc4;
+		mwreg.inst = EMREG.inst;
+		mwreg.funct12 = EMREG.funct12;
+		mwreg.rd = EMREG.rd;
+		mwreg.rs1 = EMREG.rs1;
+		mwreg.rs2 = EMREG.rs2;
+		mwreg.rs1_data = EMREG.rs1_data;
+		mwreg.rs2_data = EMREG.rs2_data;
+		mwreg.load = EMREG.load;
+		mwreg.store = EMREG.store;
+		mwreg.alu_q = EMREG.alu_q;
+		mwreg.wb_value = if(EMREG.load) loaded_value else EMREG.alu_q;
+		mwreg.csrrw = EMREG.csrrw;
+		mwreg.csrrs = EMREG.csrrs;
+		mwreg.csrrc = EMREG.csrrc;
+		mwreg.uimm = EMREG.uimm;
+		mwreg.wb = EMREG.wb;
+
+		mem_byteen = {1'b0, EMREG.funct3[1:0]};
+		mem_adrs = EMREG.alu_q;
+		mem_data = if(MWREG.rd == EMREG.rs2) MWREG.wb_value else EMREG.rs2_data;	/* Forward from wb stage */
+#ifdef DEBUG
+		mwreg.debug_mem_adrs = mem_adrs;
+		mwreg.debug_mem_byteen = mem_byteen;
+		mwreg.debug_mem_data = mem_data;
+		mwreg.debug_mem_write = EMREG.store;
+		mwreg.debug_wb = EMREG.wb;
+#endif
+
+		any {
+			EMREG.store:    dmem_write(mem_adrs, mem_byteen, mem_data);
+			EMREG.load:     dmem_read(mem_adrs, mem_byteen);
+			EMREG.fencei: 	{fencei(); ifetch.finish(); decode.finish(); execute.finish();}
+			EMREG.fence: 	fence();
+		}
+		if(!EMREG.store && !EMREG.load && !EMREG.fencei && !stall_memory) {
+			writeback(mwreg);
+		} else if(dmem_valid && !stall_memory && !EMREG.fencei) {
+			ext();
+			writeback(mwreg);
+		} else if(dmem_valid && !stall_memory && EMREG.fencei) {
+			ifetch(EMREG.pc4);
+			writeback(mwreg);
+		} else {
+			stall_ifetch();		
+			stall_decode();
+			stall_execute();
+		}
+	}
+	/* OPTIMIZE: do ext in writeback stage? */
+	func ext {
+		any {
+			EMREG.funct3 == LB: return 32'({24{rdata[7]}, rdata[7:0]});
+			EMREG.funct3 == LH: return 32'({16{rdata[15]}, rdata[15:0]});
+			else:             return 32'(rdata);
+		}
+	}
+	func flush_memory {
+		memory_nop();
+		memory.finish();
+	}
+	func stall_memory_req {
+		stall_memory();
+	}
+	proc writeback {
+		func_self csrrw, csrrs, csrrc;
+		wire wb_value[32];
+		wire wb_csr_value[32];
+		
+		wb_csr_value = if(uimm) 32'(MWREG.rs1) else MWREG.rs1_data;
+		wb_value = if(csrrw||csrrs||csrrc) crdata else MWREG.wb_value;
+		any {
+			MWREG.csrrw: csrrw();
+			MWREG.csrrs: csrrs();
+			MWREG.csrrc: csrrc();
+		}
+		if(MWREG.wb) {
+			rv32x_reg32.writea(MWREG.rd, wb_value);
+		}
+
+#ifdef DEBUG
+		if(MWREG.debug_mem_write) {
+			debug_mem_write(MWREG.debug_mem_adrs, MWREG.debug_mem_byteen, MWREG.debug_mem_data);
+		}
+		if(MWREG.debug_wb) {
+			debug_wb(MWREG.rd, wb_value);
+		}
+		debug_retire(MWREG.pc, MWREG.inst);
+#endif
+		finish();
+	}
+	/* TODO: should csr_read be done in decode stage ? */
+	/* REFS: UNPRIVILEGED_ISA_VERSION at p.57 */
+	/* TODO: implement csr read and write behavior */
+	func csrrw {
+		if(MWREG.rd != 5'b00000) {
+			csr_read(MWREG.funct12);
+		}
+		csr_write(MWREG.funct12, wb_csr_value);
+	}
+	func csrrs {
+		csr_read(MWREG.funct12);
+		if(MWREG.rs1 != 5'b00000) {
+			if((wb_csr_value != 0x00000000) && MWREG.rd != 0) {
+				csr_write(MWREG.funct12, (wb_csr_value | 32'(crdata)));
+			}
+		}
+	}
+	func csrrc {
+		csr_read(MWREG.funct12);
+		if(MWREG.rs1 != 5'b00000) {
+			if((wb_csr_value != 0x00000000) && MWREG.rd != 0) {
+				csr_write(MWREG.funct12, (wb_csr_value & 32'(crdata)));
+			}
+		}
+	}
+	alt {
+		flush_memory && trap:	epc = EMREG.pc;
+		flush_execute && trap:	epc = DEREG.pc;
+		flush_decode && trap:	epc = IDREG.pc;
+		flush_ifetch && trap:	epc = PC;
+	}
+#ifdef DEBUG
+	debug_x0  = rv32x_reg32.debug_x0;
+	debug_x1  = rv32x_reg32.debug_x1;
+	debug_x2  = rv32x_reg32.debug_x2;
+	debug_x3  = rv32x_reg32.debug_x3;
+	debug_x4  = rv32x_reg32.debug_x4;
+	debug_x5  = rv32x_reg32.debug_x5;
+	debug_x6  = rv32x_reg32.debug_x6;
+	debug_x7  = rv32x_reg32.debug_x7;
+	debug_x8  = rv32x_reg32.debug_x8;
+	debug_x9  = rv32x_reg32.debug_x9;
+	debug_x10 = rv32x_reg32.debug_x10;
+	debug_x11 = rv32x_reg32.debug_x11;
+	debug_x12 = rv32x_reg32.debug_x12;
+	debug_x13 = rv32x_reg32.debug_x13;
+	debug_x14 = rv32x_reg32.debug_x14;
+	debug_x15 = rv32x_reg32.debug_x15;
+	debug_x16 = rv32x_reg32.debug_x16;
+	debug_x17 = rv32x_reg32.debug_x17;
+	debug_x18 = rv32x_reg32.debug_x18;
+	debug_x19 = rv32x_reg32.debug_x19;
+	debug_x20 = rv32x_reg32.debug_x20;
+	debug_x21 = rv32x_reg32.debug_x21;
+	debug_x22 = rv32x_reg32.debug_x22;
+	debug_x23 = rv32x_reg32.debug_x23;
+	debug_x24 = rv32x_reg32.debug_x24;
+	debug_x25 = rv32x_reg32.debug_x25;
+	debug_x26 = rv32x_reg32.debug_x26;
+	debug_x27 = rv32x_reg32.debug_x27;
+	debug_x28 = rv32x_reg32.debug_x28;
+	debug_x29 = rv32x_reg32.debug_x29;
+	debug_x30 = rv32x_reg32.debug_x30;
+	debug_x31 = rv32x_reg32.debug_x31;
+	debug_pc = PC;
+#endif
+}

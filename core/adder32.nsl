@@ -1,0 +1,9 @@
+#include "adder32.h"
+module adder32 {
+	wire result[33];
+	func exe {
+		result = 33'(a) + 33'(b);
+		cout = result[32];
+		return result[31:0];
+	}
+}

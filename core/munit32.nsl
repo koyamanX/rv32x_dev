@@ -1,0 +1,78 @@
+#include "munit32.h"
+#include "opcode.h"
+#include "div32.h"
+#include "mul32.h"
+#define DIV 1'b1
+#define REM 1'b0
+
+/* TODO: Implement resume and cancel */
+module munit32 {
+	wire s;
+	reg op = 0;
+	div32 div;
+	mul32 mul;
+
+	func reset {
+		div.reset();
+		mul.reset();
+	}
+	func exe {
+		any {
+			fn == ALU_MUL: {
+				op := 1'b1;
+				mul.exe(64#(a), 64#(b));
+			}
+			fn == ALU_MULH: {
+				op := 1'b0;
+				mul.exe(64#(a), 64#(b));
+			}
+			fn == ALU_MULHSU: {
+				op := 1'b0;
+				mul.exe(64#(a), 64'(b));
+			}
+			fn == ALU_MULHU: {
+				op := 1'b0;
+				mul.exe(64'(a), 64'(b));
+			}
+			fn == ALU_DIV: {
+				op := DIV;
+				div.sign();
+				div.exe(a, b);
+			}
+			fn == ALU_DIVU: {
+				op := DIV;
+				div.exe(a, b);
+			}
+			fn == ALU_REM: {
+				op := REM;
+				div.sign();
+				div.exe(a, b);
+			}
+			fn == ALU_REMU: {
+				op := REM;
+				div.exe(a, b);
+			}
+		}
+	}
+	func div.done {
+		if(op == DIV) {
+			q = div.q;	
+			done();
+		} else {
+			q = div.r;
+			done();
+		}
+	}
+	func mul.done {
+		if(op == 1'b1) {
+			q = mul.q[31:0];
+		} else {
+			q = mul.q[63:32];
+		}
+		done();
+	}
+	func div.error {
+		error();
+		done();
+	}
+}

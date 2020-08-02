@@ -1,0 +1,11 @@
+#include "bootrom.h"
+module bootrom {
+	mem rom[4096][8];
+	func reset {
+		_readmemh("bootrom.hex", rom);
+	}
+	func port1_read {
+		port1_rdata = {rom[{port1_radrs[9:2],2'b00}+3], rom[{port1_radrs[9:2],2'b00}+2], rom[{port1_radrs[9:2],2'b00}+1], rom[{port1_radrs[9:2],2'b00}+0]};
+		port1_valid();
+	}
+}

@@ -1,0 +1,84 @@
+#include "icache_unit.h"
+#define MEM_WORD        3'b010
+#define MEM_HALFWORD    3'b001
+#define MEM_BYTE        3'b000
+
+
+module icache_unit {
+	wire tag[21];
+	wire index[7];
+	wire blockoffset[2];
+	wire byteoffset[2];
+	reg cache_valid[128] = 0;
+	mem cache_data[128][128];
+	mem cache_tag[128][21];
+	reg regadrs[32];
+	wire regtag[21];
+	wire regindex[7];
+	wire regblockoffset[2];
+	wire regbyteoffset[2];
+	wire refill_data[128];
+	proc_name idle;
+	proc_name invalidate_cache;
+	proc_name fetch(regadrs);
+	func_self compare_tag;
+	func_self refill(refill_data);
+	func_self hit;
+	func_self miss;
+
+	.{tag, index, blockoffset, byteoffset} = adrs;
+	.{regtag, regindex, regblockoffset, regbyteoffset} = regadrs;
+
+	func reset {
+		idle();
+	}
+	proc idle {
+		if(invalidate) {
+			invalidate_cache();
+		} else if(read) {
+			compare_tag();
+			if(miss) {
+				fetch(adrs);
+			}
+		}
+	}
+	proc invalidate_cache {
+		cache_valid := 0;
+		invalidate_done();
+		idle();
+	}
+	func compare_tag {
+		if((cache_tag[index] == tag) && cache_valid[index]) {
+			hit();
+		} else {
+			miss();
+		}
+	}
+	func hit {
+		wire cdata[128];
+
+		cdata = cache_data[index];
+		any {
+			/* TODO: replace shift with bit concatenation */
+			blockoffset == 2'b00: rdata = (cdata[31:0]>>5'({byteoffset, 3'b000}));
+			blockoffset == 2'b01: rdata = (cdata[63:32]>>5'({byteoffset, 3'b000}));
+			blockoffset == 2'b10: rdata = (cdata[95:64]>>5'({byteoffset, 3'b000}));
+			blockoffset == 2'b11: rdata = (cdata[127:96]>>5'({byteoffset, 3'b000}));
+		}
+		
+		valid();
+	}
+	func refill {
+		cache_data[regindex] := refill_data;
+		cache_tag[regindex] := regtag;
+		cache_valid := cache_valid | (VALID << regindex);
+	}
+	proc fetch {
+		mem_read({regtag, regindex, 4'b0000});
+		if(mem_valid) {
+			refill(mem_rdata);
+			idle();
+		}
+	}
+}
+

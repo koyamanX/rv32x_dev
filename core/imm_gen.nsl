@@ -1,0 +1,19 @@
+#include "imm_gen.h"
+
+module imm_gen {
+	func i_type {
+		return 32#(inst[31:20]);
+	}
+	func s_type {
+		return 32#({inst[31:25], inst[11:7]});
+	}
+	func b_type {
+		return 32#({inst[31], inst[7], inst[30:25], inst[11:8], 1'b0});
+	}
+	func u_type {
+		return 32'({inst[31:12], 12'b000000000000});
+	}
+	func j_type {
+		return 32#({inst[31], inst[19:12], inst[20], inst[30:21], 1'b0});
+	}
+}

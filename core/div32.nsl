@@ -1,0 +1,54 @@
+#include "div32.h"
+
+/* OPTIMIZE: implement with faster algorithm */
+/* OPTIMIZE: implement resume on exe with previous value */
+module div32 {
+	reg remainder[64];
+	reg divisor[32];
+	proc_name idle;
+	proc_name exe_div(remainder, divisor);
+	reg cnt[6];
+	reg a_s;
+	reg b_s;
+	wire sub[33];
+
+	func reset {
+		remainder := 0;
+		divisor := 0;
+		cnt := 0;
+		idle();
+		idle.finish();
+		exe_div.finish();
+	}
+	proc idle {
+		if(exe) {
+			cnt := 0;
+			if(b == 0x00000000) {
+				q = 0xffffffff;
+				r = a;
+				done();
+			} else {
+				exe_div(64'(if(a[31] && sign) -a else a), if(b[31] && sign) -b else b);
+			}
+			a_s := if(sign) a[31] else 1'b0;
+			b_s := if(sign) b[31] else 1'b0;
+		}
+	}
+	proc exe_div {
+		if(cnt == 32) {
+			done();
+			q = if(a_s != b_s) -remainder[31:0] else remainder[31:0];
+			r = if(a_s) -remainder[63:32] else remainder[63:32];
+			idle();
+		} else {
+			cnt++;
+		}
+		sub = 33'(remainder[63:31]) - {1'b0, divisor};
+
+		if(sub[32] == 1'b0) {
+			remainder := {sub[31:0], remainder[30:0], 1'b1};
+		} else {
+			remainder := {remainder[62:0], 1'b0};
+		}
+	}
+}

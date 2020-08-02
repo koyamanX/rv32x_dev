@@ -1,0 +1,328 @@
+#include "rv32x_core.h"
+#include "rv32x5p.h"
+#include "opcode.h"
+#include "priv.h"
+#include "csr.h"
+#include "csr_map.h"
+#include "init_csr.h"
+#include "icache_unit.h"
+#include "dcache_unit.h"
+
+/* TODO: implement all machine-mode CSRs */
+/* TODO: implement exceptions and interrupts */
+
+module rv32x_core {
+	rv32x5p rv32x;							/* 5-stage pipelined processor(single issue, in-order) */
+	icache_unit ic;
+	dcache_unit dc;
+	reg ic_invalidate_done = 0;
+	reg dc_flush_done = 0;
+	reg mode[2];							/* Current execution mode */
+	/* CSRs */
+	mvendorid_t reg mvendorid;
+	marchid_t reg marchid;
+	mimpid_t reg mimpid;
+	mhartid_t reg mhartid;
+	mstatus_t reg mstatus;
+	mtvec_t reg mtvec;
+	mscratch_t reg mscratch;
+	mepc_t reg mepc;
+	mcause_t reg mcause;
+	mtval_t reg mtval;
+	misa_t reg misa;
+	wire cradrs[12];
+	wire cwadrs[12];
+	wire crdata[32];
+	wire cwdata[32];
+	func_self csr_read(cradrs) : crdata;
+	func_self csr_write(cwadrs, cwdata);
+	
+	/* Trap */
+	reg cause[32];
+	reg epc[32];
+	proc_name trap(cause, epc);
+	proc_name trap_ret();
+
+	/* TODO: medeleg, mideleg, mip, mie */
+	/* TODO: mtime, mtimecmp */
+	/* TODO: machine hardware performance monitor */
+	/* TODO: mcounteren, mcountinhibit */
+
+	func reset {
+		/* TODO: set appropriate reset value to CSRs */
+		mode := MACHINE;
+		/* mstatus->MIE = 0;*/
+		/* mstatus->MPRV = 0;*/
+		/* set misa to maximal set of supported extensions,
+			MXLEN to widest bit length
+		*/
+		/* set mcause to indicate RESET */
+		/* writable PMP reg's A and L fields to 0 */
+		rv32x.reset(resetvector);
+		ic.reset();
+		dc.reset();
+	}
+	/* CSR accesses */
+	func rv32x.csr_read {
+		return csr_read(rv32x.cradrs);
+	}
+	func csr_read {
+		any {
+			cradrs == MISA: return misa;
+			cradrs == MVENDORID: return mvendorid;
+			cradrs == MARCHID: return marchid;
+			cradrs == MIMPID: return mimpid;
+			cradrs == MHARTID: return mhartid;
+			cradrs == MSTATUS: return mstatus;
+			cradrs == MTVEC: return mtvec;
+			cradrs == MSCRATCH: return mscratch;
+			cradrs == MEPC: return mepc;
+			cradrs == MCAUSE: return mcause;
+			cradrs == MTVAL: return mtval;
+			else: return 0x00000000;
+		/* 
+			else: illegal_instruction();
+		*/
+		}
+	}
+	func rv32x.csr_write {
+		csr_write(rv32x.cwadrs, rv32x.cwdata);
+	}
+	func csr_write {
+#ifdef DEBUG
+		debug_csr_write(cwadrs, cwdata);
+#endif
+		any {
+			cwadrs == MISA: misa := cwdata;
+			cwadrs == MTVEC: mtvec := cwdata;
+			cwadrs == MEPC: mepc := cwdata;
+			else: ;
+		/* 
+			else: illegal_instruction();
+		*/
+		}
+	}
+	func rv32x.ecall {
+		mode := MACHINE;
+		trap(ENVIRONMENT_CALL_FROM_M_MODE, rv32x.epc);
+		rv32x.stall_ifetch_req();
+		rv32x.stall_decode_req();
+		rv32x.flush_ifetch();
+		rv32x.flush_decode();
+#ifdef DEBUG
+		//debug_raise_exception(ENVIRONMENT_CALL_FROM_M_MODE, rv32x.epc);
+#endif
+	}
+	func rv32x.mret {
+		mode := MACHINE;
+		trap_ret();
+		rv32x.stall_ifetch_req();
+		rv32x.stall_decode_req();
+		rv32x.flush_ifetch();
+		rv32x.flush_decode();
+	}
+	proc trap_ret {
+		state_name trap_ret_s0, trap_ret_s1, trap_ret_s2;
+
+		/* 
+			Flush all possible CSRW* instruction from pipeline 
+			?ret instructions are issued in execute stage, so we just wait
+			two clocks for all possible CSRW* instrucitons in memory and writeback stages
+			to retire.
+			OPTIMIZE: we may forward CSRW operation in memory and writeback while issuing ?ret
+		*/
+		state trap_ret_s0 {
+			rv32x.stall_ifetch_req();
+			goto trap_ret_s1;
+		}
+		state trap_ret_s1 {
+			rv32x.stall_ifetch_req();
+			goto trap_ret_s2;
+		}
+		state trap_ret_s2 {
+			rv32x.stall_ifetch_req();
+			rv32x.trap(mepc);
+			finish();
+			goto trap_ret_s0;
+		}
+	}
+	proc trap {
+		state_name trap_s0, trap_s1, trap_s2;
+		wire v[32];
+
+		/* 
+			Flush all possible CSRW* instruction from pipeline 
+			ecall instructions are issued in execute stage, so we just wait
+			two clocks for all possible CSRW* instrucitons in memory and writeback stages
+			to retire.
+			OPTIMIZE: we may forward CSRW operation in memory and writeback while issuing ecall
+		*/
+		state trap_s0 {
+			rv32x.stall_ifetch_req();
+			goto trap_s1;	
+		}
+		state trap_s1 {
+			rv32x.stall_ifetch_req();
+			goto trap_s2;	
+		}
+		state trap_s2 {
+			any {
+				mtvec.mode == 2'b00:	v = {mtvec.base, 2'b00};
+				mtvec.mode == 2'b01:	v = {mtvec.base, 2'b00}+{cause[30:0], 1'b0};
+			}
+			mcause := cause;
+			mepc := epc;
+			rv32x.stall_ifetch_req();
+			rv32x.trap(v);
+			finish();
+			goto trap_s0;
+		}
+	}
+	/* fence.i */
+	func rv32x.fencei {
+		if(!ic_invalidate_done) {
+			ic.invalidate();
+		}
+		if(!dc_flush_done) {
+			dc.flush();
+		}
+		if(dc_flush_done && ic_invalidate_done) {
+			ic_invalidate_done := 0;
+			dc_flush_done := 0;
+			rv32x.dmem_valid();
+		}
+	}
+	func ic.invalidate_done {
+		ic_invalidate_done := 1;
+	}
+	func dc.flush_done {
+		dc_flush_done := 1;
+	}
+	func ic.mem_read {
+		reg ic_read_cnt[3] = 0;
+		mem ic_read_data[4][32];
+		
+		imem_read({ic.mem_adrs[31:4], 4'({ic_read_cnt, 2'b00})}, MEM_WORD);
+		if(ic_read_cnt == 4) {
+			if(imem_valid) {
+				ic_read_cnt := 0;
+				ic.mem_rdata = {ic_read_data[3], ic_read_data[2], ic_read_data[1], ic_read_data[0]};
+				ic.mem_valid();
+			}
+		} else {
+			if(imem_valid) {
+				ic_read_cnt++;
+				ic_read_data[ic_read_cnt] := inst;
+			}
+		}
+	}
+	func rv32x.imem_read {
+		ic.read(rv32x.iaddr);
+	}
+	func ic.valid {
+		rv32x.inst = ic.rdata;
+		rv32x.imem_valid();
+	}
+	func rv32x.dmem_read {
+		dc.read(rv32x.daddr, rv32x.dbyteen);
+	}
+	func dc.mem_read {
+		reg dc_read_cnt[3] = 0;
+		mem dc_read_data[4][32];
+
+		dmem_read({dc.mem_adrs[31:4], 4'({dc_read_cnt, 2'b00})}, MEM_WORD);
+		if(dc_read_cnt == 4) {
+			if(dmem_valid) {
+				dc_read_cnt := 0;
+				dc.mem_rdata = {dc_read_data[3], dc_read_data[2], dc_read_data[1], dc_read_data[0]};
+				dc.mem_valid();
+			}
+		} else {
+			if(dmem_valid) {
+				dc_read_cnt++;
+				dc_read_data[dc_read_cnt] := rdata;
+			}
+		}
+	}
+	func rv32x.dmem_write {
+		dc.write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
+#ifdef DEBUG
+		if(rv32x.daddr == 0x80001000)
+			sim_done(rv32x.wdata);
+#endif
+	}
+	func dc.mem_write {
+		reg dc_write_cnt[3] = 0;
+		mem dc_write_data[4][32];
+		
+		dmem_write({dc.mem_adrs[31:4], 4'({dc_write_cnt, 2'b00})}, MEM_WORD, dc_write_data[dc_write_cnt]);
+		any {
+			dc_write_cnt == 0: {
+				dc_write_data[0] := dc.mem_wdata[31:0];
+				dc_write_data[1] := dc.mem_wdata[63:32];
+				dc_write_data[2] := dc.mem_wdata[95:64];
+				dc_write_data[3] := dc.mem_wdata[127:96];
+				dc_write_cnt++;
+			}
+			dc_write_cnt == 4: {
+				if(dmem_valid) {
+					dc_write_cnt := 0;
+					dc.mem_valid();
+				}
+			}
+			else: {
+				if(dmem_valid) {
+					dc_write_cnt++;
+				}
+			}
+		}
+	}
+	func dc.valid {
+		rv32x.rdata = dc.rdata;
+		rv32x.dmem_valid();
+	}
+#ifdef DEBUG
+	debug_x0  = rv32x.debug_x0;
+	debug_x1  = rv32x.debug_x1;
+	debug_x2  = rv32x.debug_x2;
+	debug_x3  = rv32x.debug_x3;
+	debug_x4  = rv32x.debug_x4;
+	debug_x5  = rv32x.debug_x5;
+	debug_x6  = rv32x.debug_x6;
+	debug_x7  = rv32x.debug_x7;
+	debug_x8  = rv32x.debug_x8;
+	debug_x9  = rv32x.debug_x9;
+	debug_x10 = rv32x.debug_x10;
+	debug_x11 = rv32x.debug_x11;
+	debug_x12 = rv32x.debug_x12;
+	debug_x13 = rv32x.debug_x13;
+	debug_x14 = rv32x.debug_x14;
+	debug_x15 = rv32x.debug_x15;
+	debug_x16 = rv32x.debug_x16;
+	debug_x17 = rv32x.debug_x17;
+	debug_x18 = rv32x.debug_x18;
+	debug_x19 = rv32x.debug_x19;
+	debug_x20 = rv32x.debug_x20;
+	debug_x21 = rv32x.debug_x21;
+	debug_x22 = rv32x.debug_x22;
+	debug_x23 = rv32x.debug_x23;
+	debug_x24 = rv32x.debug_x24;
+	debug_x25 = rv32x.debug_x25;
+	debug_x26 = rv32x.debug_x26;
+	debug_x27 = rv32x.debug_x27;
+	debug_x28 = rv32x.debug_x28;
+	debug_x29 = rv32x.debug_x29;
+	debug_x30 = rv32x.debug_x30;
+	debug_x31 = rv32x.debug_x31;
+	debug_pc = rv32x.debug_pc;
+	func rv32x.debug_retire {
+		debug_retire(rv32x.debug_retire_pc, rv32x.debug_retire_inst);
+	}
+	func rv32x.debug_wb {
+		debug_wb(rv32x.debug_wb_rd, rv32x.debug_wb_data);
+	}
+	func rv32x.debug_mem_write {
+		debug_mem_write(rv32x.debug_mem_adrs, rv32x.debug_mem_byteen, rv32x.debug_mem_data);
+	}
+#endif
+}

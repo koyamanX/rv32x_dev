@@ -1,0 +1,10 @@
+#include "inc32.h"
+#include "adder32.h"
+
+module inc32 {
+	adder32 adder;
+
+	func exe {
+		return adder.exe(a, 0x00000004);
+	}
+}

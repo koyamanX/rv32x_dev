@@ -1,0 +1,17 @@
+#include "shifter32.h"
+
+module shifter32 {
+	func exe {
+		wire ext_a[64];
+
+		ext_a = 64#(a);
+		if(c == SHIFTER_SL) {
+			return a << b;
+		} else if(c == SHIFTER_SR && flag) {
+			return ext_a >> b;
+		} else if(c == SHIFTER_SR && !flag) {
+			return a >> b;
+		}
+	}
+}
+

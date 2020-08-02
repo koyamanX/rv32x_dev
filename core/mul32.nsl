@@ -1,0 +1,31 @@
+#include "mul32.h"
+module mul32 {
+	wire z[64];
+	reg x[64];
+	reg y[64];
+	reg o[64];
+	proc_name idle();
+	proc_name calc(x, y);
+
+	/* infer multiplier with two clocks latency with pipeline 
+		however, does not use pipelining with this module  
+	*/
+	func reset {
+		idle();
+		calc.finish();
+	}
+	proc idle {
+		if(exe) {
+			calc(a, b);	
+		}
+	}
+	z = x * y;
+	proc calc seq {
+		o := z;
+		{
+			q = o;
+			idle();
+			done();
+		}
+	}
+}

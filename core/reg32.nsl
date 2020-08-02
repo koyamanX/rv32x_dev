@@ -1,0 +1,191 @@
+#include "reg32.h"
+
+module reg32 {
+	// reg x0[32];
+	/* TODO: infer dual-port block ram for implementating on FPGA */
+	reg x1[32];
+	reg x2[32];
+	reg x3[32];
+	reg x4[32];
+	reg x5[32];
+	reg x6[32];
+	reg x7[32];
+	reg x8[32];
+	reg x9[32];
+	reg x10[32];
+	reg x11[32];
+	reg x12[32];
+	reg x13[32];
+	reg x14[32];
+	reg x15[32];
+	reg x16[32];
+	reg x17[32];
+	reg x18[32];
+	reg x19[32];
+	reg x20[32];
+	reg x21[32];
+	reg x22[32];
+	reg x23[32];
+	reg x24[32];
+	reg x25[32];
+	reg x26[32];
+	reg x27[32];
+	reg x28[32];
+	reg x29[32];
+	reg x30[32];
+	reg x31[32];
+	wire ra[32];
+	wire rb[32];
+	func_self forward_a;
+	func_self forward_b;
+
+	func reada {
+		any {
+			(rnuma == 5'b00000): return 32'b0;
+			(rnuma == 5'b00001): ra = x1;
+			(rnuma == 5'b00010): ra = x2;
+			(rnuma == 5'b00011): ra = x3;
+			(rnuma == 5'b00100): ra = x4;
+			(rnuma == 5'b00101): ra = x5;
+			(rnuma == 5'b00110): ra = x6;
+			(rnuma == 5'b00111): ra = x7;
+			(rnuma == 5'b01000): ra = x8;
+			(rnuma == 5'b01001): ra = x9;
+			(rnuma == 5'b01010): ra = x10;
+			(rnuma == 5'b01011): ra = x11;
+			(rnuma == 5'b01100): ra = x12;
+			(rnuma == 5'b01101): ra = x13;
+			(rnuma == 5'b01110): ra = x14;
+			(rnuma == 5'b01111): ra = x15;
+			(rnuma == 5'b10000): ra = x16;
+			(rnuma == 5'b10001): ra = x17;
+			(rnuma == 5'b10010): ra = x18;
+			(rnuma == 5'b10011): ra = x19;
+			(rnuma == 5'b10100): ra = x20;
+			(rnuma == 5'b10101): ra = x21;
+			(rnuma == 5'b10110): ra = x22;
+			(rnuma == 5'b10111): ra = x23;
+			(rnuma == 5'b11000): ra = x24;
+			(rnuma == 5'b11001): ra = x25;
+			(rnuma == 5'b11010): ra = x26;
+			(rnuma == 5'b11011): ra = x27;
+			(rnuma == 5'b11100): ra = x28;
+			(rnuma == 5'b11101): ra = x29;
+			(rnuma == 5'b11110): ra = x30;
+			(rnuma == 5'b11111): ra = x31;
+		}
+		return if(forward_a) wdataa else ra;
+	}
+	func readb {
+		any {
+			(rnumb == 5'b00000): return 32'b0;
+			(rnumb == 5'b00001): rb = x1;
+			(rnumb == 5'b00010): rb = x2;
+			(rnumb == 5'b00011): rb = x3;
+			(rnumb == 5'b00100): rb = x4;
+			(rnumb == 5'b00101): rb = x5;
+			(rnumb == 5'b00110): rb = x6;
+			(rnumb == 5'b00111): rb = x7;
+			(rnumb == 5'b01000): rb = x8;
+			(rnumb == 5'b01001): rb = x9;
+			(rnumb == 5'b01010): rb = x10;
+			(rnumb == 5'b01011): rb = x11;
+			(rnumb == 5'b01100): rb = x12;
+			(rnumb == 5'b01101): rb = x13;
+			(rnumb == 5'b01110): rb = x14;
+			(rnumb == 5'b01111): rb = x15;
+			(rnumb == 5'b10000): rb = x16;
+			(rnumb == 5'b10001): rb = x17;
+			(rnumb == 5'b10010): rb = x18;
+			(rnumb == 5'b10011): rb = x19;
+			(rnumb == 5'b10100): rb = x20;
+			(rnumb == 5'b10101): rb = x21;
+			(rnumb == 5'b10110): rb = x22;
+			(rnumb == 5'b10111): rb = x23;
+			(rnumb == 5'b11000): rb = x24;
+			(rnumb == 5'b11001): rb = x25;
+			(rnumb == 5'b11010): rb = x26;
+			(rnumb == 5'b11011): rb = x27;
+			(rnumb == 5'b11100): rb = x28;
+			(rnumb == 5'b11101): rb = x29;
+			(rnumb == 5'b11110): rb = x30;
+			(rnumb == 5'b11111): rb = x31;
+		}
+		return if(forward_b) wdataa else rb;
+	}
+	func writea {
+		if(wnuma == rnuma && rnuma != 5'b00000) forward_a();
+		if(wnuma == rnumb && rnumb != 5'b00000) forward_b();
+		any {
+			(wnuma == 5'b00000): ; 
+			(wnuma == 5'b00001): x1 := wdataa;
+			(wnuma == 5'b00010): x2 := wdataa;
+			(wnuma == 5'b00011): x3 := wdataa;
+			(wnuma == 5'b00100): x4 := wdataa;
+			(wnuma == 5'b00101): x5 := wdataa;
+			(wnuma == 5'b00110): x6 := wdataa;
+			(wnuma == 5'b00111): x7 := wdataa;
+			(wnuma == 5'b01000): x8 := wdataa;
+			(wnuma == 5'b01001): x9 := wdataa;
+			(wnuma == 5'b01010): x10 := wdataa;
+			(wnuma == 5'b01011): x11 := wdataa;
+			(wnuma == 5'b01100): x12 := wdataa;
+			(wnuma == 5'b01101): x13 := wdataa;
+			(wnuma == 5'b01110): x14 := wdataa;
+			(wnuma == 5'b01111): x15 := wdataa;
+			(wnuma == 5'b10000): x16 := wdataa;
+			(wnuma == 5'b10001): x17 := wdataa;
+			(wnuma == 5'b10010): x18 := wdataa;
+			(wnuma == 5'b10011): x19 := wdataa;
+			(wnuma == 5'b10100): x20 := wdataa;
+			(wnuma == 5'b10101): x21 := wdataa;
+			(wnuma == 5'b10110): x22 := wdataa;
+			(wnuma == 5'b10111): x23 := wdataa;
+			(wnuma == 5'b11000): x24 := wdataa;
+			(wnuma == 5'b11001): x25 := wdataa;
+			(wnuma == 5'b11010): x26 := wdataa;
+			(wnuma == 5'b11011): x27 := wdataa;
+			(wnuma == 5'b11100): x28 := wdataa;
+			(wnuma == 5'b11101): x29 := wdataa;
+			(wnuma == 5'b11110): x30 := wdataa;
+			(wnuma == 5'b11111): x31 := wdataa;
+		}
+	}
+
+#ifdef DEBUG	
+	debug_x0  = 0x00000000;
+	debug_x1  = x1;
+	debug_x2  = x2;
+	debug_x3  = x3;
+	debug_x4  = x4;
+	debug_x5  = x5;
+	debug_x6  = x6;
+	debug_x7  = x7;
+	debug_x8  = x8;
+	debug_x9  = x9;
+	debug_x10 = x10;
+	debug_x11 = x11;
+	debug_x12 = x12;
+	debug_x13 = x13;
+	debug_x14 = x14;
+	debug_x15 = x15;
+	debug_x16 = x16;
+	debug_x17 = x17;
+	debug_x18 = x18;
+	debug_x19 = x19;
+	debug_x20 = x20;
+	debug_x21 = x21;
+	debug_x22 = x22;
+	debug_x23 = x23;
+	debug_x24 = x24;
+	debug_x25 = x25;
+	debug_x26 = x26;
+	debug_x27 = x27;
+	debug_x28 = x28;
+	debug_x29 = x29;
+	debug_x30 = x30;
+	debug_x31 = x31;
+#endif
+
+}
+

@@ -1,0 +1,106 @@
+#include "uart_receiver.h"
+module uart_receiver {
+	reg cnt[32] = 0;
+	uart_rx_stat_t reg status;
+	proc_name idle;
+	proc_name receive_start_bit;
+	proc_name receive_data_bit;
+	proc_name receive_stop_bit;	
+	reg x0 = 0;
+	reg x1 = 0;
+	reg rxd = 0;
+	reg clk_cnt[3] = 0;
+	reg buffer[8];
+	reg readbuffer[8];
+	reg idx[3] = 0;
+
+	x0 := RXD;
+	x1 := x0;
+	rxd := x1;
+	
+	func reset {
+		status := 0;
+		idle();
+	}
+	proc idle {
+		if(!status.busy && status.en && ~rxd) {
+			status.busy := 1;
+			receive_start_bit();	
+		}
+	}
+	proc receive_start_bit {
+		if(cnt == RX_BAUD_RATE_CNT) {
+			cnt := 0;
+			if(clk_cnt == 3) {
+				if(rxd == 1) {
+					clk_cnt := 0;
+					status.busy := 0;
+					idle();
+				} else {
+					clk_cnt++;
+				}
+			} else if(clk_cnt == 7) {
+				clk_cnt := 0;
+				receive_data_bit();
+			} else {
+				clk_cnt++;
+			}
+		} else {
+			cnt++;
+		}
+	}
+	proc receive_data_bit {
+		if(cnt == RX_BAUD_RATE_CNT) {
+			cnt := 0;
+			if(clk_cnt == 3) {
+				buffer := {rxd, buffer[7:1]};
+				clk_cnt++;
+			} else if(clk_cnt == 7) {
+				clk_cnt := 0;
+				if(idx == 7) {
+					idx := 0;
+					receive_stop_bit();
+				} else {
+					idx++;
+				}
+			} else {
+				clk_cnt++;
+			}
+		} else {
+			cnt++;
+		}
+
+	}
+	proc receive_stop_bit {
+		if(cnt == RX_BAUD_RATE_CNT) {
+			cnt := 0;
+			if(clk_cnt == 7) {
+				clk_cnt := 0;
+				rdata = buffer;
+				readbuffer := buffer;
+				status.busy := 0;
+				idle();
+				done();
+			} else {
+				clk_cnt++;
+			}
+		} else {
+			cnt++;
+		}
+
+	}
+	func read {
+		any {
+			adrs == 0x0: return readbuffer;
+			adrs == 0x4: return status;
+		}
+		valid();
+	}
+	func write {
+		any {
+			adrs == 0x0: ;
+			adrs == 0x4: status := (data & 0x01)[7:0];
+		}
+		valid();
+	}
+}
