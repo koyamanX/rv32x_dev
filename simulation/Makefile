@@ -18,6 +18,7 @@ RISCV_INSTALL_DIR=/opt/riscv/x86_64-pc-linux-gnu/riscv32-elflittle
 
 all:$(TOP)
 run_riscv_tests: $(TOP)
+	make -C ../software/riscv-tests/isa XLEN=32
 	./run_riscv_tests.sh
 out/%.v: ../integration/%.nsl 
 	if [ ! -d out ]; then \
