@@ -63,10 +63,6 @@ struct emreg_t {
 	load;
 	store;
 	alu_q[32];
-	csrrw;
-	csrrs;
-	csrrc;
-	uimm;
 	fencei;
 	fence;
 	wb;
@@ -85,10 +81,6 @@ struct mwreg_t {
 	store;
 	alu_q[32];
 	wb_value[32];
-	csrrw;
-	csrrs;
-	csrrc;
-	uimm;
 	wb;
 #ifdef DEBUG
 	debug_mem_write;
