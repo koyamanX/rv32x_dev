@@ -263,6 +263,9 @@ module rv32x5p {
 		alu32 rv32x_alu32;
 		func_self taken;
 		func_self condcheck;
+		func_self csrrw;
+		func_self csrrs;
+		func_self csrrc;
 		wire alu_q[32];
 		wire forwarded_alu_a[32];
 		wire forwarded_alu_b[32];
@@ -281,11 +284,7 @@ module rv32x5p {
 		emreg.rs2_data = if(DEREG.store) if(DEREG.rs2 == MWREG.rd) MWREG.wb_value else DEREG.rs2_data else execute_alu_b;	
 		emreg.load = if(execute_nop) 1'b0 else DEREG.load;
 		emreg.store = if(execute_nop) 1'b0 else DEREG.store;
-		emreg.alu_q = if(DEREG.jump) DEREG.pc4 else alu_q;		/* address for link register */
-		emreg.csrrw = DEREG.csrrw;
-		emreg.csrrc = DEREG.csrrc;
-		emreg.csrrs = DEREG.csrrs;
-		emreg.uimm = DEREG.uimm;
+		emreg.alu_q = if(DEREG.jump) DEREG.pc4 else if(DEREG.csrrw || DEREG.csrrc || DEREG.csrrs) crdata else alu_q;		/* address for link register */
 		emreg.fencei = DEREG.fencei;
 		emreg.fence = DEREG.fence;
 		emreg.wb = if(execute_nop) 1'b0 else DEREG.wb;
@@ -320,6 +319,15 @@ module rv32x5p {
 			}
 			if(DEREG.uret) {
 				uret();
+			}
+			if(DEREG.csrrw) {
+				csrrw();
+			}
+			if(DEREG.csrrs) {
+				csrrs();
+			}
+			if(DEREG.csrrc) {
+				csrrc();
 			}
 			if(taken && !stall_execute) {		
 				stall_ifetch();				
@@ -363,6 +371,31 @@ module rv32x5p {
 			(DEREG.bgeu & ~lt): taken();
 		}
 	} 
+	/* TODO: should csr_read be done in decode stage ? */
+	/* REFS: UNPRIVILEGED_ISA_VERSION at p.57 */
+	/* TODO: implement csr read and write behavior */
+	func csrrw {
+		if(DEREG.rd != 5'b00000) {
+			csr_read(DEREG.funct12);
+		}
+		csr_write(DEREG.funct12, execute_alu_a);
+	}
+	func csrrs {
+		csr_read(DEREG.funct12);
+		if(DEREG.rs1 != 5'b00000) {
+			if((execute_alu_a != 0x00000000) && DEREG.rd != 0) {
+				csr_write(DEREG.funct12, (execute_alu_a | 32'(crdata)));
+			}
+		}
+	}
+	func csrrc {
+		csr_read(DEREG.funct12);
+		if(DEREG.rs1 != 5'b00000) {
+			if((execute_alu_a != 0x00000000) && DEREG.rd != 0) {
+				csr_write(DEREG.funct12, (execute_alu_a & 32'(crdata)));
+			}
+		}
+	}
 	func flush_execute {
 		execute.finish();
 		execute_nop();
@@ -392,10 +425,6 @@ module rv32x5p {
 		mwreg.store = EMREG.store;
 		mwreg.alu_q = EMREG.alu_q;
 		mwreg.wb_value = if(EMREG.load) loaded_value else EMREG.alu_q;
-		mwreg.csrrw = EMREG.csrrw;
-		mwreg.csrrs = EMREG.csrrs;
-		mwreg.csrrc = EMREG.csrrc;
-		mwreg.uimm = EMREG.uimm;
 		mwreg.wb = EMREG.wb;
 
 		mem_byteen = {1'b0, EMREG.funct3[1:0]};
@@ -445,17 +474,10 @@ module rv32x5p {
 		stall_memory();
 	}
 	proc writeback {
-		func_self csrrw, csrrs, csrrc;
 		wire wb_value[32];
 		wire wb_csr_value[32];
 		
-		wb_csr_value = if(uimm) 32'(MWREG.rs1) else MWREG.rs1_data;
-		wb_value = if(csrrw||csrrs||csrrc) crdata else MWREG.wb_value;
-		any {
-			MWREG.csrrw: csrrw();
-			MWREG.csrrs: csrrs();
-			MWREG.csrrc: csrrc();
-		}
+		wb_value = MWREG.wb_value;
 		if(MWREG.wb) {
 			rv32x_reg32.writea(MWREG.rd, wb_value);
 		}
@@ -470,31 +492,6 @@ module rv32x5p {
 		debug_retire(MWREG.pc, MWREG.inst);
 #endif
 		finish();
-	}
-	/* TODO: should csr_read be done in decode stage ? */
-	/* REFS: UNPRIVILEGED_ISA_VERSION at p.57 */
-	/* TODO: implement csr read and write behavior */
-	func csrrw {
-		if(MWREG.rd != 5'b00000) {
-			csr_read(MWREG.funct12);
-		}
-		csr_write(MWREG.funct12, wb_csr_value);
-	}
-	func csrrs {
-		csr_read(MWREG.funct12);
-		if(MWREG.rs1 != 5'b00000) {
-			if((wb_csr_value != 0x00000000) && MWREG.rd != 0) {
-				csr_write(MWREG.funct12, (wb_csr_value | 32'(crdata)));
-			}
-		}
-	}
-	func csrrc {
-		csr_read(MWREG.funct12);
-		if(MWREG.rs1 != 5'b00000) {
-			if((wb_csr_value != 0x00000000) && MWREG.rd != 0) {
-				csr_write(MWREG.funct12, (wb_csr_value & 32'(crdata)));
-			}
-		}
 	}
 	alt {
 		flush_memory && trap:	epc = EMREG.pc;

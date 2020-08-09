@@ -122,61 +122,22 @@ module rv32x_core {
 		rv32x.flush_decode();
 	}
 	proc trap_ret {
-		state_name trap_ret_s0, trap_ret_s1, trap_ret_s2;
-
-		/* 
-			Flush all possible CSRW* instruction from pipeline 
-			?ret instructions are issued in execute stage, so we just wait
-			two clocks for all possible CSRW* instrucitons in memory and writeback stages
-			to retire.
-			OPTIMIZE: we may forward CSRW operation in memory and writeback while issuing ?ret
-		*/
-		state trap_ret_s0 {
-			rv32x.stall_ifetch_req();
-			goto trap_ret_s1;
-		}
-		state trap_ret_s1 {
-			rv32x.stall_ifetch_req();
-			goto trap_ret_s2;
-		}
-		state trap_ret_s2 {
-			rv32x.stall_ifetch_req();
-			rv32x.trap(mepc);
-			finish();
-			goto trap_ret_s0;
-		}
+		rv32x.stall_ifetch_req();
+		rv32x.trap(mepc);
+		finish();
 	}
 	proc trap {
-		state_name trap_s0, trap_s1, trap_s2;
 		wire v[32];
 
-		/* 
-			Flush all possible CSRW* instruction from pipeline 
-			ecall instructions are issued in execute stage, so we just wait
-			two clocks for all possible CSRW* instrucitons in memory and writeback stages
-			to retire.
-			OPTIMIZE: we may forward CSRW operation in memory and writeback while issuing ecall
-		*/
-		state trap_s0 {
-			rv32x.stall_ifetch_req();
-			goto trap_s1;	
+		any {
+			mtvec.mode == 2'b00:	v = {mtvec.base, 2'b00};
+			mtvec.mode == 2'b01:	v = {mtvec.base, 2'b00}+{cause[30:0], 1'b0};
 		}
-		state trap_s1 {
-			rv32x.stall_ifetch_req();
-			goto trap_s2;	
-		}
-		state trap_s2 {
-			any {
-				mtvec.mode == 2'b00:	v = {mtvec.base, 2'b00};
-				mtvec.mode == 2'b01:	v = {mtvec.base, 2'b00}+{cause[30:0], 1'b0};
-			}
-			mcause := cause;
-			mepc := epc;
-			rv32x.stall_ifetch_req();
-			rv32x.trap(v);
-			finish();
-			goto trap_s0;
-		}
+		mcause := cause;
+		mepc := epc;
+		rv32x.stall_ifetch_req();
+		rv32x.trap(v);
+		finish();
 	}
 	/* fence.i */
 	func rv32x.fencei {
