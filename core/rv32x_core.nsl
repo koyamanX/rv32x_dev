@@ -49,6 +49,8 @@ module rv32x_core {
 	/* TODO: mcounteren, mcountinhibit */
 
 	func reset {
+		wire resetvector[32];
+
 		/* TODO: set appropriate reset value to CSRs */
 		mode := MACHINE;
 		/* mstatus->MIE = 0;*/
@@ -58,6 +60,13 @@ module rv32x_core {
 		*/
 		/* set mcause to indicate RESET */
 		/* writable PMP reg's A and L fields to 0 */
+
+		mtvec := INIT_MTVEC;
+		mcause := RESET;
+		any {
+			mtvec.mode == 2'b00:	resetvector = {mtvec.base, 2'b00};
+			mtvec.mode == 2'b01:	resetvector = {mtvec.base, 2'b00}+{mcause.exception_code, 1'b0};
+		}
 		rv32x.reset(resetvector);
 		ic.reset();
 		dc.reset();

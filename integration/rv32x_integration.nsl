@@ -9,7 +9,7 @@ module rv32x_integration {
 	bootrom rom;
 
 	func reset {
-		rv32x.reset(resetvector);
+		rv32x.reset();
 		rom.reset();
 	}
 	func dmem_valid {
