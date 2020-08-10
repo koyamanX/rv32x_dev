@@ -54,7 +54,6 @@ module rv32x_mcore {
 	func reset {
 		wire resetvector[32];
 
-		/* TODO: set appropriate reset value to CSRs */
 		mode := MACHINE;
 		mstatus.mie := 0;
 		mstatus.mprv := 0;
