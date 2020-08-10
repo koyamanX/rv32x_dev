@@ -1,4 +1,4 @@
-#include "rv32x_core.h"
+#include "rv32x_mcore.h"
 #include "rv32x5p.h"
 #include "opcode.h"
 #include "priv.h"
@@ -11,7 +11,7 @@
 /* TODO: implement all machine-mode CSRs */
 /* TODO: implement exceptions and interrupts */
 
-module rv32x_core {
+module rv32x_mcore {
 	rv32x5p rv32x;							/* 5-stage pipelined processor(single issue, in-order) */
 	icache_unit ic;
 	dcache_unit dc;

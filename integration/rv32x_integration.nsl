@@ -1,11 +1,11 @@
 #include "rv32x_integration.h"
-#include "rv32x_core.h"
+#include "rv32x_mcore.h"
 #include "opcode.h"
 #include "bootrom.h"
 #include "memory_map.h"
 
 module rv32x_integration {
-	rv32x_core rv32x;
+	rv32x_mcore rv32x;
 	bootrom rom;
 
 	func reset {
