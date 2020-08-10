@@ -230,24 +230,25 @@ module rv32x5p {
 			rv32x_inst_dec.funct3 == CSRRCI:	{system_csrrc(); uimm();}	
 			rv32x_inst_dec.funct3 == CSRRSI:	{system_csrrs(); uimm();}
 			rv32x_inst_dec.funct3 == PRIV:		system_priv();
-			/* TODO: else: illigal_instruction */
+			else: decode_illegal_instruction();
 		}
 	}
 	func system_priv {
 		any {
-			/* TODO: make sure rd&rs1==00000 */
 			rv32x_inst_dec.funct12 == ECALL:	{system_ecall();}
-			/* TODO: */
 			rv32x_inst_dec.funct12 == EBREAK:	{system_ebreak();}
 			rv32x_inst_dec.funct12 == MRET:		{system_mret();}
 			rv32x_inst_dec.funct12 == SRET:		{system_sret();}
 			rv32x_inst_dec.funct12 == URET:		{system_uret();}
 			/* TODO: */
 			rv32x_inst_dec.funct12 == WFI:		{system_wfi(); nop();}
-			/* TODO: else: illigal_instruction */
+			else: decode_illegal_instruction();
 		}
-		/* set rd feild to zero */
-		decode_nop();
+
+		any {
+			(rv32x_inst_dec.rs1 != 5'b00000)	
+				|| (rv32x_inst_dec.rd != 5'b00000): decode_illegal_instruction();
+		}
 	}
 	func load_interlock {	
 		stall_ifetch();			
