@@ -31,6 +31,8 @@ module rv32x_mcore {
 	reg epc[32];
 	proc_name trap(cause, epc);
 	proc_name trap_ret();
+	/* Interrupt */
+	func_self interrupt();
 
 	/* CSRs */
 	mvendorid_t reg mvendorid		= 0;
@@ -54,10 +56,6 @@ module rv32x_mcore {
 	func reset {
 		wire resetvector[32];
 
-		rv32x.reset(resetvector);
-		ic.reset();
-		dc.reset();
-
 		mode 						:= MACHINE;
 		mstatus.mie 				:= 0;
 		mstatus.mprv 				:= 0;
@@ -66,11 +64,10 @@ module rv32x_mcore {
 		mcause 						:= RESET;
 		mtvec 						:= INIT_MTVEC;
 
-		any {
-			mtvec.mode == 2'b00:	resetvector = {mtvec.base, 2'b00};
-			mtvec.mode == 2'b01:	resetvector = {mtvec.base, 2'b00}
-										+{mcause.exception_code, 1'b0};
-		}
+		ic.reset();
+		dc.reset();
+		resetvector = {mtvec.base, 2'b00};	/* Shynchronous execption(RESET) */
+		rv32x.reset(resetvector);
 	}
 	/* CSR accesses */
 	func rv32x.csr_read {
@@ -140,9 +137,10 @@ module rv32x_mcore {
 		wire v[32];
 
 		any {
-			mtvec.mode == 2'b00:	v = {mtvec.base, 2'b00};
-			mtvec.mode == 2'b01:	v = {mtvec.base, 2'b00}
-										+{cause[30:0], 1'b0};
+			mtvec.mode == 2'b00 && !interrupt: v = {mtvec.base, 2'b00};
+			mtvec.mode == 2'b01 && !interrupt: v = {mtvec.base, 2'b00};
+			mtvec.mode == 2'b01 && interrupt:  v = {mtvec.base, 2'b00}
+														+{cause[30:0], 2'b00};
 		}
 		mcause := cause;
 		mepc := epc;
