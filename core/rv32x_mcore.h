@@ -1,15 +1,14 @@
-#ifndef RV32X_CORE_H
-#define RV32X_CORE_H
-declare rv32x_core {
+#ifndef RV32X_MCORE_H
+#define RV32X_MCORE_H
+declare rv32x_mcore {
 	input inst[32];
 	input rdata[32];
-	input resetvector[32];
 	output wdata[32];
 	output daddr[32];
 	output iaddr[32];
 	output ibyteen[3];
 	output dbyteen[3];
-	func_in reset(resetvector);
+	func_in reset();
 	func_in dmem_valid;
 	func_in imem_valid;
 	func_out imem_read(iaddr, ibyteen);  /* When data is ready on 'inst', imem_valid is asserted */

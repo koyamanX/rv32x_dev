@@ -83,52 +83,52 @@
 
 
 struct csr32_t {
-	ATTRIBUTE_NONE v[32];
+	v[32];
 };
 struct csr64_t {
-	ATTRIBUTE_NONE v[64];
+	v[64];
 };
 /* CSRs structures */
 struct misa_t {
-	ATTRIBUTE_WARL mxl[2];
-	ATTRIBUTE_WLRL reserved0[4];
-	ATTRIBUTE_WARL extensions[26];
+	mxl[2];
+	reserved0[4];
+	extensions[26];
 };
 struct mvendorid_t {
-	ATTRIBUTE_RDONLY bank[25];
-	ATTRIBUTE_RDONLY offset[7];
+	bank[25];
+	offset[7];
 };
 struct marchid_t {
-	ATTRIBUTE_RDONLY architecture_id[32];
+	architecture_id[32];
 };
 struct mimpid_t {
-	ATTRIBUTE_RDONLY implementation[32];
+	implementation[32];
 };
 struct mhartid_t {
-	ATTRIBUTE_RDONLY hart_id[32];
+	hart_id[32];
 };
 struct mstatus_t {
-	ATTRIBUTE_RDONLY sd[1];
-	ATTRIBUTE_WPRI reserved0[8];
-	ATTRIBUTE_RDONLY tsr[1];
-	ATTRIBUTE_RDONLY tw[1];
-	ATTRIBUTE_RDONLY tvm[1];
-	ATTRIBUTE_RDONLY mxr[1];
-	ATTRIBUTE_RDONLY sum[1];
-	ATTRIBUTE_RDONLY mprv[1];
-	ATTRIBUTE_RDONLY xs[2];
-	ATTRIBUTE_RDONLY fs[2];
-	ATTRIBUTE_RDONLY mpp[2];
-	ATTRIBUTE_WPRI reserved1[2];
-	ATTRIBUTE_RDONLY spp[1];
-	ATTRIBUTE_RDONLY mpie[1];
-	ATTRIBUTE_WPRI reserved2[1];
-	ATTRIBUTE_RDONLY spie[1];
-	ATTRIBUTE_RDONLY upie[1];
-	ATTRIBUTE_RDONLY mie[1];
-	ATTRIBUTE_WPRI reserved3[1];
-	ATTRIBUTE_RDONLY sie[1];
-	ATTRIBUTE_RDONLY uie[1];
+	sd[1];
+	reserved0[8];
+	tsr[1];
+	tw[1];
+	tvm[1];
+	mxr[1];
+	sum[1];
+	mprv[1];
+	xs[2];
+	fs[2];
+	mpp[2];
+	reserved1[2];
+	spp[1];
+	mpie[1];
+	reserved2[1];
+	spie[1];
+	upie[1];
+	mie[1];
+	reserved3[1];
+	sie[1];
+	uie[1];
 };
 struct mtvec_t {
 	base[30];

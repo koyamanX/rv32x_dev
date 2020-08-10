@@ -71,7 +71,7 @@ module icache_unit {
 	func refill {
 		cache_data[regindex] := refill_data;
 		cache_tag[regindex] := regtag;
-		cache_valid := cache_valid | (VALID << regindex);
+		cache_valid := cache_valid | (128'(VALID) << regindex);
 	}
 	proc fetch {
 		mem_read({regtag, regindex, 4'b0000});

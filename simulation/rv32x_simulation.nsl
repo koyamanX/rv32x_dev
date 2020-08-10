@@ -1,8 +1,7 @@
 #include "opcode.h"
 #include "rv32x_integration.h"
 declare rv32x_simulation simulation {
-	input resetvector[32];
-	func_in reset(resetvector);
+	func_in reset();
 	input inst[32];
 	input rdata[32];
 	output wdata[32];
@@ -75,7 +74,7 @@ module rv32x_simulation {
 	
 	func reset {
 		//core.reset(0x00000000);
-		core.reset(resetvector);
+		core.reset();
 	}
 	func core.imem_read {
 		imem_read(core.iaddr, core.ibyteen);

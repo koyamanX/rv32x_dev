@@ -1,9 +1,9 @@
 TOP=rv32x_simulation
 NSL2VL=nsl2vl
-NFLAGS=-O2 -neg_res -I../core -I../integration -O2 -DDEBUG
-SIMFLAGS=-verisim2 -target $(TOP)
+NFLAGS=-O2 -neg_res -I../core -I../integration -DDEBUG
+#SIMFLAGS=-verisim2 -target $(TOP)
 INCOPT=-I../core
-NSRC := $(wildcard ../core/*.nsl) $(wildcard ../integration/*.nsl) 
+NSRC := $(wildcard ../core/*.nsl) $(wildcard ../integration/*.nsl) $(wildcard ../simulation/*.nsl)
 SRC := $(notdir $(NSRC)) 
 # VFILES := $(addprefix out/, $(SRC:.nsl=.v))
 VFILES := $(addprefix out/, $(SRC:.nsl=.v)) 
@@ -17,6 +17,9 @@ RISCV_INSTALL_DIR=/opt/riscv/x86_64-pc-linux-gnu/riscv32-elflittle
 .SUFFIXES: .nsl .v
 
 all:$(TOP)
+lint: $(VFILES)
+	verilator --lint-only -Wall -Wno-UNUSED -Wno-UNDRIVEN --Wno-VARHIDDEN rv32x_simulation -Iout/
+	
 run_riscv_tests: $(TOP)
 	make -C ../software/riscv-tests/isa XLEN=32
 	./run_riscv_tests.sh

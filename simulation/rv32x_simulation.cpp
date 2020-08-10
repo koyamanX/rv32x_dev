@@ -141,11 +141,9 @@ int main(int argc, char **argv)
 			top->p_reset = 1;
 		}
 		if((main_time == 10) || (main_time == 12)) {
-			top->resetvector = 0x00000000;
 			top->reset = 1;
 		} else {
 			top->reset = 0;
-			top->resetvector = 0x00000000;
 		}
 
 		/* top->eval() to get current imem_read, dmem_read, dmem_write signal 
