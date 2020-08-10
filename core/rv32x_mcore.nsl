@@ -175,7 +175,7 @@ module rv32x_mcore {
 			mtvec.mode == 2'b00 && !interrupt: v = {mtvec.base, 2'b00};
 			mtvec.mode == 2'b01 && !interrupt: v = {mtvec.base, 2'b00};
 			mtvec.mode == 2'b01 && interrupt:  v = {mtvec.base, 2'b00}
-														+{cause[30:0], 2'b00};
+														+{cause[30:0], 1'b0};
 		}
 		rv32x.stall_ifetch_req();
 		rv32x.trap(v);
