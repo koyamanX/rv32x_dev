@@ -122,6 +122,16 @@ module rv32x_mcore {
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 	}
+	func rv32x.ebreak {
+		mtval := rv32x.epc;
+		rv32x.pc_execute();
+		rv32x.inst_execute();
+		trap(BREAKPOINT, rv32x.epc);
+		rv32x.stall_ifetch_req();
+		rv32x.stall_decode_req();
+		rv32x.flush_ifetch();
+		rv32x.flush_decode();
+	}
 	func rv32x.ecall {
 		mtval := 0;
 		rv32x.pc_execute();

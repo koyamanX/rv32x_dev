@@ -139,6 +139,7 @@ module rv32x5p {
 		dereg.fence = misc_mem_fence;
 		dereg.wb = if(decode_nop) 1'b0 else rv32x_inst_dec.wb;
 		dereg.ecall = system_ecall;
+		dereg.ebreak = system_ebreak;
 		dereg.mret = system_mret;
 		dereg.sret = system_sret;
 		dereg.uret = system_uret;
@@ -220,7 +221,7 @@ module rv32x5p {
 			/* TODO: make sure rd&rs1==00000 */
 			rv32x_inst_dec.funct12 == ECALL:	{system_ecall();}
 			/* TODO: */
-			rv32x_inst_dec.funct12 == EBREAK:	{system_ebreak(); nop();}
+			rv32x_inst_dec.funct12 == EBREAK:	{system_ebreak();}
 			rv32x_inst_dec.funct12 == MRET:		{system_mret();}
 			rv32x_inst_dec.funct12 == SRET:		{system_sret();}
 			rv32x_inst_dec.funct12 == URET:		{system_uret();}
@@ -311,6 +312,9 @@ module rv32x5p {
 			}
 			if(DEREG.ecall) {
 				ecall();
+			}
+			if(DEREG.ebreak) {
+				ebreak();
 			}
 			if(DEREG.mret) {
 				mret();

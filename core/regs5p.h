@@ -44,6 +44,7 @@ struct dereg_t {
 	fencei;
 	fence;
 	ecall;
+	ebreak;
 	mret;
 	sret;
 	uret;
