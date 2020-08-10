@@ -209,14 +209,17 @@ module rv32x5p {
 	}
 	func rv32x_inst_dec.misc_mem {
 		any {
-			/* TODO: check if feild other than opcode and funct3 is zero */
-			rv32x_inst_dec.funct3 == FENCEI: 	{misc_mem_fencei();}
+			rv32x_inst_dec.funct3 == FENCEI: 	{
+				misc_mem_fencei();
+
+				any {
+					(rv32x_inst_dec.rs1 != 5'b00000)
+						&& (rv32x_inst_dec.rd != 5'b00000): decode_illegal_instruction();
+				}
+			}
 			/* TODO: imeplement fence */
-			rv32x_inst_dec.funct3 == FENCE: 	{misc_mem_fence(); nop();}
+			rv32x_inst_dec.funct3 == FENCE: 	{misc_mem_fence(); nop(); decode_nop();}
 		}
-		/* TODO: stall until fence.i finishes */
-		/* set rd feild to zero */
-		decode_nop();
 	}
 	func rv32x_inst_dec.system {
 		any {
