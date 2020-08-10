@@ -171,6 +171,12 @@ module rv32x5p {
 	func rv32x_inst_dec.op {
 		alu_a = rv32x_reg32.rdataa;
 		alu_b = rv32x_reg32.rdatab;
+
+		any {
+			((rv32x_inst_dec.funct7 != 7'b0000000) 	
+				&& (rv32x_inst_dec.funct7 != 7'b0100000)
+				&& (rv32x_inst_dec.funct7 != M_EXT)): 	decode_illegal_instruction();
+		}
 	}
 	func rv32x_inst_dec.lui {
 		alu_a = 0x00000000;
