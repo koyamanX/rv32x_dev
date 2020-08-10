@@ -115,6 +115,7 @@ module rv32x_mcore {
 	func illegal_instruction {
 		mtval := rv32x.einst;
 		rv32x.pc_execute();
+		rv32x.inst_execute();
 		trap(ILLEGAL_INSTRUCTION, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();

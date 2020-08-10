@@ -497,11 +497,20 @@ module rv32x5p {
 #endif
 		finish();
 	}
-	alt {
-		pc_memory:	{epc = EMREG.pc; einst = EMREG.inst;}
-		pc_execute:	{epc = DEREG.pc; einst = DEREG.inst;}
-		pc_decode:	{epc = IDREG.pc; einst = IDREG.inst;}
-		pc_ifetch:	{epc = PC;		 einst = inst;}
+	func pc_memory {
+		return EMREG.pc; 
+	}
+	func pc_execute {
+		return DEREG.pc;
+	} 
+	func pc_decode {
+		return IDREG.pc; 
+	}
+	func pc_ifetch {
+		return PC;
+	}
+	func inst_execute {
+		return DEREG.inst;
 	}
 #ifdef DEBUG
 	debug_x0  = rv32x_reg32.debug_x0;
