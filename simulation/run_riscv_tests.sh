@@ -2,6 +2,7 @@
 target="	\
 	../software/riscv-tests/isa/rv32ui-p-* \
 	../software/riscv-tests/isa/rv32um-p-* \
+	../software/riscv-tests/isa/rv32mi-p-* \
 	"
 	#../software/riscv-tests/isa/rv32mi-p-* \
 target=$(echo $target | sed -e 's/\.dump//g' | xargs -n1 | sort -u | xargs | sed 's# # #g')
