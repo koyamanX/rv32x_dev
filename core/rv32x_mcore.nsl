@@ -33,17 +33,17 @@ module rv32x_mcore {
 	proc_name trap_ret();
 
 	/* CSRs */
-	mvendorid_t reg mvendorid			= 0;
-	marchid_t reg marchid				= 0;
-	mimpid_t reg mimpid					= 0;
-	mhartid_t reg mhartid				= 0;
-	mstatus_t reg mstatus				= 0;
-	mtvec_t reg mtvec 					= INIT_MTVEC;
-	mscratch_t reg mscratch				= 0;
-	mepc_t reg mepc						= 0;
-	mcause_t reg mcause 				= RESET;
-	mtval_t reg mtval					= 0;
-	misa_t reg misa						= 0;
+	mvendorid_t reg mvendorid		= 0;
+	marchid_t reg marchid			= 0;
+	mimpid_t reg mimpid				= 0;
+	mhartid_t reg mhartid			= 0;
+	mstatus_t reg mstatus			= 0;
+	mtvec_t reg mtvec 				= INIT_MTVEC;
+	mscratch_t reg mscratch			= 0;
+	mepc_t reg mepc					= 0;
+	mcause_t reg mcause 			= RESET;
+	mtval_t reg mtval				= 0;
+	misa_t reg misa					= 0;
 
 
 	/* TODO: medeleg, mideleg, mip, mie */
@@ -54,21 +54,23 @@ module rv32x_mcore {
 	func reset {
 		wire resetvector[32];
 
-		mode := MACHINE;
-		mstatus.mie := 0;
-		mstatus.mprv := 0;
-		misa.mxl := MISA_MXL_32;
-		misa.extensions := MISA_EXTENSIONS;
-		mcause := RESET;
-		mtvec := INIT_MTVEC;
-
-		any {
-			mtvec.mode == 2'b00:	resetvector = {mtvec.base, 2'b00};
-			mtvec.mode == 2'b01:	resetvector = {mtvec.base, 2'b00}+{mcause.exception_code, 1'b0};
-		}
 		rv32x.reset(resetvector);
 		ic.reset();
 		dc.reset();
+
+		mode 						:= MACHINE;
+		mstatus.mie 				:= 0;
+		mstatus.mprv 				:= 0;
+		misa.mxl 					:= MISA_MXL_32;
+		misa.extensions 			:= MISA_EXTENSIONS;
+		mcause 						:= RESET;
+		mtvec 						:= INIT_MTVEC;
+
+		any {
+			mtvec.mode == 2'b00:	resetvector = {mtvec.base, 2'b00};
+			mtvec.mode == 2'b01:	resetvector = {mtvec.base, 2'b00}
+										+{mcause.exception_code, 1'b0};
+		}
 	}
 	/* CSR accesses */
 	func rv32x.csr_read {
@@ -139,7 +141,8 @@ module rv32x_mcore {
 
 		any {
 			mtvec.mode == 2'b00:	v = {mtvec.base, 2'b00};
-			mtvec.mode == 2'b01:	v = {mtvec.base, 2'b00}+{cause[30:0], 1'b0};
+			mtvec.mode == 2'b01:	v = {mtvec.base, 2'b00}
+										+{cause[30:0], 1'b0};
 		}
 		mcause := cause;
 		mepc := epc;
