@@ -1,6 +1,6 @@
-#ifndef RV32X_CORE_H
-#define RV32X_CORE_H
-declare rv32x_core {
+#ifndef RV32X_MCORE_H
+#define RV32X_MCORE_H
+declare rv32x_mcore {
 	input inst[32];
 	input rdata[32];
 	output wdata[32];

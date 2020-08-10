@@ -44,10 +44,12 @@ struct dereg_t {
 	fencei;
 	fence;
 	ecall;
+	ebreak;
 	mret;
 	sret;
 	uret;
 	wb;
+	illegal_instruction;
 };
 struct emreg_t {
 	pc[32];

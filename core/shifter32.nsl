@@ -6,11 +6,11 @@ module shifter32 {
 
 		ext_a = 64#(a);
 		if(c == SHIFTER_SL) {
-			return a << b;
+			return (a << b)[31:0];
 		} else if(c == SHIFTER_SR && flag) {
-			return ext_a >> b;
+			return (ext_a >> b)[31:0];
 		} else if(c == SHIFTER_SR && !flag) {
-			return a >> b;
+			return (a >> b)[31:0];
 		}
 	}
 }

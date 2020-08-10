@@ -1,11 +1,11 @@
 #include "rv32x_integration.h"
-#include "rv32x_core.h"
+#include "rv32x_mcore.h"
 #include "opcode.h"
 #include "bootrom.h"
 #include "memory_map.h"
 
 module rv32x_integration {
-	rv32x_core rv32x;
+	rv32x_mcore rv32x;
 	bootrom rom;
 
 	func reset {
@@ -26,9 +26,9 @@ module rv32x_integration {
 	}
 	func rv32x.imem_read {
 		any {
-			BOOTROM_BASE <= rv32x.iaddr 
-				&& rv32x.iaddr < BOOTROM_BASE+BOOTROM_LENGTH: 
-					rom.port1_read(rv32x.iaddr-BOOTROM_BASE);
+			/* BOOTROM_BASE <= rv32x.iaddr && */
+			rv32x.iaddr < BOOTROM_BASE+BOOTROM_LENGTH:
+				rom.port1_read((rv32x.iaddr-BOOTROM_BASE)[11:0]);
 			else: imem_read(rv32x.iaddr, rv32x.ibyteen);
 		}
 	}
