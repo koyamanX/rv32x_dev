@@ -24,6 +24,7 @@ declare rv32x5p {
 	//func_in csr_failed();						/* CSR operation failed */
 	input vector[32];							/* New PC on interrupt */
 	output epc[32];								/* Interrupted PC */
+	output einst[32];
 	func_in trap(vector);
 	func_in flush_ifetch;
 	func_in flush_decode;
@@ -33,6 +34,10 @@ declare rv32x5p {
 	func_in stall_decode_req();
 	func_in stall_execute_req();
 	func_in stall_memory_req();
+	func_in pc_ifetch();
+	func_in pc_decode();
+	func_in pc_execute();
+	func_in pc_memory();
 
 	func_out fencei();							/* Indicating fence.i is issued */
 	func_out fence();							/* Indicating fence is issued */
@@ -42,6 +47,7 @@ declare rv32x5p {
 	func_out sret();							/* Indicating sret is issued */
 	func_out uret();							/* Indicating uret is issued */
 	func_out wfi();								/* indicating Wait-For-Interrupt is issued */
+	func_out illegal_instruction();
 
 #ifdef DEBUG
 	output debug_x0[32];

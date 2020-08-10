@@ -33,6 +33,8 @@ module rv32x_mcore {
 	proc_name trap_ret();
 	/* Interrupt */
 	func_self interrupt();
+	func_self csr_not_mapped();
+	func_self illegal_instruction();
 
 	/* CSRs */
 	mvendorid_t reg mvendorid		= 0;
@@ -88,10 +90,7 @@ module rv32x_mcore {
 			cradrs == MEPC: 			return mepc;
 			cradrs == MCAUSE: 			return mcause;
 			cradrs == MTVAL: 			return mtval;
-			else: return 0x00000000;
-		/* 
-			else: illegal_instruction();
-		*/
+			else:						{csr_not_mapped(); return 0x00000000;}
 		}
 	}
 	func rv32x.csr_write {
@@ -103,18 +102,28 @@ module rv32x_mcore {
 #endif
 		any {
 			cwadrs == MISA: 			misa 		:= cwdata;
+			cwadrs == MSTATUS:			mstatus 	:= cwdata;
 			cwadrs == MTVEC: 			mtvec 		:= cwdata;
 			cwadrs == MSCRATCH:			mscratch 	:= cwdata;
 			cwadrs == MEPC: 			mepc 		:= cwdata;
-			else: ;
-		/* 
-			else: illegal_instruction();
-		*/
+			else: 						csr_not_mapped();
 		}
 	}
+	if(rv32x.illegal_instruction || csr_not_mapped) {
+		illegal_instruction();
+	}
+	func illegal_instruction {
+		mtval := rv32x.einst;
+		rv32x.pc_execute();
+		trap(ILLEGAL_INSTRUCTION, rv32x.epc);
+		rv32x.stall_ifetch_req();
+		rv32x.stall_decode_req();
+		rv32x.flush_ifetch();
+		rv32x.flush_decode();
+	}
 	func rv32x.ecall {
-		mode := MACHINE;
 		mtval := 0;
+		rv32x.pc_execute();
 		trap(ENVIRONMENT_CALL_FROM_M_MODE, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();

@@ -142,6 +142,7 @@ module rv32x5p {
 		dereg.mret = system_mret;
 		dereg.sret = system_sret;
 		dereg.uret = system_uret;
+		dereg.illegal_instruction = rv32x_inst_dec.illegal_instruction;
 
 		if(!stall_decode) {			
 			execute(dereg);
@@ -329,6 +330,9 @@ module rv32x5p {
 			if(DEREG.csrrc) {
 				csrrc();
 			}
+			if(DEREG.illegal_instruction) {
+				illegal_instruction();
+			}
 			if(taken && !stall_execute) {		
 				stall_ifetch();				
 				stall_decode();
@@ -494,10 +498,10 @@ module rv32x5p {
 		finish();
 	}
 	alt {
-		flush_memory && trap:	epc = EMREG.pc;
-		flush_execute && trap:	epc = DEREG.pc;
-		flush_decode && trap:	epc = IDREG.pc;
-		flush_ifetch && trap:	epc = PC;
+		pc_memory:	{epc = EMREG.pc; einst = EMREG.inst;}
+		pc_execute:	{epc = DEREG.pc; einst = DEREG.inst;}
+		pc_decode:	{epc = IDREG.pc; einst = IDREG.inst;}
+		pc_ifetch:	{epc = PC;		 einst = inst;}
 	}
 #ifdef DEBUG
 	debug_x0  = rv32x_reg32.debug_x0;

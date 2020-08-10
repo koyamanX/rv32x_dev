@@ -48,6 +48,7 @@ struct dereg_t {
 	sret;
 	uret;
 	wb;
+	illegal_instruction;
 };
 struct emreg_t {
 	pc[32];
