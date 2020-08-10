@@ -4,12 +4,11 @@
 #include "priv.h"
 #include "csr.h"
 #include "csr_map.h"
-#include "init_csr.h"
 #include "icache_unit.h"
 #include "dcache_unit.h"
 
-/* TODO: implement all machine-mode CSRs */
-/* TODO: implement exceptions and interrupts */
+#define INIT_MTVEC {30'b00000_00000_00000_00000_00000_00000, MTVEC_MODE_DIRECT}
+#define MISA_EXTENSIONS MISA_EXTENSIONS_I|MISA_EXTENSIONS_M
 
 module rv32x_mcore {
 	rv32x5p rv32x;							/* 5-stage pipelined processor(single issue, in-order) */
@@ -18,18 +17,8 @@ module rv32x_mcore {
 	reg ic_invalidate_done = 0;
 	reg dc_flush_done = 0;
 	reg mode[2];							/* Current execution mode */
-	/* CSRs */
-	mvendorid_t reg mvendorid;
-	marchid_t reg marchid;
-	mimpid_t reg mimpid;
-	mhartid_t reg mhartid;
-	mstatus_t reg mstatus;
-	mtvec_t reg mtvec = INIT_MTVEC;
-	mscratch_t reg mscratch;
-	mepc_t reg mepc;
-	mcause_t reg mcause = RESET;
-	mtval_t reg mtval;
-	misa_t reg misa;
+	
+	/* CSR operations */
 	wire cradrs[12];
 	wire cwadrs[12];
 	wire crdata[32];
@@ -43,6 +32,20 @@ module rv32x_mcore {
 	proc_name trap(cause, epc);
 	proc_name trap_ret();
 
+	/* CSRs */
+	mvendorid_t reg mvendorid			= 0;
+	marchid_t reg marchid				= 0;
+	mimpid_t reg mimpid					= 0;
+	mhartid_t reg mhartid				= 0;
+	mstatus_t reg mstatus				= 0;
+	mtvec_t reg mtvec 					= INIT_MTVEC;
+	mscratch_t reg mscratch				= 0;
+	mepc_t reg mepc						= 0;
+	mcause_t reg mcause 				= RESET;
+	mtval_t reg mtval					= 0;
+	misa_t reg misa						= 0;
+
+
 	/* TODO: medeleg, mideleg, mip, mie */
 	/* TODO: mtime, mtimecmp */
 	/* TODO: machine hardware performance monitor */
@@ -53,13 +56,12 @@ module rv32x_mcore {
 
 		/* TODO: set appropriate reset value to CSRs */
 		mode := MACHINE;
-		/* mstatus->MIE = 0;*/
-		/* mstatus->MPRV = 0;*/
-		/* set misa to maximal set of supported extensions,
-			MXLEN to widest bit length
-		*/
-		/* set mcause to indicate RESET */
-		/* writable PMP reg's A and L fields to 0 */
+		mstatus.mie := 0;
+		mstatus.mprv := 0;
+		misa.mxl := MISA_MXL_32;
+		misa.extensions := MISA_EXTENSIONS;
+		mcause := RESET;
+		mtvec := INIT_MTVEC;
 
 		any {
 			mtvec.mode == 2'b00:	resetvector = {mtvec.base, 2'b00};
