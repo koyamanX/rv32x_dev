@@ -24,10 +24,10 @@ module rv32x_mcore {
 	mimpid_t reg mimpid;
 	mhartid_t reg mhartid;
 	mstatus_t reg mstatus;
-	mtvec_t reg mtvec;
+	mtvec_t reg mtvec = INIT_MTVEC;
 	mscratch_t reg mscratch;
 	mepc_t reg mepc;
-	mcause_t reg mcause;
+	mcause_t reg mcause = RESET;
 	mtval_t reg mtval;
 	misa_t reg misa;
 	wire cradrs[12];
@@ -61,8 +61,6 @@ module rv32x_mcore {
 		/* set mcause to indicate RESET */
 		/* writable PMP reg's A and L fields to 0 */
 
-		mtvec := INIT_MTVEC;
-		mcause := RESET;
 		any {
 			mtvec.mode == 2'b00:	resetvector = {mtvec.base, 2'b00};
 			mtvec.mode == 2'b01:	resetvector = {mtvec.base, 2'b00}+{mcause.exception_code, 1'b0};
