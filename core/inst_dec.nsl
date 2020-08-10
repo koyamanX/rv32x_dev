@@ -50,8 +50,7 @@ module inst_dec {
 			opcode == LUI:          {lui();	inst_dec_imm_gen.u_type(inst); fn = {1'b0, ALU_OR};}
 			opcode == AUIPC:        {auipc(); inst_dec_imm_gen.u_type(inst); fn = {1'b0, ALU_ADD};}
 			opcode == OP:           {op(); if(f7 == M_EXT) m_ext(); fn = {f7[5], f3};}
-			/* TODO: check precisely for illegal instruction */
-			else:                   illegal_instruction(); /* 0xffffffff and 0x00000000 is also ilegal */
+			else:                   illegal_instruction(); 
 		}
 	}
 }
