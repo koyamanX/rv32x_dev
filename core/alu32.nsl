@@ -17,11 +17,11 @@ module alu32 {
 			fn[2:0] == ALU_SLL: result = shifter.exe(a, b[4:0], SHIFTER_SL, fn[3]); 
 			fn[2:0] == ALU_SLT: {
 				sub.exe(33#(a), 33#(b));
-				result = sub.cout;
+				result = 32'(sub.cout);
 			}
 			fn[2:0] == ALU_SLTU: {
 				sub.exe({1'b0, a}, {1'b0, b});
-				result = sub.cout;
+				result = 32'(sub.cout);
 			}
 			fn[2:0] == ALU_XOR: result = a ^ b;
 			fn[2:0] == ALU_SRL: result = shifter.exe(a, b[4:0], SHIFTER_SR, fn[3]); 

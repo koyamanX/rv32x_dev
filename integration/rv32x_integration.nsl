@@ -26,9 +26,9 @@ module rv32x_integration {
 	}
 	func rv32x.imem_read {
 		any {
-			BOOTROM_BASE <= rv32x.iaddr 
-				&& rv32x.iaddr < BOOTROM_BASE+BOOTROM_LENGTH: 
-					rom.port1_read(rv32x.iaddr-BOOTROM_BASE);
+			/* BOOTROM_BASE <= rv32x.iaddr && */
+			rv32x.iaddr < BOOTROM_BASE+BOOTROM_LENGTH:
+				rom.port1_read((rv32x.iaddr-BOOTROM_BASE)[11:0]);
 			else: imem_read(rv32x.iaddr, rv32x.ibyteen);
 		}
 	}
