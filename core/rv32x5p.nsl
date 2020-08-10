@@ -89,6 +89,7 @@ module rv32x5p {
 		func_self misc_mem_fence;
 		func_self uimm;
 		func_self system_priv;
+		func_self decode_illegal_instruction;
 		wire alu_a[32];         /* ALU input A */
 		wire alu_b[32];         /* ALU input B */
 		wire alu_a_forward_en;
@@ -143,7 +144,7 @@ module rv32x5p {
 		dereg.mret = system_mret;
 		dereg.sret = system_sret;
 		dereg.uret = system_uret;
-		dereg.illegal_instruction = rv32x_inst_dec.illegal_instruction;
+		dereg.illegal_instruction = rv32x_inst_dec.illegal_instruction || decode_illegal_instruction;
 
 		if(!stall_decode) {			
 			execute(dereg);
@@ -159,10 +160,23 @@ module rv32x5p {
 	func rv32x_inst_dec.op_imm {
 		alu_a = rv32x_reg32.rdataa;
 		alu_b = rv32x_inst_dec.imm;        
+
+		any {
+			(rv32x_inst_dec.funct3 == ALU_SLL)
+				&& (rv32x_inst_dec.imm[11:5] != 7'b0000000): decode_illegal_instruction();
+			((rv32x_inst_dec.funct3 == ALU_SRA) || (rv32x_inst_dec.funct3 == ALU_SRL))
+				&& ((rv32x_inst_dec.imm[11] != 1'b0) || (rv32x_inst_dec.imm[9:5] != 5'b00000)): decode_illegal_instruction();
+		}
 	}
 	func rv32x_inst_dec.op {
 		alu_a = rv32x_reg32.rdataa;
 		alu_b = rv32x_reg32.rdatab;
+
+		any {
+			((rv32x_inst_dec.funct7 != 7'b0000000) 	
+				&& (rv32x_inst_dec.funct7 != 7'b0100000)
+				&& (rv32x_inst_dec.funct7 != M_EXT)): 	decode_illegal_instruction();
+		}
 	}
 	func rv32x_inst_dec.lui {
 		alu_a = 0x00000000;
@@ -195,14 +209,18 @@ module rv32x5p {
 	}
 	func rv32x_inst_dec.misc_mem {
 		any {
-			/* TODO: check if feild other than opcode and funct3 is zero */
-			rv32x_inst_dec.funct3 == FENCEI: 	{misc_mem_fencei();}
+			rv32x_inst_dec.funct3 == FENCEI: 	{
+				misc_mem_fencei();
+
+				any {
+					((rv32x_inst_dec.rs1 != 5'b00000)
+						|| (rv32x_inst_dec.rd != 5'b00000)
+						|| (rv32x_inst_dec.imm[11:0] != 12'b0000_0000_0000)): decode_illegal_instruction();
+				}
+			}
 			/* TODO: imeplement fence */
-			rv32x_inst_dec.funct3 == FENCE: 	{misc_mem_fence(); nop();}
+			rv32x_inst_dec.funct3 == FENCE: 	{misc_mem_fence(); nop(); decode_nop(); /* check if illegal instruction */}
 		}
-		/* TODO: stall until fence.i finishes */
-		/* set rd feild to zero */
-		decode_nop();
 	}
 	func rv32x_inst_dec.system {
 		any {
@@ -213,24 +231,25 @@ module rv32x5p {
 			rv32x_inst_dec.funct3 == CSRRCI:	{system_csrrc(); uimm();}	
 			rv32x_inst_dec.funct3 == CSRRSI:	{system_csrrs(); uimm();}
 			rv32x_inst_dec.funct3 == PRIV:		system_priv();
-			/* TODO: else: illigal_instruction */
+			else: decode_illegal_instruction();
 		}
 	}
 	func system_priv {
 		any {
-			/* TODO: make sure rd&rs1==00000 */
 			rv32x_inst_dec.funct12 == ECALL:	{system_ecall();}
-			/* TODO: */
 			rv32x_inst_dec.funct12 == EBREAK:	{system_ebreak();}
 			rv32x_inst_dec.funct12 == MRET:		{system_mret();}
 			rv32x_inst_dec.funct12 == SRET:		{system_sret();}
 			rv32x_inst_dec.funct12 == URET:		{system_uret();}
 			/* TODO: */
 			rv32x_inst_dec.funct12 == WFI:		{system_wfi(); nop();}
-			/* TODO: else: illigal_instruction */
+			else: decode_illegal_instruction();
 		}
-		/* set rd feild to zero */
-		decode_nop();
+
+		any {
+			(rv32x_inst_dec.rs1 != 5'b00000)	
+				|| (rv32x_inst_dec.rd != 5'b00000): decode_illegal_instruction();
+		}
 	}
 	func load_interlock {	
 		stall_ifetch();			
