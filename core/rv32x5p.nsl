@@ -277,7 +277,7 @@ module rv32x5p {
 		emreg.inst = DEREG.inst;
 		emreg.funct3 = DEREG.funct3;
 		emreg.funct12 = DEREG.funct12;
-		emreg.rd = if(execute_nop) 0x00000000 else DEREG.rd;
+		emreg.rd = if(execute_nop) 5'b00000 else DEREG.rd;
 		emreg.rs1 = DEREG.rs1;
 		emreg.rs2 = DEREG.rs2;
 		emreg.rs1_data = execute_alu_a;
@@ -299,7 +299,7 @@ module rv32x5p {
 				}
 				DEREG.alu_sel == MUNIT: {
 					alu_q = rv32x_munit32.exe(execute_alu_a, 
-											execute_alu_b, DEREG.alu_fn);	
+											execute_alu_b, DEREG.alu_fn[2:0]);	
 					if(!rv32x_munit32.done) {
 						stall_ifetch();
 						stall_decode();
