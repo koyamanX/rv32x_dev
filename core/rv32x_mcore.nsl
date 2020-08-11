@@ -37,6 +37,8 @@ module rv32x_mcore {
 	func_self illegal_instruction();
 	func_self ecall();
 	func_self ebreak();
+	func_self instruction_address_misaligned();
+	func_self i_misaligned();
 
 	/* CSRs */
 	mvendorid_t reg mvendorid		= 0;
@@ -53,9 +55,11 @@ module rv32x_mcore {
 
 	wire sxlen[2];
 	wire uxlen[2];
+	wire ialign[2];
 
 	sxlen = MISA_MXL_32;
 	uxlen = MISA_MXL_32;
+	ialign = 2'b11;
 
 
 	func reset {
@@ -113,8 +117,16 @@ module rv32x_mcore {
 	}
 	alt {
 		(rv32x.illegal_instruction || csr_not_mapped): 			illegal_instruction();
+		i_misaligned:											instruction_address_misaligned();
 		rv32x.ecall: 											ecall();	
 		rv32x.ebreak: 											ebreak();	
+	}
+	func instruction_address_misaligned {
+		mtval := rv32x.epc;
+		rv32x.pc_ifetch();
+		trap(INSTRUCTION_ADDRESS_MISALIGNED, rv32x.epc);
+		rv32x.stall_ifetch_req();
+		rv32x.flush_ifetch();
 	}
 	func illegal_instruction {
 		mtval := rv32x.einst;
@@ -224,7 +236,11 @@ module rv32x_mcore {
 		}
 	}
 	func rv32x.imem_read {
-		ic.read(rv32x.iaddr);
+		if((rv32x.iaddr[1:0] & ialign) != 2'b00) {
+			i_misaligned();
+		} else {
+			ic.read(rv32x.iaddr);
+		}
 	}
 	func ic.valid {
 		rv32x.inst = ic.rdata;
