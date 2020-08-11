@@ -35,6 +35,8 @@ module rv32x_mcore {
 	func_self interrupt();
 	func_self csr_not_mapped();
 	func_self illegal_instruction();
+	func_self ecall();
+	func_self ebreak();
 
 	/* CSRs */
 	mvendorid_t reg mvendorid		= 0;
@@ -109,8 +111,10 @@ module rv32x_mcore {
 			else: 						csr_not_mapped();
 		}
 	}
-	if(rv32x.illegal_instruction || csr_not_mapped) {
-		illegal_instruction();
+	alt {
+		(rv32x.illegal_instruction || csr_not_mapped): 			illegal_instruction();
+		rv32x.ecall: 											ecall();	
+		rv32x.ebreak: 											ebreak();	
 	}
 	func illegal_instruction {
 		mtval := rv32x.einst;
@@ -122,7 +126,7 @@ module rv32x_mcore {
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 	}
-	func rv32x.ebreak {
+	func ebreak {
 		mtval := rv32x.epc;
 		rv32x.pc_execute();
 		rv32x.inst_execute();
@@ -132,7 +136,7 @@ module rv32x_mcore {
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 	}
-	func rv32x.ecall {
+	func ecall {
 		mtval := 0;
 		rv32x.pc_execute();
 		trap(ENVIRONMENT_CALL_FROM_M_MODE, rv32x.epc);
