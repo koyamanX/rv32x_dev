@@ -46,9 +46,13 @@ module rv32x_mcore {
 	func_self instruction_address_misaligned();
 	func_self load_address_misaligned();
 	func_self store_address_misaligned();
+	func_self load_access_fault();
+	func_self store_access_fault();
 	func_self i_misaligned();
 	func_self l_misaligned();
 	func_self s_misaligned();
+	func_self l_access_fault();
+	func_self s_access_fault();
 
 	/* CSRs */
 	mvendorid_t reg mvendorid		= 0;
@@ -131,12 +135,20 @@ module rv32x_mcore {
 		rv32x.ecall: 											ecall();	
 		rv32x.ebreak: 											ebreak();	
 		l_misaligned:											load_address_misaligned();
+		l_access_fault:											load_access_fault();
 		s_misaligned:											store_address_misaligned();
+		s_access_fault:											store_access_fault();
+	}
+	func load_address_misaligned {
+
+	}
+	func load_access_fault {
+
 	}
 	func store_address_misaligned {
 
 	}
-	func load_address_misaligned {
+	func store_access_fault {
 
 	}
 	func instruction_address_misaligned {
@@ -269,7 +281,7 @@ module rv32x_mcore {
 		any {
 			cacheable && !not_mapped:	dc.read(rv32x.daddr, rv32x.dbyteen);
 			!cacheable && !not_mapped:	noncacheable_read(rv32x.daddr, rv32x.dbyteen);	
-			not_mapped:					; // raise access fault
+			not_mapped:					l_access_fault(); 
 		}
 	}
 	func noncacheable_read {
@@ -302,7 +314,7 @@ module rv32x_mcore {
 		any {
 			cacheable && !not_mapped:	dc.write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
 			!cacheable && !not_mapped:	noncacheable_write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
-			not_mapped:					;/* raise access fault */
+			not_mapped:					s_access_fault();
 		}
 #ifdef DEBUG
 		if(rv32x.daddr == 0x80001000)
