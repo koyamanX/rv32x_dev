@@ -130,8 +130,8 @@ module rv32x_mcore {
 		i_misaligned:											instruction_address_misaligned();
 		rv32x.ecall: 											ecall();	
 		rv32x.ebreak: 											ebreak();	
-		s_misaligned:											store_address_misaligned();
 		l_misaligned:											load_address_misaligned();
+		s_misaligned:											store_address_misaligned();
 	}
 	func store_address_misaligned {
 
