@@ -14,6 +14,10 @@ declare rv32x_mcore {
 	func_out imem_read(iaddr, ibyteen);  /* When data is ready on 'inst', imem_valid is asserted */
 	func_out dmem_read(daddr, dbyteen);  /* When data is ready on 'rdata', dmem_valid is asserted */
 	func_out dmem_write(daddr, dbyteen, wdata); /* When data is written, dmem_valid is asserted */
+	output cdaddr[32];
+	func_out check_daddr(cdaddr);
+	func_in cacheable();
+	func_in not_mapped();
 #ifdef DEBUG
 	output tohost[32];
 	func_out sim_done(tohost);

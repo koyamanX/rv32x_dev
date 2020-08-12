@@ -25,6 +25,12 @@ module rv32x_mcore {
 	wire cwdata[32];
 	func_self csr_read(cradrs) : crdata;
 	func_self csr_write(cwadrs, cwdata);
+
+	wire ncadrs[32];
+	wire ncbyteen[3];
+	wire ncdata[32];
+	func_self noncacheable_read(ncadrs, ncbyteen);
+	func_self noncacheable_write(ncadrs, ncbyteen, ncdata);
 	
 	/* Trap */
 	reg cause[32];
@@ -259,7 +265,19 @@ module rv32x_mcore {
 		rv32x.imem_valid();
 	}
 	func rv32x.dmem_read {
-		dc.read(rv32x.daddr, rv32x.dbyteen);
+		check_daddr(rv32x.daddr);
+		any {
+			cacheable && !not_mapped:	dc.read(rv32x.daddr, rv32x.dbyteen);
+			!cacheable && !not_mapped:	noncacheable_read(rv32x.daddr, rv32x.dbyteen);	
+			not_mapped:					; // raise access fault
+		}
+	}
+	func noncacheable_read {
+		dmem_read(ncadrs, ncbyteen);
+		if(dmem_valid) {
+			rv32x.rdata = rdata;
+			rv32x.dmem_valid();
+		}
 	}
 	func dc.mem_read {
 		reg dc_read_cnt[3] = 0;
@@ -280,11 +298,22 @@ module rv32x_mcore {
 		}
 	}
 	func rv32x.dmem_write {
-		dc.write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
+		check_daddr(rv32x.daddr);
+		any {
+			cacheable && !not_mapped:	dc.write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
+			!cacheable && !not_mapped:	noncacheable_write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
+			not_mapped:					;/* raise access fault */
+		}
 #ifdef DEBUG
 		if(rv32x.daddr == 0x80001000)
 			sim_done(rv32x.wdata);
 #endif
+	}
+	func noncacheable_write {
+		dmem_write(ncadrs, ncbyteen, ncdata);
+		if(dmem_valid) {
+			rv32x.dmem_valid();
+		}
 	}
 	func dc.mem_write {
 		reg dc_write_cnt[3] = 0;
