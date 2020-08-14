@@ -39,15 +39,23 @@ module rv32x_mcore {
 	proc_name trap_ret();
 	/* Interrupt */
 	func_self interrupt();
-	func_self csr_not_mapped();
+	/* Exceptions */
+	func_self instruction_address_breakpoint();
+	func_self instruction_page_fault();
+	func_self instruction_access_fault();
 	func_self illegal_instruction();
-	func_self ecall();
-	func_self ebreak();
 	func_self instruction_address_misaligned();
+	func_self environment_call();
+	func_self environment_break();
+	func_self load_store_amo_address_breakpoint();
+	func_self store_amo_address_misaligned();
 	func_self load_address_misaligned();
-	func_self store_address_misaligned();
+	func_self store_amo_page_fault();
+	func_self load_page_fault();
+	func_self store_amo_access_fault();
 	func_self load_access_fault();
-	func_self store_access_fault();
+
+	func_self csr_not_mapped();
 	func_self i_misaligned();
 	func_self l_misaligned();
 	func_self s_misaligned();
@@ -132,12 +140,12 @@ module rv32x_mcore {
 	alt {
 		(rv32x.illegal_instruction || csr_not_mapped): 			illegal_instruction();
 		i_misaligned:											instruction_address_misaligned();
-		rv32x.ecall: 											ecall();	
-		rv32x.ebreak: 											ebreak();	
+		rv32x.ecall: 											environment_call();	
+		rv32x.ebreak: 											environment_break();	
 		l_misaligned:											load_address_misaligned();
 		l_access_fault:											load_access_fault();
-		s_misaligned:											store_address_misaligned();
-		s_access_fault:											store_access_fault();
+		s_misaligned:											store_amo_address_misaligned();
+		s_access_fault:											store_amo_access_fault();
 	}
 	func load_address_misaligned {
 
@@ -145,10 +153,10 @@ module rv32x_mcore {
 	func load_access_fault {
 
 	}
-	func store_address_misaligned {
+	func store_amo_address_misaligned {
 
 	}
-	func store_access_fault {
+	func store_amo_access_fault {
 
 	}
 	func instruction_address_misaligned {
@@ -168,7 +176,7 @@ module rv32x_mcore {
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 	}
-	func ebreak {
+	func environment_break {
 		mtval := rv32x.epc;
 		rv32x.pc_execute();
 		rv32x.inst_execute();
@@ -178,7 +186,7 @@ module rv32x_mcore {
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 	}
-	func ecall {
+	func environment_call {
 		mtval := 0;
 		rv32x.pc_execute();
 		trap(ENVIRONMENT_CALL_FROM_M_MODE, rv32x.epc);
