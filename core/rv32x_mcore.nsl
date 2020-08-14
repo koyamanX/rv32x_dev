@@ -40,6 +40,22 @@ module rv32x_mcore {
 	/* Interrupt */
 	func_self interrupt();
 	/* Exceptions */
+	func_self instruction_address_breakpoint_exception();
+	func_self instruction_page_fault_exception();
+	func_self instruction_access_fault_exception();
+	func_self illegal_instruction_exception();
+	func_self instruction_address_misaligned_exception();
+	func_self environment_call_exception();
+	func_self environment_break_exception();
+	func_self load_store_amo_address_breakpoint_exception();
+	func_self store_amo_address_misaligned_exception();
+	func_self load_address_misaligned_exception();
+	func_self store_amo_page_fault_exception();
+	func_self load_page_fault_exception();
+	func_self store_amo_access_fault_exception();
+	func_self load_access_fault_exception();
+
+	func_self csr_not_mapped();
 	func_self instruction_address_breakpoint();
 	func_self instruction_page_fault();
 	func_self instruction_access_fault();
@@ -55,12 +71,6 @@ module rv32x_mcore {
 	func_self store_amo_access_fault();
 	func_self load_access_fault();
 
-	func_self csr_not_mapped();
-	func_self i_misaligned();
-	func_self l_misaligned();
-	func_self s_misaligned();
-	func_self l_access_fault();
-	func_self s_access_fault();
 
 	/* CSRs */
 	mvendorid_t reg mvendorid		= 0;
@@ -137,36 +147,62 @@ module rv32x_mcore {
 			else: 						csr_not_mapped();
 		}
 	}
+	func csr_not_mapped {
+		illegal_instruction();
+	}
+	func rv32x.ecall {
+		environment_call();
+	}
+	func rv32x.ebreak {
+		environment_break();
+	}
+	func rv32x.illegal_instruction {
+		illegal_instruction();
+	}
 	alt {
-		(rv32x.illegal_instruction || csr_not_mapped): 			illegal_instruction();
-		i_misaligned:											instruction_address_misaligned();
-		rv32x.ecall: 											environment_call();	
-		rv32x.ebreak: 											environment_break();	
-		l_misaligned:											load_address_misaligned();
-		l_access_fault:											load_access_fault();
-		s_misaligned:											store_amo_address_misaligned();
-		s_access_fault:											store_amo_access_fault();
+		/* Process exception in preceeding instruction in pipeline */	
+		/* Memory stage */
+		/* memory address is sent out to bus in memory stage process load_store_amo_address_breakpoint at memory stage */
+		load_store_amo_address_breakpoint:						load_store_amo_address_breakpoint_exception();
+		store_amo_address_misaligned:							store_amo_address_misaligned_exception();
+		load_address_misaligned:								load_address_misaligned_exception();
+		store_amo_page_fault:									store_amo_page_fault_exception();
+		load_page_fault:										load_page_fault_exception();
+		store_amo_access_fault:									store_amo_access_fault_exception();
+		load_access_fault:										load_access_fault_exception();
+		/* Execute stage */
+		illegal_instruction:									illegal_instruction_exception();
+		environment_call:										environment_call_exception();	
+		environment_break: 										environment_break_exception();	
+		/* Ifetch stage */
+		/* Branch address is sent out to bus in Ifetch so process instruction_address_misaligned at ifetch */
+		instruction_address_misaligned:							instruction_address_misaligned_exception();	
+		instruction_address_breakpoint:							instruction_address_breakpoint_exception();
+		instruction_page_fault:									instruction_page_fault_exception();
+		instruction_access_fault:								instruction_access_fault_exception();
 	}
-	func load_address_misaligned {
+	func load_store_amo_address_breakpoint_exception {
 
 	}
-	func load_access_fault {
+	func store_amo_address_misaligned_exception {
 
 	}
-	func store_amo_address_misaligned {
+	func load_address_misaligned_exception {
 
 	}
-	func store_amo_access_fault {
+	func store_amo_page_fault_exception {
 
 	}
-	func instruction_address_misaligned {
-		mtval := rv32x.epc;
-		rv32x.pc_ifetch();
-		trap(INSTRUCTION_ADDRESS_MISALIGNED, rv32x.epc);
-		rv32x.stall_ifetch_req();
-		rv32x.flush_ifetch();
+	func load_page_fault_exception {
+
 	}
-	func illegal_instruction {
+	func store_amo_access_fault_exception {
+
+	}
+	func load_access_fault_exception {
+
+	}
+	func illegal_instruction_exception {
 		mtval := rv32x.einst;
 		rv32x.pc_execute();
 		rv32x.inst_execute();
@@ -176,7 +212,16 @@ module rv32x_mcore {
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 	}
-	func environment_break {
+	func environment_call_exception {
+		mtval := 0;
+		rv32x.pc_execute();
+		trap(ENVIRONMENT_CALL_FROM_M_MODE, rv32x.epc);
+		rv32x.stall_ifetch_req();
+		rv32x.stall_decode_req();
+		rv32x.flush_ifetch();
+		rv32x.flush_decode();
+	}
+	func environment_break_exception {
 		mtval := rv32x.epc;
 		rv32x.pc_execute();
 		rv32x.inst_execute();
@@ -186,17 +231,21 @@ module rv32x_mcore {
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 	}
-	func environment_call {
-		mtval := 0;
-		rv32x.pc_execute();
-		trap(ENVIRONMENT_CALL_FROM_M_MODE, rv32x.epc);
+	func instruction_address_misaligned_exception {
+		mtval := rv32x.epc;
+		rv32x.pc_ifetch();
+		trap(INSTRUCTION_ADDRESS_MISALIGNED, rv32x.epc);
 		rv32x.stall_ifetch_req();
-		rv32x.stall_decode_req();
 		rv32x.flush_ifetch();
-		rv32x.flush_decode();
-#ifdef DEBUG
-		//debug_raise_exception(ENVIRONMENT_CALL_FROM_M_MODE, rv32x.epc);
-#endif
+	}
+	func instruction_address_breakpoint_exception {
+
+	}
+	func instruction_page_fault_exception {
+
+	}
+	func instruction_access_fault_exception {
+
 	}
 	func rv32x.mret {
 		mtval := 0;
@@ -275,7 +324,7 @@ module rv32x_mcore {
 	}
 	func rv32x.imem_read {
 		if((rv32x.iaddr[1:0] & ialign) != 2'b00) {
-			i_misaligned();
+			instruction_address_misaligned();
 		} else {
 			ic.read(rv32x.iaddr);
 		}
@@ -289,7 +338,7 @@ module rv32x_mcore {
 		any {
 			cacheable && !not_mapped:	dc.read(rv32x.daddr, rv32x.dbyteen);
 			!cacheable && !not_mapped:	noncacheable_read(rv32x.daddr, rv32x.dbyteen);	
-			not_mapped:					l_access_fault(); 
+			not_mapped:					load_access_fault(); 
 		}
 	}
 	func noncacheable_read {
@@ -322,7 +371,7 @@ module rv32x_mcore {
 		any {
 			cacheable && !not_mapped:	dc.write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
 			!cacheable && !not_mapped:	noncacheable_write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
-			not_mapped:					s_access_fault();
+			not_mapped:					store_amo_access_fault();
 		}
 #ifdef DEBUG
 		if(rv32x.daddr == 0x80001000)
