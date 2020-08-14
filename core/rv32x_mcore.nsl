@@ -25,6 +25,12 @@ module rv32x_mcore {
 	wire cwdata[32];
 	func_self csr_read(cradrs) : crdata;
 	func_self csr_write(cwadrs, cwdata);
+
+	wire ncadrs[32];
+	wire ncbyteen[3];
+	wire ncdata[32];
+	func_self noncacheable_read(ncadrs, ncbyteen);
+	func_self noncacheable_write(ncadrs, ncbyteen, ncdata);
 	
 	/* Trap */
 	reg cause[32];
@@ -33,8 +39,28 @@ module rv32x_mcore {
 	proc_name trap_ret();
 	/* Interrupt */
 	func_self interrupt();
-	func_self csr_not_mapped();
+	/* Exceptions */
+	func_self instruction_address_breakpoint();
+	func_self instruction_page_fault();
+	func_self instruction_access_fault();
 	func_self illegal_instruction();
+	func_self instruction_address_misaligned();
+	func_self environment_call();
+	func_self environment_break();
+	func_self load_store_amo_address_breakpoint();
+	func_self store_amo_address_misaligned();
+	func_self load_address_misaligned();
+	func_self store_amo_page_fault();
+	func_self load_page_fault();
+	func_self store_amo_access_fault();
+	func_self load_access_fault();
+
+	func_self csr_not_mapped();
+	func_self i_misaligned();
+	func_self l_misaligned();
+	func_self s_misaligned();
+	func_self l_access_fault();
+	func_self s_access_fault();
 
 	/* CSRs */
 	mvendorid_t reg mvendorid		= 0;
@@ -51,9 +77,11 @@ module rv32x_mcore {
 
 	wire sxlen[2];
 	wire uxlen[2];
+	wire ialign[2];
 
 	sxlen = MISA_MXL_32;
 	uxlen = MISA_MXL_32;
+	ialign = 2'b11;
 
 
 	func reset {
@@ -109,8 +137,34 @@ module rv32x_mcore {
 			else: 						csr_not_mapped();
 		}
 	}
-	if(rv32x.illegal_instruction || csr_not_mapped) {
-		illegal_instruction();
+	alt {
+		(rv32x.illegal_instruction || csr_not_mapped): 			illegal_instruction();
+		i_misaligned:											instruction_address_misaligned();
+		rv32x.ecall: 											environment_call();	
+		rv32x.ebreak: 											environment_break();	
+		l_misaligned:											load_address_misaligned();
+		l_access_fault:											load_access_fault();
+		s_misaligned:											store_amo_address_misaligned();
+		s_access_fault:											store_amo_access_fault();
+	}
+	func load_address_misaligned {
+
+	}
+	func load_access_fault {
+
+	}
+	func store_amo_address_misaligned {
+
+	}
+	func store_amo_access_fault {
+
+	}
+	func instruction_address_misaligned {
+		mtval := rv32x.epc;
+		rv32x.pc_ifetch();
+		trap(INSTRUCTION_ADDRESS_MISALIGNED, rv32x.epc);
+		rv32x.stall_ifetch_req();
+		rv32x.flush_ifetch();
 	}
 	func illegal_instruction {
 		mtval := rv32x.einst;
@@ -122,7 +176,7 @@ module rv32x_mcore {
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 	}
-	func rv32x.ebreak {
+	func environment_break {
 		mtval := rv32x.epc;
 		rv32x.pc_execute();
 		rv32x.inst_execute();
@@ -132,7 +186,7 @@ module rv32x_mcore {
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 	}
-	func rv32x.ecall {
+	func environment_call {
 		mtval := 0;
 		rv32x.pc_execute();
 		trap(ENVIRONMENT_CALL_FROM_M_MODE, rv32x.epc);
@@ -220,14 +274,30 @@ module rv32x_mcore {
 		}
 	}
 	func rv32x.imem_read {
-		ic.read(rv32x.iaddr);
+		if((rv32x.iaddr[1:0] & ialign) != 2'b00) {
+			i_misaligned();
+		} else {
+			ic.read(rv32x.iaddr);
+		}
 	}
 	func ic.valid {
 		rv32x.inst = ic.rdata;
 		rv32x.imem_valid();
 	}
 	func rv32x.dmem_read {
-		dc.read(rv32x.daddr, rv32x.dbyteen);
+		check_daddr(rv32x.daddr);
+		any {
+			cacheable && !not_mapped:	dc.read(rv32x.daddr, rv32x.dbyteen);
+			!cacheable && !not_mapped:	noncacheable_read(rv32x.daddr, rv32x.dbyteen);	
+			not_mapped:					l_access_fault(); 
+		}
+	}
+	func noncacheable_read {
+		dmem_read(ncadrs, ncbyteen);
+		if(dmem_valid) {
+			rv32x.rdata = rdata;
+			rv32x.dmem_valid();
+		}
 	}
 	func dc.mem_read {
 		reg dc_read_cnt[3] = 0;
@@ -248,11 +318,22 @@ module rv32x_mcore {
 		}
 	}
 	func rv32x.dmem_write {
-		dc.write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
+		check_daddr(rv32x.daddr);
+		any {
+			cacheable && !not_mapped:	dc.write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
+			!cacheable && !not_mapped:	noncacheable_write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
+			not_mapped:					s_access_fault();
+		}
 #ifdef DEBUG
 		if(rv32x.daddr == 0x80001000)
 			sim_done(rv32x.wdata);
 #endif
+	}
+	func noncacheable_write {
+		dmem_write(ncadrs, ncbyteen, ncdata);
+		if(dmem_valid) {
+			rv32x.dmem_valid();
+		}
 	}
 	func dc.mem_write {
 		reg dc_write_cnt[3] = 0;

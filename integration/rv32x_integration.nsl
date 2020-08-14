@@ -42,6 +42,10 @@ module rv32x_integration {
 			else: dmem_write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
 		}
 	}
+	func rv32x.check_daddr {
+		/* all location are mapped & cacheable for simulation purpose */
+		rv32x.cacheable();
+	}
 #ifdef DEBUG
 	debug_x0  = rv32x.debug_x0;
 	debug_x1  = rv32x.debug_x1;
