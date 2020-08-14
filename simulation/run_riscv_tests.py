@@ -55,8 +55,10 @@ def run_tests(tests_list, tests_assertion):
 			shutil.move(simulator+'.vcd', simulation_failed_directory+t)
 			print('{:20}\t{:20}  and it\'s PASSED\tNG'.format(t, a))
 def main():
-	shutil.rmtree(simulation_failed_directory)
-	shutil.rmtree(simulation_log_directory)
+	if(os.path.exists(simulation_failed_directory)):
+		shutil.rmtree(simulation_failed_directory)
+	if(os.path.exists(simulation_log_directory)):
+		shutil.rmtree(simulation_log_directory)
 	os.makedirs(simulation_failed_directory)
 	os.makedirs(simulation_log_directory)
 	tests_list = gen_tests_list()
