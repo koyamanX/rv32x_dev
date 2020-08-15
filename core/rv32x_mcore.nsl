@@ -35,8 +35,8 @@ module rv32x_mcore {
 	/* Trap */
 	reg cause[32];
 	reg epc[32];
-	proc_name trap(cause, epc);
-	proc_name trap_ret();
+	proc_name mtrap(cause, epc);
+	proc_name mtrap_ret();
 	/* Interrupt */
 	func_self interrupt();
 	/* Exceptions */
@@ -193,7 +193,7 @@ module rv32x_mcore {
 		mtval := rv32x.einst;
 		rv32x.inst_memory();
 		rv32x.pc_memory();
-		trap(LOAD_ADDRESS_MISALIGNED, rv32x.epc);
+		mtrap(LOAD_ADDRESS_MISALIGNED, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
 		rv32x.stall_execute_req();
@@ -219,7 +219,7 @@ module rv32x_mcore {
 		mtval := rv32x.einst;
 		rv32x.pc_execute();
 		rv32x.inst_execute();
-		trap(ILLEGAL_INSTRUCTION, rv32x.epc);
+		mtrap(ILLEGAL_INSTRUCTION, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
 		rv32x.flush_ifetch();
@@ -228,7 +228,7 @@ module rv32x_mcore {
 	func environment_call_exception {
 		mtval := 0;
 		rv32x.pc_execute();
-		trap(ENVIRONMENT_CALL_FROM_M_MODE, rv32x.epc);
+		mtrap(ENVIRONMENT_CALL_FROM_M_MODE, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
 		rv32x.flush_ifetch();
@@ -238,7 +238,7 @@ module rv32x_mcore {
 		mtval := rv32x.epc;
 		rv32x.pc_execute();
 		rv32x.inst_execute();
-		trap(BREAKPOINT, rv32x.epc);
+		mtrap(BREAKPOINT, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
 		rv32x.flush_ifetch();
@@ -247,7 +247,7 @@ module rv32x_mcore {
 	func instruction_address_misaligned_exception {
 		mtval := rv32x.epc;
 		rv32x.pc_ifetch();
-		trap(INSTRUCTION_ADDRESS_MISALIGNED, rv32x.epc);
+		mtrap(INSTRUCTION_ADDRESS_MISALIGNED, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.flush_ifetch();
 	}
@@ -262,13 +262,13 @@ module rv32x_mcore {
 	}
 	func rv32x.mret {
 		mtval := 0;
-		trap_ret();
+		mtrap_ret();
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 	}
-	proc trap_ret {
+	proc mtrap_ret {
 		mstatus.mie 	:= mstatus.mpie;
 		mstatus.mpie	:= 1;
 		mstatus.mpp		:= MACHINE;
@@ -277,7 +277,7 @@ module rv32x_mcore {
 		rv32x.trap(mepc);
 		finish();
 	}
-	proc trap {
+	proc mtrap {
 		wire v[32];
 
 		mode := MACHINE;
