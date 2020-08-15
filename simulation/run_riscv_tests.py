@@ -35,7 +35,7 @@ def gen_tests_assertion(tests_list):
 def run_tests(tests_list, tests_assertion):
 	for t, a in zip(tests_list, tests_assertion):
 		try:
-			subprocess.run([simulator, riscv_tests_directory+t], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+			subprocess.run([simulator, riscv_tests_directory+t], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=5)
 		except subprocess.CalledProcessError as err:
 			shutil.move(simulator+'.vcd', simulation_failed_directory+t)
 			if(a == 'should_be_passed'):
@@ -43,6 +43,9 @@ def run_tests(tests_list, tests_assertion):
 				return 1
 			else:
 				print('{:20}\t{:20}  and it\'s FAILED\tOK'.format(t, a))
+		except subprocess.TimeoutExpired:
+			shutil.move(simulator+'.vcd', simulation_failed_directory+t)
+			print('{:20}\t{:20}  and it\'s TIMEOUT\tNG'.format(t, a))
 		except:
 			shutil.move(simulator+'.vcd', simulation_failed_directory+t)
 			print('unexpected error')
