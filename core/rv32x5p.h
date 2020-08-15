@@ -48,6 +48,7 @@ declare rv32x5p {
 	func_out wfi();								/* indicating Wait-For-Interrupt is issued */
 	output einst[32];
 	func_in inst_execute() : einst;
+	func_in inst_memory() : einst;
 	func_out illegal_instruction();
 
 #ifdef DEBUG

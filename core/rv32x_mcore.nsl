@@ -190,7 +190,8 @@ module rv32x_mcore {
 
 	}
 	func load_address_misaligned_exception {
-		mtval := rv32x.daddr;
+		mtval := rv32x.einst;
+		rv32x.inst_memory();
 		rv32x.pc_memory();
 		trap(LOAD_ADDRESS_MISALIGNED, rv32x.epc);
 		rv32x.stall_ifetch_req();

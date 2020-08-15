@@ -543,6 +543,9 @@ module rv32x5p {
 	func inst_execute {
 		return DEREG.inst;
 	}
+	func inst_memory {
+		return EMREG.inst;
+	}
 #ifdef DEBUG
 	debug_x0  = rv32x_reg32.debug_x0;
 	debug_x1  = rv32x_reg32.debug_x1;
