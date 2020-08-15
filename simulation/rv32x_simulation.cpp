@@ -86,12 +86,50 @@ const char *reg_strs[] = {
 	"t6"
 };
 
+#define INSTRUCTION_ADDRESS_MISALIGNED 0
+#define INSTRUCTION_ACCESS_FAULT        1
+#define ILLEGAL_INSTRUCTION             2
+#define BREAKPOINT                      3
+#define LOAD_ADDRESS_MISALIGNED         4
+#define LOAD_ACCESS_FAULT               5
+#define STORE_AMO_ADDRESS_MISALIGNED    6
+#define STORE_AMO_ACCESS_FAULT          7
+#define ENVIRONMENT_CALL_FROM_U_MODE    8
+#define ENVIRONMENT_CALL_FROM_S_MODE    9
+#define ENVIRONMENT_CALL_FROM_M_MODE    11
+#define INSTRUCTION_PAGE_FAULT          12
+#define LOAD_PAGE_FAULT                 13
+#define STORE_AMO_PAGE_FAULT            15
+
+#define E2S(e)	(#e)
+
+const char *exception_str(uint32_t cause) {
+	switch(cause) {
+		case INSTRUCTION_ADDRESS_MISALIGNED: return E2S(INSTRUCTION_ADDRESS_MISALIGNED);
+		case INSTRUCTION_ACCESS_FAULT: return E2S(INSTRUCTION_ACCESS_FAULT);
+		case ILLEGAL_INSTRUCTION: return E2S(ILLEGAL_INSTRUCTION);
+		case BREAKPOINT: return E2S(BREAKPOINT);
+		case LOAD_ADDRESS_MISALIGNED: return E2S(LOAD_ADDRESS_MISALIGNED);
+		case LOAD_ACCESS_FAULT: return E2S(LOAD_ACCESS_FAULT);
+		case STORE_AMO_ADDRESS_MISALIGNED: return E2S(STORE_AMO_ADDRESS_MISALIGNED);
+		case STORE_AMO_ACCESS_FAULT: return E2S(STORE_AMO_ACCESS_FAULT);
+		case ENVIRONMENT_CALL_FROM_U_MODE: return E2S(ENVIRONMENT_CALL_FROM_U_MODE);
+		case ENVIRONMENT_CALL_FROM_S_MODE: return E2S(ENVIRONMENT_CALL_FROM_S_MODE);
+		case ENVIRONMENT_CALL_FROM_M_MODE: return E2S(ENVIRONMENT_CALL_FROM_M_MODE);
+		case INSTRUCTION_PAGE_FAULT: return E2S(INSTRUCTION_PAGE_FAULT);
+		case LOAD_PAGE_FAULT: return E2S(LOAD_PAGE_FAULT);
+		case STORE_AMO_PAGE_FAULT: return E2S(STORE_AMO_PAGE_FAULT);
+		default: return "ILLEGAL_EXCEPTION";
+	}
+}
+
 int main(int argc, char **argv)
 {
 	Verilated::commandArgs(argc, argv);
 	Verilated::traceEverOn(true);
 	char logfilename[128] = {0};
 	int i;
+	uint32_t mtval, epc, cause, got_exception;
 	init();
 
 	if(argc > 1) {
@@ -167,9 +205,6 @@ int main(int argc, char **argv)
 			insn_size = disasm(top->debug_retire_pc, &disasm_info);
 			if(top->debug_wb) {
 				fprintf(logfile, "\t\t\t\t%s <- %08x", reg_strs[top->debug_wb_rd&0x1f], top->debug_wb_data);
-			}
-			if(top->debug_raise_exception) {
-				fprintf(logfile, "ENVIRONMENT CALL FROM M-MODE (mepc <- %08x)\n", top->debug_epc);
 			}
 			if(top->debug_mem_write) {
 				int mask;
@@ -250,6 +285,16 @@ int main(int argc, char **argv)
 		} else {
 			top->dmem_valid = 0;
 		}
+		if(got_exception && (top->m_clock && !m_clock_prev)) {
+			fprintf(logfile, "%s (%08x): mtval %08x\n", exception_str(top->debug_cause), top->debug_epc, top->debug_mtval);
+			got_exception = 0;
+		}
+		if(top->debug_raise_exception && (top->m_clock && !m_clock_prev)) {
+			cause = top->debug_cause;
+			epc = top->debug_epc;
+			mtval = top->debug_mtval;
+			got_exception = 1;
+		}
 		/* Increment simulation time */
 		main_time+=2;
 		top->eval();			/* eval again to feed value from memory */
@@ -321,6 +366,7 @@ void printregs(void) {
 void finish(int stat) { 
 	int ret = stat;
 	int retire_cnt = 0;
+	uint32_t mtval, epc, cause, got_exception;
 
 	/* Some cycles for Write back */
 	while(1) {
@@ -369,7 +415,6 @@ void finish(int stat) {
 			top->dmem_valid = 0;
 		}
 
-
 		if(top->debug_retire && (top->m_clock && !m_clock_prev)) {
 			fprintf(logfile, "0x%016x (0x%08x)\t", top->debug_retire_pc, top->debug_retire_inst);
 			disasm_info.buffer_vma = top->debug_retire_pc;
@@ -377,9 +422,6 @@ void finish(int stat) {
 			insn_size = disasm(top->debug_retire_pc, &disasm_info);
 			if(top->debug_wb) {
 				fprintf(logfile, "\t\t\t\t%s <- %08x", reg_strs[top->debug_wb_rd&0x1f], top->debug_wb_data);
-			}
-			if(top->debug_raise_exception) {
-				fprintf(logfile, "ENVIRONMENT CALL FROM M-MODE (mepc <- %08x)\n", top->debug_epc);
 			}
 			if(top->debug_mem_write) {
 				int mask;
@@ -391,6 +433,16 @@ void finish(int stat) {
 				break;
 			}
 			retire_cnt++;
+		}
+		if(got_exception && (top->m_clock && !m_clock_prev)) {
+			fprintf(logfile, "%s (%08x): mtval %08x\n", exception_str(top->debug_cause), top->debug_epc, top->debug_mtval);
+			got_exception = 0;
+		}
+		if(top->debug_raise_exception && (top->m_clock && !m_clock_prev)) {
+			cause = top->debug_cause;
+			epc = top->debug_epc;
+			mtval = top->debug_mtval;
+			got_exception = 1;
 		}
 		main_time+=2;
 		top->eval();			/* eval again to feed value from memory */

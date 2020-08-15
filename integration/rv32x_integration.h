@@ -65,7 +65,8 @@ declare rv32x_integration {
 	func_out debug_mem_write(debug_mem_adrs, debug_mem_byteen, debug_mem_data);
 	output debug_cause[32];
 	output debug_epc[32];
-	func_out debug_raise_exception(debug_cause, debug_epc);
+	output debug_mtval[32];
+	func_out debug_raise_exception(debug_cause, debug_epc, debug_mtval);
 #endif
 }
 #endif

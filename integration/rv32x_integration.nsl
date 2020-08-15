@@ -96,7 +96,7 @@ module rv32x_integration {
 		debug_mem_write(rv32x.debug_mem_adrs, rv32x.debug_mem_byteen, rv32x.debug_mem_data);
 	}
 	func rv32x.debug_raise_exception {
-		debug_raise_exception(rv32x.debug_cause, rv32x.debug_epc);
+		debug_raise_exception(rv32x.debug_cause, rv32x.debug_epc, rv32x.debug_mtval);
 	}
 #endif
 }
