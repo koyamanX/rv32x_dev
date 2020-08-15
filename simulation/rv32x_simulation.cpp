@@ -129,7 +129,7 @@ int main(int argc, char **argv)
 	Verilated::traceEverOn(true);
 	char logfilename[128] = {0};
 	int i;
-	uint32_t mtval, epc, cause, got_exception;
+	uint32_t mtval, epc, cause, got_exception = 0;
 	init();
 
 	if(argc > 1) {
@@ -366,7 +366,7 @@ void printregs(void) {
 void finish(int stat) { 
 	int ret = stat;
 	int retire_cnt = 0;
-	uint32_t mtval, epc, cause, got_exception;
+	uint32_t mtval, epc, cause, got_exception = 0;
 
 	/* Some cycles for Write back */
 	while(1) {
