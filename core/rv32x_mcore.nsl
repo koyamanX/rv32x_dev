@@ -69,6 +69,9 @@ module rv32x_mcore {
 	func_self load_page_fault();
 	func_self store_amo_access_fault();
 	func_self load_access_fault();
+	func_self timer_interrupt();
+	func_self external_interrupt();
+	func_self software_interrupt();
 
 	func_self csr_not_mapped();
 	func_self misaligned();
@@ -182,6 +185,9 @@ module rv32x_mcore {
 		instruction_address_breakpoint:							instruction_address_breakpoint_exception();
 		instruction_page_fault:									instruction_page_fault_exception();
 		instruction_access_fault:								instruction_access_fault_exception();
+		machine_timer_interrupt_req:							timer_interrupt();
+		machine_external_interrupt_req:							external_interrupt();
+		machine_software_interrupt_req:							software_interrupt();
 	}
 	func load_store_amo_address_breakpoint_exception {
 
@@ -260,6 +266,12 @@ module rv32x_mcore {
 	func instruction_access_fault_exception {
 
 	}
+	func timer_interrupt {
+		rv32x.stall_ifetch_req();
+		rv32x.flush_ifetch();
+		rv32x.pc_ifetch();
+		mtrap(MACHINE_TIMER_INTERRUPT, rv32x.epc);
+	}
 	func rv32x.mret {
 		mtval := 0;
 		mtrap_ret();
@@ -286,6 +298,11 @@ module rv32x_mcore {
 		mstatus.mpp 	:= MACHINE;
 		mcause 			:= cause;
 		mepc 			:= epc;
+
+		if(cause[31]) {
+			interrupt();
+			interrupt_ack();
+		}
 
 		any {
 			mtvec.mode == 2'b00 && !interrupt: v = {mtvec.base, 2'b00};
