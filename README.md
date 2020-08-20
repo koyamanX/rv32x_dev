@@ -24,7 +24,7 @@ $ ./run.sh 'make -C run_riscv_tests'
 ```
 
 #### Passed Tests
-- See STATUS.md
+- See [STATUS.md](STATUS.md)
 
 ### Exceptions supported (However priority encoder has known issues)
 - illegal_instruction_exception
