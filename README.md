@@ -24,9 +24,7 @@ $ ./run.sh 'make -C run_riscv_tests'
 ```
 
 #### Passed Tests
-- rv32ui-p-*
-- rv32um-p-*
-- rv32mi-p-* (except for breakpoint, ma_fetch, ma_adder)
+- See [STATUS.md](STATUS.md)
 
 ### Exceptions supported (However priority encoder has known issues)
 - illegal_instruction_exception
