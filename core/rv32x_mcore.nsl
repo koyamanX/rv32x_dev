@@ -40,6 +40,9 @@ module rv32x_mcore {
 	/* Interrupt */
 	func_self interrupt();
 	func_self interrupt_enabled();
+	func_self timer_interrupt_enabled();
+	func_self software_interrupt_enabled();
+	func_self external_interrupt_enabled();
 	/* Exceptions */
 	func_self exception();
 	func_self instruction_address_breakpoint_exception();
@@ -91,6 +94,8 @@ module rv32x_mcore {
 	mcause_t reg mcause 			= RESET;
 	mtval_t reg mtval				= 0;
 	misa_t reg misa					= 0;
+	mie_t reg mie					= 0;
+	mip_t reg mip					= 0;
 
 	wire sxlen[2];
 	wire uxlen[2];
@@ -103,7 +108,15 @@ module rv32x_mcore {
 	if((mode == MACHINE) && mstatus.mie) {
 		interrupt_enabled();
 	}
-
+	if(mip.meip && mie.meip) {
+		external_interrupt_enabled();
+	}
+	if(mip.mtip && mie.mtip) {
+		timer_interrupt_enabled();
+	}
+	if(mip.msip && mie.msip) {
+		software_interrupt_enabled();
+	}
 
 	func reset {
 		wire resetvector[32];
@@ -172,9 +185,12 @@ module rv32x_mcore {
 	}
 	alt {
 		/* Interrupt has higher priorities than exceptions */
-		machine_external_interrupt_req && interrupt_enabled:	external_interrupt();
-		machine_software_interrupt_req && interrupt_enabled:	software_interrupt();
-		machine_timer_interrupt_req && interrupt_enabled:		timer_interrupt();
+		machine_external_interrupt_req 
+			&& interrupt_enabled && external_interrupt_enabled:	external_interrupt();
+		machine_software_interrupt_req 
+			&& interrupt_enabled && software_interrupt_enabled:	software_interrupt();
+		machine_timer_interrupt_req 
+			&& interrupt_enabled && timer_interrupt_enabled:	timer_interrupt();
 		/* Process exception in preceeding instruction in pipeline */	
 		/* Memory stage */
 		/* memory address is sent out to bus in memory stage process load_store_amo_address_breakpoint at memory stage */
