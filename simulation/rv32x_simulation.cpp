@@ -139,6 +139,7 @@ int main(int argc, char **argv)
 	//WData packed_inst[4];
 	m = init_mem_list();
 	bfd *abfd = open_exe(exefile, arch);
+	insert_new_mem(m, "RAM0", 0x80000000, (0x84008000-0x80000000), 0);
 	load_elf(m, abfd);
 	print_mem_list(m);
 
