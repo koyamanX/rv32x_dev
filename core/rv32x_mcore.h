@@ -18,6 +18,10 @@ declare rv32x_mcore {
 	func_out check_daddr(cdaddr);
 	func_in cacheable();
 	func_in not_mapped();
+	func_in machine_timer_interrupt_req();
+	func_in machine_software_interrupt_req();
+	func_in machine_external_interrupt_req();
+	func_out interrupt_ack();
 #ifdef DEBUG
 	output tohost[32];
 	func_out sim_done(tohost);
