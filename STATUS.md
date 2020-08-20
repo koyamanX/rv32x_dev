@@ -1,3 +1,4 @@
+```
 ./run_riscv_tests.py
 rv32ui-p-bltu       	should_be_passed      and it's PASSED	OK  
 rv32ui-p-auipc      	should_be_passed      and it's PASSED	OK  
@@ -55,3 +56,4 @@ rv32mi-p-breakpoint 	should_be_failed      and it's FAILED	OK
 rv32mi-p-sbreak     	should_be_passed      and it's PASSED	OK  
 rv32mi-p-shamt      	should_be_passed      and it's PASSED	OK  
 rv32mi-p-illegal    	should_be_passed      and it's PASSED	OK  
+```
