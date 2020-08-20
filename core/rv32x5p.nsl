@@ -303,7 +303,7 @@ module rv32x5p {
 		emreg.rs1_data = execute_alu_a;
 		/* Forward from wb */
 		/* if rs2_data is imm, don't forward (!op || !branch) */
-		emreg.rs2_data = if(DEREG.store) if(DEREG.rs2 == MWREG.rd) MWREG.wb_value else DEREG.rs2_data else execute_alu_b;	
+		emreg.rs2_data = if(DEREG.store) if((DEREG.rs2 == MWREG.rd) && (DEREG.rs2 != 5'b00000)) MWREG.wb_value else DEREG.rs2_data else execute_alu_b;	
 		emreg.load = if(execute_nop) 1'b0 else DEREG.load;
 		emreg.store = if(execute_nop) 1'b0 else DEREG.store;
 		emreg.alu_q = if(DEREG.jump) DEREG.pc4 else if(DEREG.csrrw || DEREG.csrrc || DEREG.csrrs) crdata else alu_q;		/* address for link register */
@@ -464,7 +464,7 @@ module rv32x5p {
 
 		mem_byteen = {1'b0, EMREG.funct3[1:0]};
 		mem_adrs = EMREG.alu_q;
-		mem_data = if(MWREG.rd == EMREG.rs2) MWREG.wb_value else EMREG.rs2_data;	/* Forward from wb stage */
+		mem_data = if((MWREG.rd == EMREG.rs2) && (EMREG.rs2 != 5'b0000)) MWREG.wb_value else EMREG.rs2_data;	/* Forward from wb stage */
 #ifdef DEBUG
 		mwreg.debug_mem_adrs = mem_adrs;
 		mwreg.debug_mem_byteen = mem_byteen;
