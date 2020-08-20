@@ -119,29 +119,38 @@ unsigned char *write_byte(memlist_t *m, unsigned long adrs, unsigned char wdata)
 	assert(t->mem != NULL);
 	t->mem[adrs - t->origin] = wdata;
 	return &t->mem[adrs - t->origin];
-}
-unsigned char *load_section(memlist_t *m, bfd *abfd, const char *section) {
-	memlist_t *e;
-	asection *s;
+} 
+unsigned char *load_section(memlist_t *m, bfd *abfd, const char *section) { 
+	memlist_t *e; 
+	asection *s; 
 
 	s = bfd_get_section_by_name(abfd, section);
 	assert(s != NULL);
 	e = find_mem_entry(m, s->vma);
 	assert(e != NULL);
 	assert(e->mem != NULL);
-	bfd_get_section_contents(abfd, s, e->mem, 0, s->size);
+	bfd_get_section_contents(abfd, s, (e->mem+(s->vma - e->origin)), 0, s->size);
 	return e->mem;
 }
 void load_elf(memlist_t *m, bfd *abfd) {
 	asection *s = abfd->sections;
-
+	memlist_t *found = NULL;
+	
 	do {
-	   if(s->flags & SEC_ALLOC) {
-		   insert_new_mem(m, s->name, s->vma, s->size+1024, 0);
-	   }
-	   if(s->flags & SEC_LOAD) {
+		found = find_mem_entry(m, s->vma);
+		if(s->flags & SEC_ALLOC) {
+			if(!found) {
+				insert_new_mem(m, s->name, s->vma, s->size+1024, 0);
+			} else {
+				if(found->length < s->size) {
+					fprintf(stderr, "%s: cannot load ELF, Not enough space in memory(%s)", __func__, found->name);
+					exit(1);
+				}
+			}
+		}
+		if(s->flags & SEC_LOAD) {
 			load_section(m, abfd, s->name);
-	   }
+		}
 	} while((s = s->next) != NULL);
 }
 
