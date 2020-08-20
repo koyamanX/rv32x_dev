@@ -7,7 +7,7 @@ INCLUDE=$(RISCV_INSTALL_DIR)/include
 all: libelfloader.a
 libelfloader.a: elfloader.c elfloader.h
 # Include bfd headers for RISCV
-	$(CC) -c $< -I$(INCLUDE)
+	$(CC) -c $< -I$(INCLUDE) -ggdb
 	$(AR) rcs $@ elfloader.o 
 	$(RANLIB) $@
 clean:
