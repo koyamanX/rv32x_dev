@@ -135,7 +135,7 @@ struct mtvec_t {
 	mode[2];
 };
 struct mip_t {
-	reserved0[19]; 
+	reserved0[20]; 
 	meip[1];
 	reserved1[1];
 	seip[1];
