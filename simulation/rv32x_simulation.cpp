@@ -200,6 +200,8 @@ public:
 				fprintf(stderr, "Data memory violation occuries at address of %08x, byteen %02x", core->daddr, core->dbyteen);
 				exit(-1);
 			}
+			eval();
+			dump();
 			if(rising_edge) {
 				if(core->sim_done) {
 					ret = core->tohost;
@@ -218,8 +220,6 @@ public:
 					break;
 				}
 			}
-			eval();
-			dump();
 		}
 		retire_pc = core->debug_retire_pc;
 		retire_inst = core->debug_retire_inst;
