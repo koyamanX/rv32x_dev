@@ -152,6 +152,7 @@ module rv32x_mcore {
 			cradrs == MEPC: 			return mepc;
 			cradrs == MCAUSE: 			return mcause;
 			cradrs == MTVAL: 			return mtval;
+			cradrs == MIE:				return mie;
 			else:						{csr_not_mapped(); return 0x00000000;}
 		}
 	}
@@ -168,6 +169,7 @@ module rv32x_mcore {
 			cwadrs == MTVEC: 			mtvec 		:= cwdata;
 			cwadrs == MSCRATCH:			mscratch 	:= cwdata;
 			cwadrs == MEPC: 			mepc 		:= cwdata;
+			cwadrs == MIE:				mie 		:= cwdata;
 			else: 						csr_not_mapped();
 		}
 	}
