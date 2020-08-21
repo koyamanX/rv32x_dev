@@ -46,6 +46,7 @@ def run_tests(tests_list, tests_assertion):
 		except subprocess.TimeoutExpired:
 			shutil.move(simulator+'.vcd', simulation_failed_directory+t)
 			print('{:20}\t{:20}  and it\'s TIMEOUT\tNG'.format(t, a))
+			return 1
 		except:
 			shutil.move(simulator+'.vcd', simulation_failed_directory+t)
 			print('unexpected error')
