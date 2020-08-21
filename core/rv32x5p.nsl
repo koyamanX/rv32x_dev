@@ -26,6 +26,8 @@ module rv32x5p {
 	func_self stall_execute();
 	func_self stall_memory();
 	func_self load_interlock();					/* stall pipeline until load finishes */
+	func_self load_hazzard_a();
+	func_self load_hazzard_b();
 	func_self ifetch_nop();						/* insert nop instruction in ifetch */
 	func_self decode_nop();						/* insert nop instruction in decode */
 	func_self execute_nop();					/* insert nop instruction in execute */
@@ -256,11 +258,25 @@ module rv32x5p {
 		stall_decode();
 		stall_execute();
 	}
+	func load_hazzard_a {
+		if(!load_hazzard_b) {
+			DEREG.alu_b := execute_alu_b;	
+			DEREG.alu_b_forward_en := 0;
+		}
+		load_interlock();
+	}
+	func load_hazzard_b {
+		if(!load_hazzard_a) {
+			DEREG.alu_a := execute_alu_a;	
+			DEREG.alu_a_forward_en := 0;
+		}
+		load_interlock();
+	}
 	/* Forwarding Unit */
 	if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && !EMREG.load) {
 		execute_alu_a = EMREG.alu_q;
 	} else if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && EMREG.load && memory) {
-		load_interlock();
+		load_hazzard_a();
 	} else if((DEREG.rs1 == MWREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && MWREG.load) {
 		execute_alu_a = MWREG.wb_value;
 	} else if((DEREG.rs1 == MWREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && !MWREG.load) {
@@ -271,7 +287,7 @@ module rv32x5p {
 	if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && !EMREG.load) {
 		execute_alu_b = EMREG.alu_q;
 	} else if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && EMREG.load && memory) {
-		load_interlock();
+		load_hazzard_b();
 	} else if((DEREG.rs2 == MWREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && MWREG.load) {
 		execute_alu_b = MWREG.wb_value;
 	} else if((DEREG.rs2 == MWREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && !MWREG.load) {
