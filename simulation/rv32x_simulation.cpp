@@ -209,10 +209,6 @@ public:
 				if(core->sim_done) {
 					ret = core->tohost;
 				}
-				if(got_exception) {
-					printException(epc, cause, mtval);
-					got_exception = 0;
-				}
 				if(core->debug_raise_exception) {
 					epc = core->debug_epc;
 					cause = core->debug_cause;
@@ -230,18 +226,22 @@ public:
 		if(disasm != NULL) {
 			printDisasm(retire_pc, retire_inst);
 		}
-		if(rising_edge) {
-			if(core->debug_mem_write) {
-				int mask;
-				mask = 0xffffffff >> (32-(core->debug_mem_byteen+1)*8);
-				printMemWrite(core->debug_mem_adrs, core->debug_mem_data&mask);
-			}
-			if(core->debug_wb) {
-				printRegInfo(core->debug_wb_rd, core->debug_wb_data);
-			}
+		if(core->debug_mem_write) {
+			int mask;
+			mask = 0xffffffff >> (32-(core->debug_mem_byteen+1)*8);
+			printMemWrite(core->debug_mem_adrs, core->debug_mem_data&mask);
+		}
+		if(core->debug_wb) {
+			printRegInfo(core->debug_wb_rd, core->debug_wb_data);
 		}
 		dumpRegs();
 		fprintf(logfile, "\n");
+		if(got_exception == 1) {
+			got_exception++;
+		} else if(got_exception == 2) {
+			printException(epc, cause, mtval);
+			got_exception = 0;
+		}
 
 		return ret;
 	};
