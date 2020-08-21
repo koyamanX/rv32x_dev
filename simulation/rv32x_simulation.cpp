@@ -140,12 +140,12 @@ public:
 	unsigned long long getSimTime(void) {
 		return m_clock_count;
 	};
-	int step(void) {
+	uint64_t step(void) {
 		int imem_stat = 0;
 		int dmem_stat = 0;
 		static int got_exception = 0;
 		static uint32_t epc, cause, mtval;
-		int ret = 0;
+		uint64_t ret = -1;
 
 		while(1) {
 			tick();
@@ -353,7 +353,7 @@ int main(int argc, char **argv) {
 	proc0->resetCore();
 	while(1) {
 		ret = proc0->step();
-		if(ret != 0) {
+		if(ret != -1) {
 			break;
 		}
 	}
