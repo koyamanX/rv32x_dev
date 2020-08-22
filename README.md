@@ -1,7 +1,7 @@
 ## RISC-V (RV32IMAC) Implementation in NSL
-This repository contains implementation of RV32IMAC(currently supporting RV32IM Zicsr with partially Machine-Mode).  
-This implementation is fully synthisable and also able to convert to software simulator(by verilator).  
-Written in [NSL](http://www.overtone.co.jp/products/and-the-nsl/)  
+- This repository contains implementation of RV32IMAC(currently supporting RV32IM Zicsr with partially Machine-Mode).  
+- This implementation is fully synthisable and also able to convert to software simulator(by verilator).  
+- Written in [NSL](http://www.overtone.co.jp/products/and-the-nsl/)  
 
 ### Prerequisites
 - Installation of NSL core (SET Environment variable NSLCORE(path to nsl2vl) and specifiy in run.sh to pass it to container)  
