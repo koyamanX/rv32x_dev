@@ -1,6 +1,5 @@
 fpga/*
 simulation/logs/*
-docs/*
 simulation/bootrom.hex
 simulation/bootrom/bootrom.elf
 simulation/bootrom/bootrom.hex
