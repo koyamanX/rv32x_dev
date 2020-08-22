@@ -4,3 +4,6 @@
 [submodule "docs/riscv-isa-manual"]
 	path = docs/riscv-isa-manual
 	url = https://github.com/riscv/riscv-isa-manual
+[submodule "docs/riscv-plic-spec"]
+	path = docs/riscv-plic-spec
+	url = https://github.com/riscv/riscv-plic-spec
