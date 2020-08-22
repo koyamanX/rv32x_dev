@@ -9,13 +9,14 @@ Written in [NSL](http://www.overtone.co.jp/products/and-the-nsl/)
 - Installation of X11 (for GTKWave)
 
 ### Testing the implementation
-Implementation can be tested with riscv-tests.
-To test, run following commands.
-Writting to tohost(0x80001000) will cause simulator to finish its simulation with written value as exit code.
-in 'logs' directory, we can find instruction execution trace.
-if tests failed, then 'failed' directory will be created and failed test and its vcd will copied into it for debugging.
-Reset vector is 0x00000000.
-Bootrom is placed on address location of 0x00000000 to 0x00000400.
+Implementation can be tested with riscv-tests.  
+To test, run following commands.  
+Writting to tohost(0x80001000) will cause simulator to finish its simulation with written value as exit code.  
+in 'logs' directory, we can find instruction execution trace.  
+if tests failed, then 'failed' directory will be created and failed test and its vcd will copied into it for debugging.  
+Test will result in passed, failed or timeout.  
+Timeout means simulator has potential bugs which result in infinite loop.  
+Reset vector is 0x00000000. Bootrom is placed on address location of 0x00000000 to 0x00000400.
 Bootrom contains code to jump to 0x80000000 which test codes are placed.
 ```
 $ ./build.sh # Build docker image (need for first time)
@@ -30,16 +31,15 @@ $ ./run.sh 'make -C run_riscv_tests'
 - illegal_instruction_exception
 - environment_call_from_m_mode
 - instruction_address_misaligned
-- breakpoint
-#### stubs
 - load_address_misaligned
 - load_access_fault
 - store_address_misalgined
 - store_access_fault
 
 ### Interrupts support
-- Not-Yet-Implemented
-
+- Machine mode external interrupt
+- Machine mode timer interrupt (via CLINT)
+- Machine mode software interrupt (via CLINT)
 
 ### Executing arbitary executable file
 You can simply give executable file to its first arguments.
@@ -55,7 +55,6 @@ $ ./rv32x_simulation $NAME_OF_EXECUTABLE
 
 ### TODO 
 - Implement full feature of Machine mode
-- Refactor rv32x\_simulation.cpp
 - Attach GDB RSP server
 - Develop SoC for FPGA
 - Implement Compress and Atomic
@@ -70,7 +69,12 @@ SoC is currently under developing for FPGA.
 - SDRAM Controller	(sid)
 - SPI SDHC			(sid)
 #### Memory Map
-see integration/memory\_map.h
+see integration/memory\_map.h  
+For simulation purpose, address map below is mapped. 
+|Name|Region|Is cacheable?|
+|--|--|--|
+|CLINT|0x2000\_0000 - 0x2000\_c000|Non-cacheable|
+|RAM0|0x8000\_0000 - 0x8400\_8000|Cacheable|
 
-
+Other region in executable file is also created automatically, as Cacheable region.
 
