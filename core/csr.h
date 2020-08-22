@@ -187,7 +187,8 @@ struct mcounteren_t {
 #define mcountinhibit_t mcounteren_t
 struct mcause_t {
 	interrupt[1];
-	exception_code[31];
+	reserved[21];
+	exception_code[10];
 };
 
 #define mscratch_t csr32_t
