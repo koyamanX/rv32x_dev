@@ -21,7 +21,9 @@ declare rv32x_mcore {
 	func_in machine_timer_interrupt_req();
 	func_in machine_software_interrupt_req();
 	func_in machine_external_interrupt_req();
-	func_out interrupt_ack();
+	func_out machine_timer_interrupt_ack();
+	func_out machine_software_interrupt_ack();
+	func_out machine_external_interrupt_ack();
 #ifdef DEBUG
 	output tohost[32];
 	func_out sim_done(tohost);

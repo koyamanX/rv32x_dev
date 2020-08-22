@@ -96,6 +96,8 @@ module rv32x_mcore {
 	misa_t reg misa					= 0;
 	mie_t reg mie					= 0;
 	mip_t reg mip					= 0;
+	reg msip 						= 0;
+	reg mtip 						= 0;
 
 	wire sxlen[2];
 	wire uxlen[2];
@@ -111,12 +113,15 @@ module rv32x_mcore {
 	if(mip.meip && mie.meip) {
 		external_interrupt_enabled();
 	}
-	if(mip.mtip && mie.mtip) {
+	if(mtip && mie.mtip) {
 		timer_interrupt_enabled();
 	}
-	if(mip.msip && mie.msip) {
+	if(msip && mie.msip) {
 		software_interrupt_enabled();
 	}
+
+	msip := machine_software_interrupt_req;
+	mtip := machine_timer_interrupt_req;
 
 	func reset {
 		wire resetvector[32];
@@ -153,7 +158,7 @@ module rv32x_mcore {
 			cradrs == MCAUSE: 			return mcause;
 			cradrs == MTVAL: 			return mtval;
 			cradrs == MIE:				return mie;
-			cradrs == MIP:				return mip;
+			cradrs == MIP:				return mip | 32'({mtip, 3'b000, msip, 3'b000});
 			else:						{csr_not_mapped(); return 0x00000000;}
 		}
 	}
@@ -189,12 +194,9 @@ module rv32x_mcore {
 	}
 	alt {
 		/* Interrupt has higher priorities than exceptions */
-		machine_external_interrupt_req 
-			&& interrupt_enabled && external_interrupt_enabled:	external_interrupt();
-		machine_software_interrupt_req 
-			&& interrupt_enabled && software_interrupt_enabled:	software_interrupt();
-		machine_timer_interrupt_req 
-			&& interrupt_enabled && timer_interrupt_enabled:	timer_interrupt();
+		interrupt_enabled && external_interrupt_enabled:	external_interrupt();
+		interrupt_enabled && software_interrupt_enabled:	software_interrupt();
+		interrupt_enabled && timer_interrupt_enabled:		timer_interrupt();
 		/* Process exception in preceeding instruction in pipeline */	
 		/* Memory stage */
 		/* memory address is sent out to bus in memory stage process load_store_amo_address_breakpoint at memory stage */
@@ -227,6 +229,7 @@ module rv32x_mcore {
 		rv32x.flush_execute();
 		rv32x.flush_memory();
 		rv32x.pc_memory();
+		machine_external_interrupt_ack();
 		mtrap(MACHINE_EXTERNAL_INTERRUPT, rv32x.epc);
 	}
 	func software_interrupt {
@@ -240,6 +243,7 @@ module rv32x_mcore {
 		rv32x.flush_execute();
 		rv32x.flush_memory();
 		rv32x.pc_memory();
+		machine_software_interrupt_ack();
 		mtrap(MACHINE_SOFTWARE_INTERRUPT, rv32x.epc);
 	}
 	func timer_interrupt {
@@ -253,6 +257,7 @@ module rv32x_mcore {
 		rv32x.flush_execute();
 		rv32x.flush_memory();
 		rv32x.pc_memory();
+		machine_timer_interrupt_ack();
 		mtrap(MACHINE_TIMER_INTERRUPT, rv32x.epc);
 	}
 	func load_store_amo_address_breakpoint_exception {
@@ -370,15 +375,12 @@ module rv32x_mcore {
 		mcause 			:= cause;
 		mepc 			:= epc;
 
-		if(cause[31]) {
-			interrupt_ack();
-		}
 
 		any {
-			mtvec.mode == 2'b00 && !cause[31]: v = {mtvec.base, 2'b00};
-			mtvec.mode == 2'b01 && !cause[31]: v = {mtvec.base, 2'b00};
-			mtvec.mode == 2'b01 && cause[31]:  v = {mtvec.base, 2'b00}
-														+{cause[30:0], 1'b0};
+			mtvec.mode == 2'b00: 				v = {mtvec.base, 2'b00};
+			mtvec.mode == 2'b01 && !cause[31]:	v = {mtvec.base, 2'b00};
+			mtvec.mode == 2'b01 && cause[31]:	v = {mtvec.base, 2'b00}
+														+32'({cause[9:0], 2'b00});
 		}
 		rv32x.stall_ifetch_req();
 		rv32x.trap(v);
