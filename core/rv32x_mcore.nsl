@@ -360,6 +360,7 @@ module rv32x_mcore {
 		mstatus.mie 	:= mstatus.mpie;
 		mstatus.mpie	:= 1;
 		mstatus.mpp		:= MACHINE;
+		mstatus.mprv 	:= 0;
 		mode 			:= mstatus.mpp;
 		rv32x.stall_ifetch_req();
 		rv32x.trap(mepc);
