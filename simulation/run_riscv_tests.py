@@ -59,6 +59,9 @@ def run_tests(tests_list, tests_assertion):
 			shutil.move(simulator+'.vcd', simulation_failed_directory+t)
 			print('{:20}\t{:20}  and it\'s PASSED\tNG'.format(t, a))
 def main():
+	md_opt = 0
+	if sys.argv[1] == '--print-markdown':
+		md_opt = 1
 	if(os.path.exists(simulation_failed_directory)):
 		shutil.rmtree(simulation_failed_directory)
 	if(os.path.exists(simulation_log_directory)):
@@ -67,7 +70,11 @@ def main():
 	os.makedirs(simulation_log_directory)
 	tests_list = gen_tests_list()
 	tests_assertion = gen_tests_assertion(tests_list)
+	if md_opt == 1:
+		print('```')
 	exit_code = run_tests(tests_list, tests_assertion)
+	if md_opt == 1:
+		print('```')
 
 	return exit_code
 if __name__ == '__main__':
