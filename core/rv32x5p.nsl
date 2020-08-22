@@ -415,9 +415,6 @@ module rv32x5p {
 			(DEREG.bgeu & ~lt): taken();
 		}
 	} 
-	/* TODO: should csr_read be done in decode stage ? */
-	/* REFS: UNPRIVILEGED_ISA_VERSION at p.57 */
-	/* TODO: implement csr read and write behavior */
 	func csrrw {
 		csr_wb_data = if(DEREG.uimm) 32'(DEREG.rs1) else execute_alu_a;
 		if(DEREG.rd != 5'b00000) {
