@@ -1,23 +1,21 @@
 ## RISC-V (RV32IMAC) Implementation in NSL
-This repository contains implementation of RV32IMAC(currently supporting RV32IM with partially Machine-Mode).
-This implementation is fully synthisable and also able to convert to software simulator(by verilator).
-Written in [NSL](http://www.overtone.co.jp/products/and-the-nsl/)
+This repository contains implementation of RV32IMAC(currently supporting RV32IM Zicsr with partially Machine-Mode).  
+This implementation is fully synthisable and also able to convert to software simulator(by verilator).  
+Written in [NSL](http://www.overtone.co.jp/products/and-the-nsl/)  
 
 ### Prerequisites
-- Installation of NSL core (SET Environment variable NSLCORE(path to nsl2vl) and specifiy in run.sh to pass it to container)
-- Installation of Docker
-- Installation of X11 (for GTKWave)
+- Installation of NSL core (SET Environment variable NSLCORE(path to nsl2vl) and specifiy in run.sh to pass it to container)  
+- Installation of Docker  
+- Installation of X11 (for GTKWave)  
 
 ### Testing the implementation
-Implementation can be tested with riscv-tests.  
-To test, run following commands.  
-Writting to tohost(0x80001000) will cause simulator to finish its simulation with written value as exit code.  
-in 'logs' directory, we can find instruction execution trace.  
-if tests failed, then 'failed' directory will be created and failed test and its vcd will copied into it for debugging.  
-Test will result in passed, failed or timeout.  
-Timeout means simulator has potential bugs which result in infinite loop.  
-Reset vector is 0x00000000. Bootrom is placed on address location of 0x00000000 to 0x00000400.
-Bootrom contains code to jump to 0x80000000 which test codes are placed.
+- Implementation can be tested with riscv-tests.  
+- To test, run following commands.  
+- Writting to tohost(0x80001000) will cause simulator to finish its simulation with written value as exit code.  
+in 'logs' directory, we can find instruction execution trace. If tests failed, then 'failed' directory will be created and failed test and its vcd will copied into it for debugging.  
+- Test will result in passed, failed or timeout. Timeout means simulator has potential bugs which result in infinite loop.  
+- Reset vector is 0x00000000. Bootrom is placed on address location of 0x00000000 to 0x00000400.
+- Bootrom contains code to jump to 0x80000000 which test codes are placed.
 ```
 $ ./build.sh # Build docker image (need for first time)
 $ ./run.sh 'make -C simulation all'
@@ -42,11 +40,11 @@ $ ./run.sh 'make -C run_riscv_tests'
 - Machine mode software interrupt (via CLINT)
 
 ### Executing arbitary executable file
-You can simply give executable file to its first arguments.
-If none is given, then a.out in current directory is assumed.
-Memory is created by reading sections in executable.
-If writting or reading locations not allocated explicitly in executable file
-	will cause simulator to finish its execution with error message.
+- You can simply give executable file to its first arguments.
+- If none is given, then a.out in current directory is assumed.
+- Memory is created by reading sections in executable.
+- If writting or reading locations not allocated explicitly in executable file 
+will cause simulator to finish its execution with error message.
 
 ``` 
 $ cd simulation
