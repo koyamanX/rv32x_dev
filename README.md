@@ -71,6 +71,7 @@ see integration/memory\_map.h
 For simulation purpose, address map below is mapped. 
 |Name|Region|Is cacheable?|
 |--|--|--|
+|BOOTROM|0x0000\_0000 - 0x0000\_1000|Cacheable|
 |CLINT|0x2000\_0000 - 0x2000\_c000|Non-cacheable|
 |RAM0|0x8000\_0000 - 0x8400\_8000|Cacheable|
 
