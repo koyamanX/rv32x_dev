@@ -31,7 +31,7 @@ module clint {
 			adrs == CLINT_MTIMECMP_ADDR_OFFSET:	{mtimecmp_lo := wdata; timer_enabled := 1;}
 			adrs == CLINT_MTIMECMP_ADDR_OFFSET
 						+0x0000_0004:			{mtimecmp_hi := wdata; timer_enabled := 1;}
-			else: load_access_fault();
+			else: store_access_fault();
 		}
 		valid();
 	}
