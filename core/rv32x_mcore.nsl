@@ -40,9 +40,9 @@ module rv32x_mcore {
 	/* Interrupt */
 	func_self interrupt();
 	func_self interrupt_enabled();
-	func_self timer_interrupt_enabled();
-	func_self software_interrupt_enabled();
-	func_self external_interrupt_enabled();
+	func_self timer_interrupt_pending();
+	func_self software_interrupt_pending();
+	func_self external_interrupt_pending();
 	/* Exceptions */
 	func_self exception();
 	func_self instruction_address_breakpoint_exception();
@@ -111,13 +111,13 @@ module rv32x_mcore {
 		interrupt_enabled();
 	}
 	if(mip.meip && mie.meip) {
-		external_interrupt_enabled();
+		external_interrupt_pending();
 	}
 	if(mtip && mie.mtip) {
-		timer_interrupt_enabled();
+		timer_interrupt_pending();
 	}
 	if(msip && mie.msip) {
-		software_interrupt_enabled();
+		software_interrupt_pending();
 	}
 
 	msip := machine_software_interrupt_req;
@@ -194,9 +194,9 @@ module rv32x_mcore {
 	}
 	alt {
 		/* Interrupt has higher priorities than exceptions */
-		interrupt_enabled && external_interrupt_enabled:	external_interrupt();
-		interrupt_enabled && software_interrupt_enabled:	software_interrupt();
-		interrupt_enabled && timer_interrupt_enabled:		timer_interrupt();
+		interrupt_enabled && external_interrupt_pending:	external_interrupt();
+		interrupt_enabled && software_interrupt_pending:	software_interrupt();
+		interrupt_enabled && timer_interrupt_pending:		timer_interrupt();
 		/* Process exception in preceeding instruction in pipeline */	
 		/* Memory stage */
 		/* memory address is sent out to bus in memory stage process load_store_amo_address_breakpoint at memory stage */
