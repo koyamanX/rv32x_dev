@@ -60,7 +60,7 @@ def run_tests(tests_list, tests_assertion):
 			print('{:20}\t{:20}  and it\'s PASSED\tNG'.format(t, a))
 def main():
 	md_opt = 0
-	if sys.argv[1] == '--print-markdown':
+	if len(sys.argv) > 1 and sys.argv[1] == '--print-markdown':
 		md_opt = 1
 	if(os.path.exists(simulation_failed_directory)):
 		shutil.rmtree(simulation_failed_directory)
