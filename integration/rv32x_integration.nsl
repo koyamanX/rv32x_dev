@@ -3,10 +3,12 @@
 #include "opcode.h"
 #include "bootrom.h"
 #include "memory_map.h"
+#include "clint.h"
 
 module rv32x_integration {
 	rv32x_mcore rv32x;
 	bootrom rom;
+	clint rv32x_clint;
 
 	func reset {
 		rv32x.reset();
@@ -34,17 +36,44 @@ module rv32x_integration {
 	}
 	func rv32x.dmem_read {
 		any {
+			CLINT_BASE <= rv32x.daddr && rv32x.daddr < CLINT_BASE + CLINT_LENGTH:	rv32x_clint.read(rv32x.daddr - CLINT_BASE);
 			else: dmem_read(rv32x.daddr, rv32x.dbyteen);
 		}
 	}
 	func rv32x.dmem_write {
 		any {
+			CLINT_BASE <= rv32x.daddr && rv32x.daddr < CLINT_BASE + CLINT_LENGTH:	rv32x_clint.write(rv32x.daddr - CLINT_BASE, rv32x.wdata);
 			else: dmem_write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
 		}
 	}
 	func rv32x.check_daddr {
 		/* all location are mapped & cacheable for simulation purpose */
-		rv32x.cacheable();
+		any {
+			CLINT_BASE <= rv32x.cdaddr && rv32x.cdaddr < CLINT_BASE + CLINT_LENGTH: ;	
+			else: rv32x.cacheable();
+		}
+	}
+	func rv32x_clint.valid {
+		rv32x.rdata = rv32x_clint.rdata;
+		rv32x.dmem_valid();
+	}
+	func rv32x_clint.timer_interrupt {
+		rv32x.machine_timer_interrupt_req();
+	}
+	func rv32x.machine_timer_interrupt_ack {
+		rv32x_clint.timer_interrupt_ack();
+	}
+	func rv32x_clint.software_interrupt {
+		rv32x.machine_software_interrupt_req();
+	}
+	func rv32x.machine_software_interrupt_ack {
+		rv32x_clint.software_interrupt_ack();
+	}
+	func rv32x_clint.store_access_fault {
+		rv32x.not_mapped();
+	}
+	func rv32x_clint.load_access_fault {
+		rv32x.not_mapped();
 	}
 #ifdef DEBUG
 	debug_x0  = rv32x.debug_x0;

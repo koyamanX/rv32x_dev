@@ -1,0 +1,57 @@
+#include "clint.h"
+#include "csr.h"
+
+module clint {
+	reg msip[32] = 0;
+	reg mtimecmp_lo[32] = 0;
+	reg mtimecmp_hi[32] = 0;
+	reg mtime_lo[32] = 0;
+	reg mtime_hi[32] = 0;
+	reg timer_enabled = 0;
+	wire mtimecmp[64];
+	wire mtime[64];
+	wire mtime_n[64];
+
+	mtime = {mtime_hi, mtime_lo};
+	mtimecmp = {mtimecmp_hi, mtimecmp_lo};
+
+	func read {
+		any {
+			adrs == CLINT_MSIP_ADDR_OFFSET:		return msip & 0x0000_00001;
+			adrs == CLINT_MTIMECMP_ADDR_OFFSET:	return mtimecmp_lo;
+			adrs == CLINT_MTIMECMP_ADDR_OFFSET
+						+0x0000_0004:			return mtimecmp_hi;
+			else: load_access_fault();
+		}
+		valid();
+	}
+	func write {
+		any {
+			adrs == CLINT_MSIP_ADDR_OFFSET:		msip := wdata & 0x0000_00001;
+			adrs == CLINT_MTIMECMP_ADDR_OFFSET:	{mtimecmp_lo := wdata; timer_enabled := 1;}
+			adrs == CLINT_MTIMECMP_ADDR_OFFSET
+						+0x0000_0004:			{mtimecmp_hi := wdata; timer_enabled := 1;}
+			else: load_access_fault();
+		}
+		valid();
+	}
+	if(msip[0]) {
+		software_interrupt();
+	}
+	if(mtime >= mtimecmp) {
+		if(timer_enabled) {
+			timer_interrupt();
+		}
+	}
+	if(timer_enabled) {
+		mtime_n = mtime + 0x00000000_00000001;			
+		mtime_hi := mtime_n[63:32];
+		mtime_lo := mtime_n[31:0];
+	}
+	func timer_interrupt_ack {
+		timer_enabled := 0;
+	}
+	func software_interrupt_ack {
+		msip := 0;
+	}
+}

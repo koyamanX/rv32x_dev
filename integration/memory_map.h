@@ -1,8 +1,12 @@
 #ifndef MEMORY_MAP_H
 #define MEMORY_MAP_H
 
+#include "clint.h"
+
 #define BOOTROM_BASE 			0x0000_0000
 #define BOOTROM_LENGTH 			0x0000_1000
+#define CLINT_BASE				CLINT_BASE_ADDR
+#define CLINT_LENGTH			CLINT_SIZE
 #define AHB_LITE_IO_BASE		0x4000_0000
 #define AHB_LITE_IO_LENGTH		0x0001_0000
 #define TCM_IMEM_BASE 			0x8000_0000
