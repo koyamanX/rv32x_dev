@@ -35,7 +35,7 @@ module inst_dec {
 		bltu = (f3 == CC_BLTU);
 		bge = (f3 == CC_BGE);
 		bgeu = (f3 == CC_BGEU);
-		imm = inst_dec_imm_gen.imm;
+		imm = if(opcode == JALR) {inst_dec_imm_gen.imm[31:1], 1'b0} else inst_dec_imm_gen.imm;
 		alu_fn = fn;
 
 		any {
