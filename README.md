@@ -1,5 +1,5 @@
 ## RISC-V (RV32IMAC) Implementation in NSL
-- This repository contains implementation of RV32IMAC(currently supporting RV32IM Zicsr with partially Machine-Mode).  
+- This repository contains implementation of RV32IMAC(currently supporting RV32IM,Zicsr,Zifencei with Machine-Mode except for memory protection).  
 - This implementation is fully synthisable and also able to convert to software simulator(by verilator).  
 - Written in [NSL](http://www.overtone.co.jp/products/and-the-nsl/)  
 
@@ -30,14 +30,18 @@ $ ./run.sh 'make -C run_riscv_tests'
 - environment_call_from_m_mode
 - instruction_address_misaligned
 - load_address_misaligned
+- store_amo_address_misalgined
+- breakpoint
+- reset
+
+#### Not-fully implemented
 - load_access_fault
-- store_address_misalgined
-- store_access_fault
+- store_amo_access_fault
 
 ### Interrupts support
-- Machine mode external interrupt
 - Machine mode timer interrupt (via CLINT)
 - Machine mode software interrupt (via CLINT)
+- Machine mode external interrupt (no PLIC, only one source for now)
 
 ### Executing arbitary executable file
 - You can simply give executable file to its first arguments.
@@ -73,7 +77,8 @@ For simulation purpose, address map below is mapped.
 |--|--|--|
 |BOOTROM|0x0000\_0000 - 0x0000\_1000|Cacheable|
 |CLINT|0x2000\_0000 - 0x2000\_c000|Non-cacheable|
+|MMIO DEVICES|0x4000\_0000 - 0x4001\_0000|Non-cacheable|
 |RAM0|0x8000\_0000 - 0x8400\_8000|Cacheable|
 
-Other region in executable file is also created automatically, as Cacheable region.
-
+- Other region in executable file is also created automatically, as Cacheable region.
+- MMIO DEVICES includes UART TXD, RXT.
