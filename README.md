@@ -2,14 +2,18 @@
 - This repository contains implementation of RV32IMAC(currently supporting RV32IM,Zicsr,Zifencei with Machine-Mode except for memory protection).  
 - This implementation is fully synthisable and also able to convert to software simulator(by verilator).  
 - Written in [NSL](http://www.overtone.co.jp/products/and-the-nsl/) 
+### NSL 
 - NSLCORE is compiler tool for NSL.
-- You can download Trial version of Windows binary of NSLCORE from [Overtone(en)](http://www.overtone.co.jp/en/support/downloads/) or [Overtone(ja)](http://www.overtone.co.jp/support/downloads/). (registration is required, limitation of non-comercial use and code size for trial version (2000 lines?) )
-- You can also download [LiveCygwin](http://www.ip-arch.jp/#LiveCygwin) which provides minimum? environment of Cygwin without installing. It also includes NSLCORE and some implementation example.
+- You can download Trial version of Windows binary of NSLCORE from [NSLCORE Overtone(en)](http://www.overtone.co.jp/en/support/downloads/) or [NSLCORE Overtone(ja)](http://www.overtone.co.jp/support/downloads/). (registration is required, limitation of non-comercial use and code size for trial version (2000 lines?) )
+- You can also download [LiveCygwin](http://www.ip-arch.jp/#LiveCygwin) which provides minimum? environment of Cygwin without installing. 
+- It also includes verilator, gtkwave, iverilog, vim, NSLCORE and some implementation examples in NSL.
 - If you need Linux version of NSL compiler, please consult Overtone.
+- [NSL Reference en](http://www.overtone.co.jp/wp_overtone/wp-content/uploads/2010/06/NSL_Language_Reference_ver1.1E.pdf) [NSL Reference ja](http://www.overtone.co.jp/release_data/documents/reference/NSL_Language_Reference_ver1.5.pdf)
+- [NSL Tutorial](http://www.overtone.co.jp/software_download/ja/) (registation is required)
 
 ### Prerequisites
 - Installation of NSL core (SET Environment variable NSLCORE(path to nsl2vl) and specifiy in run.sh to pass it to container) 
-- Installation of Docker  
+- Installation of Docker  (You may also use LiveCygwin + riscv-gnu-toolchain on Windows. DIY, consult Dockerfile)
 - Installation of X11 (if you want to debug with GTKWave)  
 - Quartus or other synthesis tools (if you want to implement this system on FPGA)
 
