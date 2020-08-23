@@ -146,7 +146,7 @@ public:
 	uint64_t step(void) {
 		int imem_stat = 0;
 		int dmem_stat = 0;
-		static uint32_t epc, cause, mtval;
+		static uint32_t epc, cause, mtval, got_exception = 0;
 		uint64_t ret = -1;
 
 		while(1) {
@@ -212,7 +212,7 @@ public:
 					epc = core->debug_epc;
 					cause = core->debug_cause;
 					mtval = core->debug_mtval;
-					printException(epc, cause, mtval);
+					got_exception = 1;
 				}
 				if(core->debug_retire) {
 					break;
@@ -235,6 +235,11 @@ public:
 		}
 		dumpRegs();
 		fprintf(logfile, "\n");
+		if(got_exception) {
+			printException(epc, cause, mtval);
+			fprintf(logfile, "\n");
+			got_exception = 0;
+		}
 
 		return ret;
 	};
