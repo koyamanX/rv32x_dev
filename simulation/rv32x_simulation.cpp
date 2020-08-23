@@ -237,7 +237,6 @@ public:
 		fprintf(logfile, "\n");
 		if(got_exception) {
 			printException(epc, cause, mtval);
-			fprintf(logfile, "\n");
 			got_exception = 0;
 		}
 
