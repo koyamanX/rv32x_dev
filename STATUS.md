@@ -49,7 +49,7 @@ rv32um-p-mulhsu     	should_be_passed      and it's PASSED	OK
 rv32mi-p-scall      	should_be_passed      and it's PASSED	OK
 rv32mi-p-mcsr       	should_be_passed      and it's PASSED	OK
 rv32mi-p-ma_fetch   	should_be_passed      and it's PASSED	OK
-rv32mi-p-ma_addr    	should_be_failed      and it's FAILED	OK
+rv32mi-p-ma_addr    	should_be_passed      and it's PASSED	OK
 rv32mi-p-csr        	should_be_passed      and it's PASSED	OK
 rv32mi-p-breakpoint 	should_be_failed      and it's FAILED	OK
 rv32mi-p-sbreak     	should_be_passed      and it's PASSED	OK
