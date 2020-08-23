@@ -21,6 +21,9 @@ module clint {
 			adrs == CLINT_MTIMECMP_ADDR_OFFSET:	return mtimecmp_lo;
 			adrs == CLINT_MTIMECMP_ADDR_OFFSET
 						+0x0000_0004:			return mtimecmp_hi;
+			adrs == CLINT_MTIME_ADDR_OFFSET:	return mtime_lo;
+			adrs == CLINT_MTIME_ADDR_OFFSET
+						+ 0x0000_0004:			return mtime_hi;
 			else: load_access_fault();
 		}
 		valid();
