@@ -73,12 +73,16 @@ SoC is currently under developing for FPGA.
 #### Memory Map
 see integration/memory\_map.h  
 For simulation purpose, address map below is mapped. 
-|Name|Region|Is cacheable?|
-|--|--|--|
-|BOOTROM|0x0000\_0000 - 0x0000\_1000|Cacheable|
-|CLINT|0x2000\_0000 - 0x2000\_c000|Non-cacheable|
-|MMIO DEVICES|0x4000\_0000 - 0x4001\_0000|Non-cacheable|
-|RAM0|0x8000\_0000 - 0x8400\_8000|Cacheable|
+|Name|Region|Is cacheable?|Accessibilty|
+|--|--|--|--|
+|BOOTROM|0x0000\_0000 - 0x0000\_1000|Cacheable|X|
+|CLINT|0x2000\_0000 - 0x2000\_c000|Non-cacheable|RW|
+|MMIO DEVICES|0x4000\_0000 - 0x4001\_0000|Non-cacheable|RW|
+|RAM0|0x8000\_0000 - 0x8400\_8000|Cacheable|RWX|
+
+- R: means readable through data address space.
+- W: means writable through data address space.
+- X: means executable through instruction address space.
 
 - Other region in executable file is also created automatically, as Cacheable region.
 - MMIO DEVICES includes UART TXD, RXD.
