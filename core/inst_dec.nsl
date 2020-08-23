@@ -23,7 +23,7 @@ module inst_dec {
 
 	func exe {
 		rd = if(opcode == STORE || opcode == BRANCH) 5'b00000 else d;
-		wb = if(opcode == STORE || opcode == BRANCH) 1'b0 else 1'b1;
+		wb = if(opcode == STORE || opcode == BRANCH || d == 5'b00000) 1'b0 else 1'b1;
 		funct3 = f3;
 		funct12 = f12;
 		rs1 = s1;
