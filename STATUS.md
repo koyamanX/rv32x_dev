@@ -54,5 +54,5 @@ rv32mi-p-csr        	should_be_passed      and it's PASSED	OK
 rv32mi-p-breakpoint 	should_be_failed      and it's FAILED	OK
 rv32mi-p-sbreak     	should_be_passed      and it's PASSED	OK
 rv32mi-p-shamt      	should_be_passed      and it's PASSED	OK
-rv32mi-p-illegal    	should_be_passed      and it's TIMEOUT	NG
+rv32mi-p-illegal    	should_be_passed      and it's PASSED	OK
 ```
