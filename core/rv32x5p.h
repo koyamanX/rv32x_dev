@@ -50,6 +50,10 @@ declare rv32x5p {
 	func_in inst_execute() : einst;
 	func_in inst_memory() : einst;
 	func_out illegal_instruction();
+	
+	input ialign[2];
+	output eadrs[32];
+	func_in adrs_ifetch() : eadrs;
 
 #ifdef DEBUG
 	output debug_x0[32];

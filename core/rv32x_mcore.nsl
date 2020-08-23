@@ -108,6 +108,8 @@ module rv32x_mcore {
 	uxlen = MISA_MXL_32;
 	ialign = 2'b11;
 
+	rv32x.ialign = ialign;
+
 	if((mode == MACHINE) && mstatus.mie) {
 		interrupt_enabled();
 	}
@@ -330,8 +332,9 @@ module rv32x_mcore {
 	}
 	func instruction_address_misaligned_exception {
 		exception();
-		mtval := rv32x.epc;
-		rv32x.pc_ifetch();
+		rv32x.adrs_ifetch();
+		mtval := rv32x.eadrs;
+		rv32x.pc_memory();	/* Traped instruction's PC is in memory stage */
 		mtrap(INSTRUCTION_ADDRESS_MISALIGNED, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.flush_ifetch();

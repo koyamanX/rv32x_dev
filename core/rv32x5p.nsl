@@ -303,6 +303,7 @@ module rv32x5p {
 		func_self csrrw;
 		func_self csrrs;
 		func_self csrrc;
+		func_self misaligned_jump;
 		wire csr_wb_data[32];
 		wire alu_q[32];
 		wire forwarded_alu_a[32];
@@ -325,7 +326,7 @@ module rv32x5p {
 		emreg.alu_q = if(DEREG.jump) DEREG.pc4 else if(DEREG.csrrw || DEREG.csrrc || DEREG.csrrs) crdata else alu_q;		/* address for link register */
 		emreg.fencei = DEREG.fencei;
 		emreg.fence = DEREG.fence;
-		emreg.wb = if(execute_nop) 1'b0 else DEREG.wb;
+		emreg.wb = if(execute_nop || misaligned_jump) 1'b0 else DEREG.wb;
 
 		if(!load_interlock) {
 			any {
@@ -383,6 +384,9 @@ module rv32x5p {
 				ifetch(DEREG.nextpc);
 				memory(emreg);
 			} else if(DEREG.jump && !stall_execute) {
+				if((alu_q[1:0] & ialign) != 2'b00) {
+					misaligned_jump();
+				}
 				stall_ifetch();				
 				stall_decode();
 				ifetch_nop();
@@ -558,6 +562,9 @@ module rv32x5p {
 	}
 	func inst_memory {
 		return EMREG.inst;
+	}
+	func adrs_ifetch {
+		return PC;
 	}
 #ifdef DEBUG
 	debug_x0  = rv32x_reg32.debug_x0;
