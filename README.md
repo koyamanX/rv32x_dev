@@ -81,4 +81,4 @@ For simulation purpose, address map below is mapped.
 |RAM0|0x8000\_0000 - 0x8400\_8000|Cacheable|
 
 - Other region in executable file is also created automatically, as Cacheable region.
-- MMIO DEVICES includes UART TXD, RXT.
+- MMIO DEVICES includes UART TXD, RXD.
