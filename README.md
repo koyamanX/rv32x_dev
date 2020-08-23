@@ -25,7 +25,7 @@ $ ./run.sh 'make -C run_riscv_tests'
 #### Passed Tests
 - See [STATUS.md](STATUS.md)
 
-### Exceptions supported (However priority encoder has known issues)
+### Exceptions supported
 - illegal_instruction_exception
 - environment_call_from_m_mode
 - instruction_address_misaligned
