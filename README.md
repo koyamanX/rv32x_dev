@@ -7,7 +7,7 @@
 - NSLCORE can convert NSL code into either Verilog HDL, VHDL, SystemC.
 - You can download Trial version of Windows binary of NSLCORE from [NSLCORE Overtone(en)](http://www.overtone.co.jp/en/support/downloads/) or [NSLCORE Overtone(ja)](http://www.overtone.co.jp/support/downloads/). (registration is required, limitation of non-comercial use and code size for trial version (2000 lines?) )
 - You can also download [LiveCygwin](http://www.ip-arch.jp/#LiveCygwin) which provides minimum? environment of Cygwin without installing. 
-- It also includes verilator, gtkwave, iverilog, vim, NSLCORE and some implementation examples in NSL.
+- LiveCygwin includes verilator, gtkwave, iverilog, vim, NSLCORE and some implementation examples in NSL.
 - If you need Linux version of NSL compiler, please consult Overtone.
 #### Documentations of NSL
 - [NSL Reference en](http://www.overtone.co.jp/wp_overtone/wp-content/uploads/2010/06/NSL_Language_Reference_ver1.1E.pdf) and [NSL Reference ja](http://www.overtone.co.jp/release_data/documents/reference/NSL_Language_Reference_ver1.5.pdf)
