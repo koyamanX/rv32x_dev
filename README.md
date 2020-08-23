@@ -15,7 +15,7 @@
 
 ### Prerequisites
 - Installation of NSL core (SET Environment variable NSLCORE(path to nsl2vl) and specifiy in run.sh to pass it to container) 
-- Installation of Docker  (You may also use LiveCygwin + riscv-gnu-toolchain on Windows. DIY, consult Dockerfile)
+- Installation of Docker  ()
 - Installation of X11 (if you want to debug with GTKWave)  
 - Quartus or other synthesis tools (if you want to implement this system on FPGA)
 
