@@ -17,7 +17,6 @@ targets = [
 ]
 targets_should_be_failed = [
 	'rv32mi-p-breakpoint',
-	'rv32mi-p-ma_fetch',
 	'rv32mi-p-ma_addr',
 ]
 def gen_tests_list():
