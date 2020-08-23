@@ -79,6 +79,7 @@ For simulation purpose, address map below is mapped.
 |CLINT|0x2000\_0000 - 0x2000\_c000|Non-cacheable|RW|
 |MMIO DEVICES|0x4000\_0000 - 0x4001\_0000|Non-cacheable|RW|
 |RAM0|0x8000\_0000 - 0x8400\_8000|Cacheable|RWX|
+
 R: means readable through data address space.  
 W: means writable through data address space.  
 X: means executable through instruction address space.  
