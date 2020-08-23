@@ -166,6 +166,7 @@
 #define MIMPID          0xf13
 #define MHARTID         0xf14
 #define MSTATUS         0x300
+#define MSTATUSH        0x310
 #define MISA            0x301
 #define MEDELEG			0x302
 #define MIDELEG			0x303

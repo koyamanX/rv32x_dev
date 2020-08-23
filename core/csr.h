@@ -122,13 +122,19 @@ struct mstatus_t {
 	reserved1[2];
 	spp[1];
 	mpie[1];
-	reserved2[1];
+	ube[1];
 	spie[1];
-	upie[1];
+	reserved2[1];
 	mie[1];
 	reserved3[1];
 	sie[1];
-	uie[1];
+	reserved4[1];
+};
+struct mstatush_t {
+	reserved0[26];
+	mbe[1];
+	sbe[1];
+	reserved[4];
 };
 struct mtvec_t {
 	base[30];
