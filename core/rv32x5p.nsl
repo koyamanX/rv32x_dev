@@ -225,6 +225,8 @@ module rv32x5p {
 		}
 	}
 	func rv32x_inst_dec.system {
+		alu_a = rv32x_reg32.rdataa;
+		alu_b = 0x00000000;
 		any {
 			rv32x_inst_dec.funct3 == CSRRW:		{system_csrrw();}	
 			rv32x_inst_dec.funct3 == CSRRC:		{system_csrrc();}
