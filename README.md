@@ -9,7 +9,8 @@
 - You can also download [LiveCygwin](http://www.ip-arch.jp/#LiveCygwin) which provides minimum? environment of Cygwin without installing. 
 - It also includes verilator, gtkwave, iverilog, vim, NSLCORE and some implementation examples in NSL.
 - If you need Linux version of NSL compiler, please consult Overtone.
-- [NSL Reference en](http://www.overtone.co.jp/wp_overtone/wp-content/uploads/2010/06/NSL_Language_Reference_ver1.1E.pdf) [NSL Reference ja](http://www.overtone.co.jp/release_data/documents/reference/NSL_Language_Reference_ver1.5.pdf)
+#### Documentations of NSL
+- [NSL Reference en](http://www.overtone.co.jp/wp_overtone/wp-content/uploads/2010/06/NSL_Language_Reference_ver1.1E.pdf) and [NSL Reference ja](http://www.overtone.co.jp/release_data/documents/reference/NSL_Language_Reference_ver1.5.pdf)
 - [NSL Tutorial](http://www.overtone.co.jp/software_download/ja/) (registation is required)
 
 ### Prerequisites
