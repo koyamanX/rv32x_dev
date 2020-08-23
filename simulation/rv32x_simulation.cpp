@@ -224,17 +224,22 @@ public:
 		fprintf(logfile, "%08x: %08x\t", retire_pc, retire_inst);
 		if(disasm != NULL) {
 			printDisasm(retire_pc, retire_inst);
+			fprintf(logfile, "\n");
 		}
 		if(core->debug_mem_write) {
 			int mask;
 			mask = 0xffffffff >> (32-(core->debug_mem_byteen+1)*8);
+			fprintf(logfile, "\t");
 			printMemWrite(core->debug_mem_adrs, core->debug_mem_data&mask);
 		}
 		if(core->debug_wb) {
+			fprintf(logfile, "\t");
 			printRegInfo(core->debug_wb_rd, core->debug_wb_data);
 		}
+		if(core->debug_mem_write || core->debug_wb) {
+			fprintf(logfile, "\n");
+		}
 		dumpRegs();
-		fprintf(logfile, "\n");
 		if(got_exception) {
 			printException(epc, cause, mtval);
 			got_exception = 0;
