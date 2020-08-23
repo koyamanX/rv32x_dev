@@ -1,5 +1,7 @@
 #include "opcode.h"
 #include "rv32x_integration.h"
+#include "uart_receiver.h"
+
 declare rv32x_simulation simulation {
 	func_in reset();
 	input inst[32];
@@ -15,6 +17,8 @@ declare rv32x_simulation simulation {
 	func_out dmem_read(daddr, dbyteen);  
 	func_out dmem_write(daddr, dbyteen, wdata); 
 #ifdef DEBUG
+	output uart_data[8];
+	func_out uart_done();
 	output tohost[32];
 	func_out sim_done(tohost);
 	output debug_x0[32];
@@ -72,10 +76,19 @@ declare rv32x_simulation simulation {
 
 module rv32x_simulation {
 	rv32x_integration core;
+	uart_receiver ur;
 	
+	ur.RXD = core.TXD;
+
+	func ur.done {
+		uart_done();
+		uart_data = ur.received_char;
+	}
 	func reset {
 		//core.reset(0x00000000);
 		core.reset();
+		ur.write(0x4, 1);
+		ur.reset();
 	}
 	func core.imem_read {
 		imem_read(core.iaddr, core.ibyteen);

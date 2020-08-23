@@ -1,0 +1,36 @@
+#include "mmio_dev.h"
+#include "uart_sender.h"
+#include "uart_receiver.h"
+
+module mmio_dev {
+	uart_sender us;
+	uart_receiver ur;
+
+	func reset {
+		us.reset();
+		ur.reset();
+	}
+	func read {
+		any {
+			0x0000 <= adrs && adrs < 0x0010: us.read(adrs - 0x0000);
+			0x0010 <= adrs && adrs < 0x0020: ur.read(adrs - 0x0010);
+		}
+	}
+	func write {
+		any {
+			0x0000 <= adrs && adrs < 0x0010: us.write(adrs - 0x0000, wdata);
+			0x0010 <= adrs && adrs < 0x0020: ur.write(adrs - 0x0010, wdata);
+		}
+	}
+	func us.valid {
+		rdata = us.rdata;
+		valid();
+	}
+	func ur.valid {
+		rdata = ur.rdata;
+		valid();
+	}
+
+	TXD = us.TXD;
+	ur.RXD = RXD;
+}

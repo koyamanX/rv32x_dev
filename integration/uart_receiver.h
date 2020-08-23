@@ -11,14 +11,15 @@ declare uart_receiver
 {
 	input RXD;
 	input adrs[10];
-	inout data[32];
-	func_in read(adrs) : data;
-	func_in write(adrs, data);
+	input wdata[32];
+	output rdata[32];
+	output received_char[8];
+	func_in read(adrs) : rdata;
+	func_in write(adrs, wdata);
 	func_in reset();
 	func_out done();
 	func_out valid();
 	func_out int_req;
-	output rdata[8];
 }
 
 struct uart_rx_stat_t {

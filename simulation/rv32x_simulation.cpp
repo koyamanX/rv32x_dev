@@ -205,6 +205,9 @@ public:
 			eval();
 			dump();
 			if(rising_edge) {
+				if(core->uart_done) {
+					fprintf(stdout, "%c", core->uart_data);
+				}
 				if(core->sim_done) {
 					ret = core->tohost;
 				}

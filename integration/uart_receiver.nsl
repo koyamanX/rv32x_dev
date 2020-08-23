@@ -6,9 +6,9 @@ module uart_receiver {
 	proc_name receive_start_bit;
 	proc_name receive_data_bit;
 	proc_name receive_stop_bit;	
-	reg x0 = 0;
-	reg x1 = 0;
-	reg rxd = 0;
+	reg x0 = 1;
+	reg x1 = 1;
+	reg rxd = 1;
 	reg clk_cnt[3] = 0;
 	reg buffer[8];
 	reg readbuffer[8];
@@ -76,10 +76,10 @@ module uart_receiver {
 			cnt := 0;
 			if(clk_cnt == 7) {
 				clk_cnt := 0;
-				rdata = buffer;
 				readbuffer := buffer;
 				status.busy := 0;
 				idle();
+				received_char = buffer;
 				done();
 			} else {
 				clk_cnt++;
@@ -99,7 +99,7 @@ module uart_receiver {
 	func write {
 		any {
 			adrs == 0x0: ;
-			adrs == 0x4: status := (data & 0x01)[7:0];
+			adrs == 0x4: status := (wdata & 0x01)[7:0];
 		}
 		valid();
 	}

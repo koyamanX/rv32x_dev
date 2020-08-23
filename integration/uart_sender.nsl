@@ -3,7 +3,7 @@ module uart_sender {
 	reg buffer[8];
 	reg writebuf[8];
 	reg cnt[32] = 0;
-	reg txd = 0;
+	reg txd = 1;
 	reg idx[3] = 0;
 	reg int_flag = 0;
 	proc_name idle();
@@ -74,8 +74,8 @@ module uart_sender {
 	}
 	func write {
 		any {
-			adrs == 0x0: writebuf := data[7:0];
-			adrs == 0x4: status := data[7:0] & 0x01;
+			adrs == 0x0: writebuf := wdata[7:0];
+			adrs == 0x4: status := wdata[7:0] & 0x01;
 		}
 		valid();
 	}

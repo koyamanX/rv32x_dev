@@ -4,10 +4,11 @@
 
 declare uart_sender {
 	input adrs[10];
-	inout data[32];
+	input wdata[32];
+	output rdata[32];
 	output TXD;
-	func_in read(adrs) : data;
-	func_in write(adrs, data);
+	func_in read(adrs) : rdata;
+	func_in write(adrs, wdata);
 	func_out valid();
 	func_in reset();
 	func_out done();
