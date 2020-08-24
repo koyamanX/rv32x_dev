@@ -146,7 +146,7 @@ public:
 	uint64_t step(void) {
 		int imem_stat = 0;
 		int dmem_stat = 0;
-		static uint32_t epc, cause, mtval, got_exception = -1;
+		static uint32_t epc, cause, mtval, einst, got_exception = -1;
 		uint64_t ret = -1;
 
 		while(1) {
@@ -215,6 +215,7 @@ public:
 					epc = core->debug_epc;
 					cause = core->debug_cause;
 					mtval = core->debug_mtval;
+					einst = core->debug_inst;
 					
 					switch(cause) {
 						case INSTRUCTION_ADDRESS_MISALIGNED: 
@@ -251,6 +252,10 @@ public:
 		}
 		retire_pc = core->debug_retire_pc;
 		retire_inst = core->debug_retire_inst;
+		if(got_exception == 0) {
+			retire_pc = epc;
+			retire_inst = einst;
+		}
 		fprintf(logfile, "%08x: %08x\t", retire_pc, retire_inst);
 		if(disasm != NULL) {
 			printDisasm(retire_pc, retire_inst);
