@@ -84,13 +84,17 @@ public:
 		insert_new_mem(memory, "RAM0", 0x80000000, (0x84008000-0x80000000), 0);
 		print_mem_list(memory);
 		core = new Vrv32x_simulation;	
+#ifndef FAST_SIM
 		tfp = new VerilatedVcdC;
 		core->trace(tfp, 99);
 		tfp->open(vcdfilename);
+#endif
 		regs = (uint32_t *) calloc(sizeof(uint32_t), 32);
 	};
 	~processor_t(void) {
+#ifndef FAST_SIM
 		tfp->close();
+#endif
 		core->final();
 		fclose(logfile);
 	};
@@ -147,7 +151,9 @@ public:
 		core->eval();
 	};
 	void dump(void) {
+#ifndef FAST_SIM
 		tfp->dump(m_clock_count);
+#endif
 	};
 	unsigned long long getSimTime(void) {
 		return m_clock_count;
