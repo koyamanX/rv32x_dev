@@ -67,15 +67,15 @@ module uart_sender {
 	
 	func read {
 		any {
-			adrs == 0x0: return writebuf;
-			adrs == 0x4: return status;
+			adrs == 10'(0x0): return 32'(writebuf);
+			adrs == 10'(0x4): return 32'(status);
 		}
 		valid();
 	}
 	func write {
 		any {
-			adrs == 0x0: writebuf := wdata[7:0];
-			adrs == 0x4: status := wdata[7:0] & 0x01;
+			adrs == 10'(0x0): writebuf := wdata[7:0];
+			adrs == 10'(0x4): status := wdata[7:0] & 0x01;
 		}
 		valid();
 	}

@@ -91,15 +91,15 @@ module uart_receiver {
 	}
 	func read {
 		any {
-			adrs == 0x0: return readbuffer;
-			adrs == 0x4: return status;
+			adrs == 10'(0x0): return 32'(readbuffer);
+			adrs == 10'(0x4): return 32'(status);
 		}
 		valid();
 	}
 	func write {
 		any {
-			adrs == 0x0: ;
-			adrs == 0x4: status := (wdata & 0x01)[7:0];
+			adrs == 10'(0x0): ;
+			adrs == 10'(0x4): status := (wdata[7:0] & 0x01);
 		}
 		valid();
 	}

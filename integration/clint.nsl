@@ -17,23 +17,23 @@ module clint {
 
 	func read {
 		any {
-			adrs == CLINT_MSIP_ADDR_OFFSET:		return msip & 0x0000_00001;
+			adrs == CLINT_MSIP_ADDR_OFFSET:		return msip & 0x0000_0001;
 			adrs == CLINT_MTIMECMP_ADDR_OFFSET:	return mtimecmp_lo;
 			adrs == CLINT_MTIMECMP_ADDR_OFFSET
-						+0x0000_0004:			return mtimecmp_hi;
+						+0x0004:				return mtimecmp_hi;
 			adrs == CLINT_MTIME_ADDR_OFFSET:	return mtime_lo;
 			adrs == CLINT_MTIME_ADDR_OFFSET
-						+ 0x0000_0004:			return mtime_hi;
+						+ 0x0004:				return mtime_hi;
 			else: load_access_fault();
 		}
 		valid();
 	}
 	func write {
 		any {
-			adrs == CLINT_MSIP_ADDR_OFFSET:		msip := wdata & 0x0000_00001;
+			adrs == CLINT_MSIP_ADDR_OFFSET:		msip := wdata & 0x0000_0001;
 			adrs == CLINT_MTIMECMP_ADDR_OFFSET:	{mtimecmp_lo := wdata; timer_enabled := 1;}
 			adrs == CLINT_MTIMECMP_ADDR_OFFSET
-						+0x0000_0004:			{mtimecmp_hi := wdata; timer_enabled := 1;}
+						+0x0004:				{mtimecmp_hi := wdata; timer_enabled := 1;}
 			else: store_access_fault();
 		}
 		valid();

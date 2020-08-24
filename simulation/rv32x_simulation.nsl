@@ -88,7 +88,7 @@ module rv32x_simulation {
 	func reset {
 		//core.reset(0x00000000);
 		core.reset();
-		ur.write(0x4, 1);
+		ur.write(10'(0x4), 1);
 		ur.reset();
 	}
 	func core.imem_read {
