@@ -318,8 +318,10 @@ module rv32x_mcore {
 		mtrap(ILLEGAL_INSTRUCTION, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
+		rv32x.stall_execute_req();
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
+		rv32x.flush_execute();
 	}
 	func environment_call_exception {
 		exception();
@@ -328,8 +330,10 @@ module rv32x_mcore {
 		mtrap(ENVIRONMENT_CALL_FROM_M_MODE, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
+		rv32x.stall_execute_req();
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
+		rv32x.flush_execute();
 	}
 	func environment_break_exception {
 		exception();
@@ -339,8 +343,10 @@ module rv32x_mcore {
 		mtrap(BREAKPOINT, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
+		rv32x.stall_execute_req();
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
+		rv32x.flush_execute();
 	}
 	func instruction_address_misaligned_exception {
 		exception();
