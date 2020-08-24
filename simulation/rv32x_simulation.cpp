@@ -266,7 +266,7 @@ public:
 			retire_inst = einst;
 		}
 		if(trace_output_flag) {
-			fprintf(logfile, "%s: 0x%016lx (0x%016x) ", procname, (0xffffffff00000000|retire_pc), retire_inst);
+			fprintf(logfile, "%s: 0x%016x (0x%08x) ", procname, retire_pc, retire_inst);
 		}
 		if((disasm != NULL) && disasm_output_flag) {
 			printDisasm(retire_pc, retire_inst);
