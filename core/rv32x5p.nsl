@@ -489,7 +489,7 @@ module rv32x5p {
 		mwreg.debug_mem_byteen = mem_byteen;
 		mwreg.debug_mem_data = mem_data;
 		mwreg.debug_mem_write = EMREG.store;
-		mwreg.debug_wb = EMREG.wb;
+		mwreg.debug_wb = if(memory_nop) 1'b0 else EMREG.wb;
 #endif
 
 		any {
