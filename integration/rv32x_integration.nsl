@@ -76,10 +76,10 @@ module rv32x_integration {
 		rv32x_clint.software_interrupt_ack();
 	}
 	func rv32x_clint.store_access_fault {
-		rv32x.not_mapped();
+		//rv32x.not_mapped();
 	}
 	func rv32x_clint.load_access_fault {
-		rv32x.not_mapped();
+		//rv32x.not_mapped();
 	}
 	func rv32x_mmio_dev.valid {
 		rv32x.rdata = rv32x_mmio_dev.rdata;
