@@ -314,7 +314,6 @@ public:
 		logfilename = (char *)calloc(sizeof(char), strlen(s)+strlen(".log"));
 		strcat(logfilename, basename(s));
 		strcat(logfilename, ".log");
-		puts(logfilename);
 		logfile = fopen(logfilename, "w");
 	};
 	void parseLogOpts(int argc, char **argv) {
