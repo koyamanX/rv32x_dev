@@ -84,6 +84,7 @@ module rv32x_simulation {
 	func ur.done {
 		uart_done();
 		uart_data = ur.received_char;
+		_write("%c", ur.received_char);
 	}
 	func reset {
 		//core.reset(0x00000000);

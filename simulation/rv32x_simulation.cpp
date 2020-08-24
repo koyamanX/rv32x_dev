@@ -220,9 +220,12 @@ public:
 			eval();
 			dump();
 			if(rising_edge) {
+				/*
 				if(core->uart_done) {
 					fprintf(stdout, "%c", core->uart_data);
+					fflush(stdout);
 				}
+				*/
 				if(core->sim_done) {
 					ret = core->tohost;
 				}
