@@ -505,7 +505,7 @@ module rv32x5p {
 			writeback(mwreg);
 		} else if(dmem_valid && !stall_memory && EMREG.fencei) {
 			ifetch(EMREG.pc4);
-			writeback(mwreg);
+			//writeback(mwreg);
 		} else {
 			stall_ifetch();		
 			stall_decode();
