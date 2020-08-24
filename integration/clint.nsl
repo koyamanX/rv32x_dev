@@ -52,6 +52,8 @@ module clint {
 		mtime_lo := mtime_n[31:0];
 	}
 	func timer_interrupt_ack {
+		mtime_hi := 0x00000000;
+		mtime_lo := 0x00000000;
 		timer_enabled := 0;
 	}
 	func software_interrupt_ack {
