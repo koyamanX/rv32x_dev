@@ -76,7 +76,8 @@ declare rv32x_mcore {
 	output debug_cause[32];
 	output debug_epc[32];
 	output debug_mtval[32];
-	func_out debug_raise_exception(debug_cause, debug_epc, debug_mtval);
+	output debug_inst[32];
+	func_out debug_raise_exception(debug_cause, debug_epc, debug_mtval, debug_inst);
 #endif
 }
 #endif

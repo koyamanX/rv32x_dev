@@ -80,6 +80,9 @@ module rv32x_mcore {
 
 	func_self csr_not_mapped();
 	func_self misaligned();
+#ifdef DEBUG
+	reg debug_einst[32];
+#endif
 
 
 	/* CSRs */
@@ -282,6 +285,9 @@ module rv32x_mcore {
 		rv32x.flush_decode();
 		rv32x.flush_execute();
 		rv32x.flush_memory();
+#ifdef DEBUG
+		debug_einst := rv32x.einst;
+#endif
 	}
 	func load_address_misaligned_exception {
 		exception();
@@ -297,6 +303,9 @@ module rv32x_mcore {
 		rv32x.flush_decode();
 		rv32x.flush_execute();
 		rv32x.flush_memory();
+#ifdef DEBUG
+		debug_einst := rv32x.einst;
+#endif
 	}
 	func store_amo_page_fault_exception {
 		exception();
@@ -322,11 +331,15 @@ module rv32x_mcore {
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 		rv32x.flush_execute();
+#ifdef DEBUG
+		debug_einst := rv32x.einst;
+#endif
 	}
 	func environment_call_exception {
 		exception();
 		mtval := 0;
 		rv32x.pc_execute();
+		rv32x.inst_execute();
 		mtrap(ENVIRONMENT_CALL_FROM_M_MODE, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
@@ -334,6 +347,9 @@ module rv32x_mcore {
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 		rv32x.flush_execute();
+#ifdef DEBUG
+		debug_einst := rv32x.einst;
+#endif
 	}
 	func environment_break_exception {
 		exception();
@@ -347,6 +363,9 @@ module rv32x_mcore {
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 		rv32x.flush_execute();
+#ifdef DEBUG
+		debug_einst := rv32x.einst;
+#endif
 	}
 	func instruction_address_misaligned_exception {
 		exception();
@@ -356,6 +375,10 @@ module rv32x_mcore {
 		mtrap(INSTRUCTION_ADDRESS_MISALIGNED, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.flush_ifetch();
+		rv32x.inst_memory();
+#ifdef DEBUG
+		debug_einst := rv32x.einst;
+#endif
 	}
 	func instruction_address_breakpoint_exception {
 		exception();
@@ -410,7 +433,7 @@ module rv32x_mcore {
 		rv32x.stall_ifetch_req();
 		rv32x.trap(v);
 #ifdef DEBUG
-		debug_raise_exception(cause, epc, mtval);
+		debug_raise_exception(cause, epc, mtval, debug_einst);
 #endif
 		finish();
 	}
