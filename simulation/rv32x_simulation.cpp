@@ -146,7 +146,7 @@ public:
 	uint64_t step(void) {
 		int imem_stat = 0;
 		int dmem_stat = 0;
-		static uint32_t epc, cause, mtval, got_exception = 0;
+		static uint32_t epc, cause, mtval, got_exception = -1;
 		uint64_t ret = -1;
 
 		while(1) {
@@ -215,7 +215,34 @@ public:
 					epc = core->debug_epc;
 					cause = core->debug_cause;
 					mtval = core->debug_mtval;
-					got_exception = 1;
+					
+					switch(cause) {
+						case INSTRUCTION_ADDRESS_MISALIGNED: 
+						case INSTRUCTION_ACCESS_FAULT: 
+						case INSTRUCTION_PAGE_FAULT: 
+							got_exception = 0;
+							break;
+						case ILLEGAL_INSTRUCTION:
+						case BREAKPOINT: 
+						case ENVIRONMENT_CALL_FROM_U_MODE: 
+						case ENVIRONMENT_CALL_FROM_S_MODE: 
+						case ENVIRONMENT_CALL_FROM_M_MODE: 
+							got_exception = 1;
+							break;
+						case LOAD_ADDRESS_MISALIGNED: 
+						case LOAD_ACCESS_FAULT: 
+						case STORE_AMO_ADDRESS_MISALIGNED: 
+						case STORE_AMO_ACCESS_FAULT: 
+						case LOAD_PAGE_FAULT: 
+						case STORE_AMO_PAGE_FAULT: 
+							got_exception = 0;
+							break;
+						case MACHINE_SOFTWARE_INTERRUPT: 
+						case MACHINE_TIMER_INTERRUPT: 
+						case MACHINE_EXTERNAL_INTERRUPT: 
+						default: 
+							got_exception = 0; break;
+					}
 				}
 				if(core->debug_retire) {
 					break;
@@ -243,9 +270,13 @@ public:
 			fprintf(logfile, "\n");
 		}
 		dumpRegs();
-		if(got_exception) {
+		if(got_exception == 0) {
 			printException(epc, cause, mtval);
-			got_exception = 0;
+			got_exception = -1;
+		} else if(got_exception == -1) {
+			;
+		} else {
+			got_exception--;
 		}
 
 		return ret;
