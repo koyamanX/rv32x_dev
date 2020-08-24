@@ -9,7 +9,6 @@ import shutil
 simulator='./rv32x_simulation'
 riscv_tests_directory = '../software/riscv-tests/isa/'
 simulation_log_directory = './logs/'
-simulation_failed_directory = './failed/'
 targets = [
 	'rv32ui-p-*',
 	'rv32um-p-*',
@@ -35,18 +34,15 @@ def run_tests(tests_list, tests_assertion):
 		try:
 			subprocess.run([simulator, riscv_tests_directory+t, '--print-inst-trace', '--print-exception', '--print-disasm'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=8)
 		except subprocess.CalledProcessError as err:
-			shutil.move(simulator+'.vcd', simulation_failed_directory+t)
 			if(a == 'should_be_passed'):
 				print('{:20}\t{:20}  and it\'s FAILED\tNG'.format(t, a))
 				return 1
 			else:
 				print('{:20}\t{:20}  and it\'s FAILED\tOK'.format(t, a))
 		except subprocess.TimeoutExpired:
-			shutil.move(simulator+'.vcd', simulation_failed_directory+t)
 			print('{:20}\t{:20}  and it\'s TIMEOUT\tNG'.format(t, a))
 			return 1
 		except:
-			shutil.move(simulator+'.vcd', simulation_failed_directory+t)
 			print('unexpected error')
 			sys.exit(1)
 		finally:
@@ -54,17 +50,13 @@ def run_tests(tests_list, tests_assertion):
 		if(a == 'should_be_passed'):
 			print('{:20}\t{:20}  and it\'s PASSED\tOK'.format(t, a))
 		elif(a == 'should_not_passed'):
-			shutil.move(simulator+'.vcd', simulation_failed_directory+t)
 			print('{:20}\t{:20}  and it\'s PASSED\tNG'.format(t, a))
 def main():
 	md_opt = 0
 	if len(sys.argv) > 1 and sys.argv[1] == '--print-markdown':
 		md_opt = 1
-	if(os.path.exists(simulation_failed_directory)):
-		shutil.rmtree(simulation_failed_directory)
 	if(os.path.exists(simulation_log_directory)):
 		shutil.rmtree(simulation_log_directory)
-	os.makedirs(simulation_failed_directory)
 	os.makedirs(simulation_log_directory)
 	tests_list = gen_tests_list()
 	tests_assertion = gen_tests_assertion(tests_list)
