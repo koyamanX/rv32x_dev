@@ -1,6 +1,7 @@
 #define PACKAGE "bfd"
 #include <bfd.h>
 #include <iostream>
+#include <getopt.h>
 #include <dis-asm.h>
 #include <verilated.h>
 #include "verilated_vcd_c.h"
@@ -49,6 +50,7 @@ private:
 	const char *vcdfilename = "rv32x_simulation.vcd";
 	const char *archname = "elf32-littleriscv";
 	const char *exefilename = "a.out";
+	const char *procname = NULL;
 	char *logfilename = NULL;
 	FILE *logfile;
 	unsigned int imem_wait = 0;
@@ -69,8 +71,15 @@ private:
 	size_t buflen;
 	disassembler_ftype disasm = NULL;
 	struct disassemble_info disasm_info = {};
+	int exception_output_flag = 0;
+	int writeback_output_flag = 0;
+	int disasm_output_flag = 0;
+	int memory_output_flag = 0;
+	int trace_output_flag = 0;
+	int print_all_flag = 0;
 public:
-	processor_t() {
+	processor_t(const char *name) {
+		procname = name;
 		memory = init_mem_list();
 		insert_new_mem(memory, "RAM0", 0x80000000, (0x84008000-0x80000000), 0);
 		print_mem_list(memory);
@@ -256,26 +265,28 @@ public:
 			retire_pc = epc;
 			retire_inst = einst;
 		}
-		fprintf(logfile, "%08x: %08x\t", retire_pc, retire_inst);
-		if(disasm != NULL) {
+		if(trace_output_flag) {
+			fprintf(logfile, "%s: 0x%016lx (0x%016x) ", procname, (0xffffffff00000000|retire_pc), retire_inst);
+		}
+		if((disasm != NULL) && disasm_output_flag) {
 			printDisasm(retire_pc, retire_inst);
 			fprintf(logfile, "\n");
 		}
-		if(core->debug_mem_write) {
+		if(core->debug_mem_write && memory_output_flag) {
 			int mask;
 			mask = 0xffffffff >> (32-(core->debug_mem_byteen+1)*8);
 			fprintf(logfile, "\t");
 			printMemWrite(core->debug_mem_adrs, core->debug_mem_data&mask);
 		}
-		if(core->debug_wb) {
+		if(core->debug_wb && writeback_output_flag) {
 			fprintf(logfile, "\t");
 			printRegInfo(core->debug_wb_rd, core->debug_wb_data);
 		}
-		if(core->debug_mem_write || core->debug_wb) {
+		if((core->debug_mem_write && memory_output_flag) || (core->debug_wb && writeback_output_flag)) {
 			fprintf(logfile, "\n");
 		}
 		dumpRegs();
-		if(got_exception == 0) {
+		if((got_exception == 0) && exception_output_flag) {
 			printException(epc, cause, mtval);
 			got_exception = -1;
 		} else if(got_exception == -1) {
@@ -296,6 +307,51 @@ public:
 		strcat(logfilename, ".log");
 		puts(logfilename);
 		logfile = fopen(logfilename, "w");
+	};
+	void parseLogOpts(int argc, char **argv) {
+		int opt, longindex;
+		struct option longopts[] = {
+			{"print-exception", no_argument, NULL, 'e'},
+			{"print-writeback", no_argument, NULL, 'w'},
+			{"print-disasm", no_argument, NULL, 'd'},
+			{"print-memory-write", no_argument, NULL, 'm'},
+			{"print-inst-trace", no_argument, NULL, 'i'},
+			{"print-all", no_argument, NULL, 'a'},
+			{0, 0, 0, 0},
+		};
+
+		while((opt = getopt_long(argc, argv, "ewdmia", longopts, &longindex)) != -1) {
+			switch(opt) {
+				case 'e':
+					exception_output_flag = 1;
+					break;
+				case 'w':
+					writeback_output_flag = 1;
+					break;
+				case 'd':
+					disasm_output_flag = 1;
+					break;
+				case 'm':
+					memory_output_flag = 1;
+					break;
+				case 'i':
+					trace_output_flag = 1;
+					break;
+				case 'a':
+					print_all_flag = 1;
+					break;
+				default:
+					exit(1);
+					break;
+			}
+		}
+		if(print_all_flag) {
+			exception_output_flag = 1;
+			writeback_output_flag = 1;
+			disasm_output_flag = 1;
+			memory_output_flag = 1;
+			trace_output_flag = 1;
+		}
 	};
 	void openDisasm(void) {
 		init_disassemble_info(&disasm_info, logfile, (fprintf_ftype) fprintf);
@@ -392,8 +448,9 @@ int main(int argc, char **argv) {
 	Verilated::commandArgs(argc, argv);
 	Verilated::traceEverOn(true);
 
-	proc0 = new processor_t();
+	proc0 = new processor_t("core\t0");
 	proc0->load(argv[1]);
+	proc0->parseLogOpts(argc-1, argv+1);
 	proc0->openLogFile(argv[1]);
 	proc0->openDisasm();
 	

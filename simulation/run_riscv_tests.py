@@ -33,7 +33,7 @@ def gen_tests_assertion(tests_list):
 def run_tests(tests_list, tests_assertion):
 	for t, a in zip(tests_list, tests_assertion):
 		try:
-			subprocess.run([simulator, riscv_tests_directory+t], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=8)
+			subprocess.run([simulator, riscv_tests_directory+t, '--print-inst-trace', '--print-exception', '--print-disasm'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=8)
 		except subprocess.CalledProcessError as err:
 			shutil.move(simulator+'.vcd', simulation_failed_directory+t)
 			if(a == 'should_be_passed'):
