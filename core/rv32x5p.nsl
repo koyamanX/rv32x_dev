@@ -479,7 +479,7 @@ module rv32x5p {
 		mwreg.store = EMREG.store;
 		mwreg.alu_q = EMREG.alu_q;
 		mwreg.wb_value = if(EMREG.load) loaded_value else EMREG.alu_q;
-		mwreg.wb = EMREG.wb;
+		mwreg.wb = if(memory_nop) 1'b0 else EMREG.wb;
 
 		mem_byteen = {1'b0, EMREG.funct3[1:0]};
 		mem_adrs = EMREG.alu_q;
