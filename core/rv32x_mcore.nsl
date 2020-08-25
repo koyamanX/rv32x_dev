@@ -206,6 +206,7 @@ module rv32x_mcore {
 					mtvec.mode := mtvec_w.mode;
 				}
 			}
+			cwadrs == MTVAL:			mtval		:= cwdata;
 			cwadrs == MSCRATCH:			mscratch 	:= cwdata;
 			cwadrs == MEPC: 			mepc 		:= {cwdata[31:2], (cwdata[1:0] & ~ialign)};
 			cwadrs == MCAUSE:			mcause		:= mcause;
