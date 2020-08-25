@@ -208,6 +208,7 @@ module rv32x_mcore {
 			}
 			cwadrs == MSCRATCH:			mscratch 	:= cwdata;
 			cwadrs == MEPC: 			mepc 		:= cwdata;
+			cwadrs == MCAUSE:			mcause		:= mcause;
 			cwadrs == MIE:				mie 		:= cwdata;
 			cwadrs == MIP:				mip 		:= cwdata & 0x0000_0888;
 			else: 						csr_not_mapped();
