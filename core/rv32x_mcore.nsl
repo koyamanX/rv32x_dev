@@ -88,7 +88,7 @@ module rv32x_mcore {
 	/* CSRs */
 	mvendorid_t reg mvendorid		= 0;
 	marchid_t reg marchid			= 0;
-	mimpid_t reg mimpid				= 0xcc000000;
+	mimpid_t reg mimpid				= 0;
 	mhartid_t reg mhartid			= 0;
 	mstatus_t reg mstatus			= 0;
 	mstatush_t reg mstatush			= 0;
@@ -157,7 +157,7 @@ module rv32x_mcore {
 			cradrs == MIMPID: 			return mimpid;
 			cradrs == MHARTID: 			return mhartid;
 														/* Hardwire SPP, SPIE, UPIE, SIE, UIE, MPRV, MXR, SUM, TVM, TW, TSR, FS, XS, SD to zero */
-			cradrs == MSTATUS: 			return mstatus & 32'b0_11111111_0_0_0_0_0_0_00_00_10_11_0_1_1_0_0_1_1_0_0;
+			cradrs == MSTATUS: 			return mstatus;
 			cradrs == MSTATUSH:			return mstatush;
 			cradrs == MTVEC: 			return mtvec;
 			cradrs == MSCRATCH: 		return mscratch;
@@ -173,13 +173,30 @@ module rv32x_mcore {
 		csr_write(rv32x.cwadrs, rv32x.cwdata);
 	}
 	func csr_write {
-#ifdef DEBUG
-		debug_csr_write(cwadrs, cwdata);
-#endif
+		mstatus_t wire mstatus_w;
+
 		any {
-			cwadrs == MISA:				misa		:= misa;
-			cwadrs == MSTATUS:			mstatus 	:= cwdata;
-			cwadrs == MSTATUSH:			mstatush 	:= cwdata;
+			cwadrs == MSTATUS: {
+				mstatus_w = cwdata;
+				
+				//mstatus.sd := mstatus_w.sd;
+				//mstatus.tsr := mstatus_w.tsr;
+				//mstatus.tw := mstatus_w.tw;
+				//mstatus.tvm := mstatus_w.tvm;
+				//mstatus.mxr := mstatus_w.mxr;
+				//mstatus.sum := mstatus_w.sum;
+				mstatus.mprv := mstatus_w.mprv;
+				//mstatus.xs := mstatus_w.xs;
+				//mstatus.fs := mstatus_w.fs;
+				//mstatus.mpp := mstatus_w.mpp;	// Only Machine mode
+				//mstatus.spp := mstatus_w.spp;
+				//mstatus.mpie := mstatus_w.mpie;
+				//mstatus.ube := mstatus_w.ube;
+				//mstatus.spie := mstatus_w.spie;
+				mstatus.mie := mstatus_w.mie;
+				//mstatus.sie := mstatus_w.sie;
+			}
+			cwadrs == MSTATUSH:			mstatush 	:= cwdata & 0x00000000;
 			cwadrs == MTVEC: 			mtvec 		:= cwdata;
 			cwadrs == MSCRATCH:			mscratch 	:= cwdata;
 			cwadrs == MEPC: 			mepc 		:= cwdata;
@@ -187,6 +204,9 @@ module rv32x_mcore {
 			cwadrs == MIP:				mip 		:= cwdata & 0x0000_0888;
 			else: 						csr_not_mapped();
 		}
+#ifdef DEBUG
+		debug_csr_write(cwadrs, cwdata);
+#endif
 	}
 	func csr_not_mapped {
 		illegal_instruction();
