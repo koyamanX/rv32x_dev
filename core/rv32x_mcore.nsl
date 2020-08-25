@@ -161,7 +161,7 @@ module rv32x_mcore {
 			cradrs == MSTATUSH:			return mstatush;
 			cradrs == MTVEC: 			return mtvec;
 			cradrs == MSCRATCH: 		return mscratch;
-			cradrs == MEPC: 			return mepc;
+			cradrs == MEPC: 			return {mepc[31:2], mepc[1:0] & ~ialign};
 			cradrs == MCAUSE: 			return mcause;
 			cradrs == MTVAL: 			return mtval;
 			cradrs == MIE:				return mie;
@@ -438,7 +438,7 @@ module rv32x_mcore {
 		mstatus.mprv 	:= 0;
 		mode 			:= mstatus.mpp;
 		rv32x.stall_ifetch_req();
-		rv32x.trap(mepc);
+		rv32x.trap({mepc[31:2], mepc[1:0] & ~ialign});
 		finish();
 	}
 	proc mtrap {
