@@ -41,7 +41,6 @@ def run_tests(tests_list, tests_assertion):
 			if(a == 'should_be_passed'):
 				print('{:20}\t{:20}  and it\'s FAILED\tNG'.format(t, a))
 				failed+=1
-				return 1
 			else:
 				print('{:20}\t{:20}  and it\'s FAILED\tOK'.format(t, a))
 				failed+=1
