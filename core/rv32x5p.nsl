@@ -305,7 +305,7 @@ module rv32x5p {
 		func_self csrrw;
 		func_self csrrs;
 		func_self csrrc;
-		func_self misaligned_jump;
+		func_self misaligned;
 		wire csr_wb_data[32];
 		wire alu_q[32];
 
@@ -326,7 +326,7 @@ module rv32x5p {
 		emreg.alu_q = if(DEREG.jump) DEREG.pc4 else if(DEREG.csrrw || DEREG.csrrc || DEREG.csrrs) crdata else alu_q;		/* address for link register */
 		emreg.fencei = DEREG.fencei;
 		emreg.fence = DEREG.fence;
-		emreg.wb = if(execute_nop || misaligned_jump) 1'b0 else DEREG.wb;
+		emreg.wb = if(execute_nop || misaligned) 1'b0 else DEREG.wb;
 
 		if(!load_interlock) {
 			any {
@@ -385,7 +385,7 @@ module rv32x5p {
 				memory(emreg);
 			} else if(DEREG.jump && !stall_execute) {
 				if((alu_q[1:0] & ialign) != 2'b00) {
-					misaligned_jump();
+					misaligned();
 				}
 				stall_ifetch();				
 				stall_decode();
