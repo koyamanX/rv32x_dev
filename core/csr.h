@@ -145,15 +145,15 @@ struct mip_t {
 	meip[1];
 	reserved1[1];
 	seip[1];
-	ueip[1];
-	mtip[1];
 	reserved2[1];
-	stip[1];
-	utip[1];
-	msip[1];
+	mtip[1];
 	reserved3[1];
+	stip[1];
+	reserved4[1];
+	msip[1];
+	reserved5[1];
 	ssip[1];
-	usip[1];
+	reserved6[1];
 };
 #define mie_t mip_t
 struct mcounteren_t {
