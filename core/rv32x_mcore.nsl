@@ -88,7 +88,7 @@ module rv32x_mcore {
 	/* CSRs */
 	mvendorid_t reg mvendorid		= 0;
 	marchid_t reg marchid			= 0;
-	mimpid_t reg mimpid				= 0;
+	mimpid_t reg mimpid				= 0xcc000000;
 	mhartid_t reg mhartid			= 0;
 	mstatus_t reg mstatus			= 0;
 	mstatush_t reg mstatush			= 0;
