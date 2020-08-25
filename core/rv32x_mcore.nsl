@@ -176,6 +176,7 @@ module rv32x_mcore {
 	func csr_write {
 		mstatus_t wire mstatus_w;
 		mtvec_t  wire mtvec_w;
+		mip_t wire mip_w;
 
 		any {
 			cwadrs == MSTATUS: {
@@ -212,7 +213,13 @@ module rv32x_mcore {
 			cwadrs == MEPC: 			mepc 		:= {cwdata[31:2], (cwdata[1:0] & ~ialign)};
 			cwadrs == MCAUSE:			mcause		:= mcause;
 			cwadrs == MIE:				mie 		:= cwdata;
-			cwadrs == MIP:				mip 		:= cwdata & 0x0000_0888;
+			cwadrs == MIP: {
+				mip_w = cwdata;
+				
+				/* mip.meip, mip.mtip, mip.msip is read-only */
+				/* Only interrupt controller can set or reset */
+				mip := mip;	
+			}
 			else: 						csr_not_mapped();
 		}
 #ifdef DEBUG
