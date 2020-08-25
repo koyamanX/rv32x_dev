@@ -438,8 +438,8 @@ module rv32x_mcore {
 
 		mode := MACHINE;
 		mstatus.mpie 	:= mstatus.mie;
-		//mstatus.mie 	:= 0;
-		mstatus.mpp 	:= MACHINE;
+		mstatus.mie 	:= 0;
+		mstatus.mpp 	:= mode;
 		mcause 			:= cause;
 		mepc 			:= epc;
 
