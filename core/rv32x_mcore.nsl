@@ -135,6 +135,7 @@ module rv32x_mcore {
 		mode 						:= MACHINE;
 		mstatus.mie 				:= 0;
 		mstatus.mprv 				:= 0;
+		mstatush.mbe				:= 0;
 		misa.mxl 					:= MISA_MXL_32;
 		misa.extensions 			:= MISA_EXTENSIONS;
 		mcause 						:= RESET;
