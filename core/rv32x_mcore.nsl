@@ -86,7 +86,7 @@ module rv32x_mcore {
 
 
 	/* CSRs */
-	mvendorid_t reg mvendorid		= 0;	/* Non-comercial */
+	mvendorid_t reg mvendorid		= 0;
 	marchid_t reg marchid			= 0;
 	mimpid_t reg mimpid				= 0;
 	mhartid_t reg mhartid			= 0;
@@ -177,10 +177,7 @@ module rv32x_mcore {
 		debug_csr_write(cwadrs, cwdata);
 #endif
 		any {
-			cwadrs == MISA:	{
-				misa.mxl 					:= MISA_MXL_32;
-				misa.extensions 			:= MISA_EXTENSIONS;
-			}
+			cwadrs == MISA:				misa		:= misa;
 			cwadrs == MSTATUS:			mstatus 	:= cwdata;
 			cwadrs == MSTATUSH:			mstatush 	:= cwdata;
 			cwadrs == MTVEC: 			mtvec 		:= cwdata;
