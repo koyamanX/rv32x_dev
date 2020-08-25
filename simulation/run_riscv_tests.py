@@ -44,6 +44,7 @@ def run_tests(tests_list, tests_assertion):
 			else:
 				print('{:20}\t{:20}  and it\'s FAILED\tOK'.format(t, a))
 				failed+=1
+			continue
 		except subprocess.TimeoutExpired:
 			print('{:20}\t{:20}  and it\'s TIMEOUT\tNG'.format(t, a))
 			timeout+=1
