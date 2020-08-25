@@ -308,8 +308,6 @@ module rv32x5p {
 		func_self misaligned_jump;
 		wire csr_wb_data[32];
 		wire alu_q[32];
-		wire forwarded_alu_a[32];
-		wire forwarded_alu_b[32];
 
 		emreg.pc = DEREG.pc;
 		emreg.pc4 = DEREG.pc4;
@@ -529,7 +527,6 @@ module rv32x5p {
 	}
 	proc writeback {
 		wire wb_value[32];
-		wire wb_csr_value[32];
 		
 		wb_value = MWREG.wb_value;
 		if(MWREG.wb) {

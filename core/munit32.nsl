@@ -7,7 +7,6 @@
 
 /* TODO: Implement resume and cancel */
 module munit32 {
-	wire s;
 	reg op = 0;
 	div32 div;
 	mul32 mul;
