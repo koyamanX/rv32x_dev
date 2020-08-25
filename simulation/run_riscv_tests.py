@@ -17,6 +17,9 @@ targets = [
 targets_should_be_failed = [
 	'rv32mi-p-breakpoint',
 ]
+failed=0
+timeout=0
+passed=0
 def gen_tests_list():
 	tests_list = list()
 	for i in targets:
@@ -30,17 +33,22 @@ def gen_tests_assertion(tests_list):
 		tests_assertion[tests_list.index(i)] = 'should_be_failed'
 	return tests_assertion
 def run_tests(tests_list, tests_assertion):
+	global passed, failed, timeout
 	for t, a in zip(tests_list, tests_assertion):
 		try:
 			subprocess.run([simulator, riscv_tests_directory+t, '--print-inst-trace', '--print-exception', '--print-disasm'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=8)
 		except subprocess.CalledProcessError as err:
 			if(a == 'should_be_passed'):
 				print('{:20}\t{:20}  and it\'s FAILED\tNG'.format(t, a))
+				failed+=1
 				return 1
 			else:
 				print('{:20}\t{:20}  and it\'s FAILED\tOK'.format(t, a))
+				failed+=1
 		except subprocess.TimeoutExpired:
 			print('{:20}\t{:20}  and it\'s TIMEOUT\tNG'.format(t, a))
+			timeout+=1
+			failed+=1
 			return 1
 		except:
 			print('unexpected error')
@@ -49,8 +57,10 @@ def run_tests(tests_list, tests_assertion):
 			shutil.move(t+'.log', simulation_log_directory)
 		if(a == 'should_be_passed'):
 			print('{:20}\t{:20}  and it\'s PASSED\tOK'.format(t, a))
+			passed+=1
 		elif(a == 'should_not_passed'):
 			print('{:20}\t{:20}  and it\'s PASSED\tNG'.format(t, a))
+			failed+=1
 def main():
 	md_opt = 0
 	if len(sys.argv) > 1 and sys.argv[1] == '--print-markdown':
@@ -65,6 +75,7 @@ def main():
 	exit_code = run_tests(tests_list, tests_assertion)
 	if md_opt == 1:
 		print('```')
+	print('{} tests done, {} passed, {} failed, timeout {}'.format(len(tests_list), passed, failed, timeout))
 
 	return exit_code
 if __name__ == '__main__':
