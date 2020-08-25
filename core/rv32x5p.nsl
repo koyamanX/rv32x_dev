@@ -377,9 +377,6 @@ module rv32x5p {
 				illegal_instruction();
 			}
 			if((DEREG.jump || taken) && !stall_execute) {
-				if((target_address[1:0] & ialign) != 2'b00) {
-					misaligned();
-				}
 				stall_ifetch();				
 				stall_decode();
 				ifetch_nop();
@@ -392,6 +389,9 @@ module rv32x5p {
 				memory(emreg);		
 			} else if(!taken && (DEREG.alu_sel == MUNIT) && rv32x_munit32.done && !stall_execute) {	
 				memory(emreg);		
+			}
+			if((DEREG.jump || taken) && ((target_address[1:0] & ialign) != 2'b00)) {
+				misaligned();
 			}
 		}
 	}

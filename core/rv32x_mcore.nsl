@@ -414,6 +414,10 @@ module rv32x_mcore {
 		mtrap(INSTRUCTION_ADDRESS_MISALIGNED, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.flush_ifetch();
+		rv32x.stall_decode_req();
+		rv32x.flush_decode();
+		rv32x.stall_execute_req();
+		rv32x.flush_execute();
 #ifdef DEBUG
 		rv32x.get_inst_execute();
 		debug_einst := rv32x.einst;
