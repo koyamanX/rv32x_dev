@@ -267,7 +267,7 @@ module rv32x_mcore {
 		rv32x.flush_decode();
 		rv32x.flush_execute();
 		rv32x.flush_memory();
-		rv32x.pc_memory();
+		rv32x.get_pc_memory();
 		machine_external_interrupt_ack();
 		mtrap(MACHINE_EXTERNAL_INTERRUPT, rv32x.epc);
 	}
@@ -281,7 +281,7 @@ module rv32x_mcore {
 		rv32x.flush_decode();
 		rv32x.flush_execute();
 		rv32x.flush_memory();
-		rv32x.pc_memory();
+		rv32x.get_pc_memory();
 		machine_software_interrupt_ack();
 		mtrap(MACHINE_SOFTWARE_INTERRUPT, rv32x.epc);
 	}
@@ -295,7 +295,7 @@ module rv32x_mcore {
 		rv32x.flush_decode();
 		rv32x.flush_execute();
 		rv32x.flush_memory();
-		rv32x.pc_memory();
+		rv32x.get_pc_memory();
 		machine_timer_interrupt_ack();
 		mtrap(MACHINE_TIMER_INTERRUPT, rv32x.epc);
 	}
@@ -305,8 +305,8 @@ module rv32x_mcore {
 	func store_amo_address_misaligned_exception {
 		exception();
 		mtval := rv32x.daddr;
-		rv32x.inst_memory();
-		rv32x.pc_memory();
+		rv32x.get_inst_memory();
+		rv32x.get_pc_memory();
 		mtrap(STORE_AMO_ADDRESS_MISALIGNED, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
@@ -323,8 +323,8 @@ module rv32x_mcore {
 	func load_address_misaligned_exception {
 		exception();
 		mtval := rv32x.daddr;
-		rv32x.inst_memory();
-		rv32x.pc_memory();
+		rv32x.get_inst_memory();
+		rv32x.get_pc_memory();
 		mtrap(LOAD_ADDRESS_MISALIGNED, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
@@ -353,8 +353,8 @@ module rv32x_mcore {
 	func illegal_instruction_exception {
 		exception();
 		mtval := rv32x.einst;
-		rv32x.pc_execute();
-		rv32x.inst_execute();
+		rv32x.get_pc_execute();
+		rv32x.get_inst_execute();
 		mtrap(ILLEGAL_INSTRUCTION, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
@@ -369,8 +369,8 @@ module rv32x_mcore {
 	func environment_call_exception {
 		exception();
 		mtval := 0;
-		rv32x.pc_execute();
-		rv32x.inst_execute();
+		rv32x.get_pc_execute();
+		rv32x.get_inst_execute();
 		mtrap(ENVIRONMENT_CALL_FROM_M_MODE, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
@@ -385,8 +385,8 @@ module rv32x_mcore {
 	func environment_break_exception {
 		exception();
 		mtval := rv32x.epc;
-		rv32x.pc_execute();
-		rv32x.inst_execute();
+		rv32x.get_pc_execute();
+		rv32x.get_inst_execute();
 		mtrap(BREAKPOINT, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
@@ -401,11 +401,11 @@ module rv32x_mcore {
 	func instruction_address_misaligned_exception {
 		exception();
 		mtval := rv32x.misaligned_target_address;
-		rv32x.pc_execute();	
+		rv32x.get_pc_execute();	
 		mtrap(INSTRUCTION_ADDRESS_MISALIGNED, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.flush_ifetch();
-		rv32x.inst_memory();
+		rv32x.get_inst_memory();
 #ifdef DEBUG
 		debug_einst := rv32x.einst;
 #endif

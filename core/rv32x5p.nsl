@@ -540,22 +540,22 @@ module rv32x5p {
 #endif
 		finish();
 	}
-	func pc_memory {
+	func get_pc_memory {
 		return EMREG.pc; 
 	}
-	func pc_execute {
+	func get_pc_execute {
 		return DEREG.pc;
 	} 
-	func pc_decode {
+	func get_pc_decode {
 		return IDREG.pc; 
 	}
-	func pc_ifetch {
+	func get_pc_ifetch {
 		return PC;
 	}
-	func inst_execute {
+	func get_inst_execute {
 		return DEREG.inst;
 	}
-	func inst_memory {
+	func get_inst_memory {
 		return EMREG.inst;
 	}
 #ifdef DEBUG
