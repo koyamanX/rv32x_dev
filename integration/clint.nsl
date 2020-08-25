@@ -31,9 +31,9 @@ module clint {
 	func write {
 		any {
 			adrs == CLINT_MSIP_ADDR_OFFSET:		msip := wdata & 0x0000_0001;
-			adrs == CLINT_MTIMECMP_ADDR_OFFSET:	{mtimecmp_lo := wdata; timer_enabled := 1;}
+			adrs == CLINT_MTIMECMP_ADDR_OFFSET:	{mtimecmp_lo := wdata; timer_enabled := 1; mtime_hi := 0x00000000; mtime_lo := 0x00000000;}
 			adrs == CLINT_MTIMECMP_ADDR_OFFSET
-						+0x0004:				{mtimecmp_hi := wdata; timer_enabled := 1;}
+						+0x0004:				{mtimecmp_hi := wdata; timer_enabled := 1; mtime_hi := 0x00000000; mtime_lo := 0x00000000;}
 			else: store_access_fault();
 		}
 		valid();
