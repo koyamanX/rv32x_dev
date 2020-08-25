@@ -177,6 +177,10 @@ module rv32x_mcore {
 		debug_csr_write(cwadrs, cwdata);
 #endif
 		any {
+			cwadrs == MISA:	{
+				misa.mxl 					:= MISA_MXL_32;
+				misa.extensions 			:= MISA_EXTENSIONS;
+			}
 			cwadrs == MSTATUS:			mstatus 	:= cwdata;
 			cwadrs == MSTATUSH:			mstatush 	:= cwdata;
 			cwadrs == MTVEC: 			mtvec 		:= cwdata;
