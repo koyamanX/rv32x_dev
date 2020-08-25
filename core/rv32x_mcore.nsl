@@ -174,6 +174,7 @@ module rv32x_mcore {
 	}
 	func csr_write {
 		mstatus_t wire mstatus_w;
+		mtvec_t  wire mtvec_w;
 
 		any {
 			cwadrs == MSTATUS: {
@@ -197,7 +198,14 @@ module rv32x_mcore {
 				//mstatus.sie := mstatus_w.sie;
 			}
 			cwadrs == MSTATUSH:			mstatush 	:= cwdata & 0x00000000;
-			cwadrs == MTVEC: 			mtvec 		:= cwdata;
+			cwadrs == MTVEC: {
+				mtvec_w = cwdata;
+				
+				mtvec.base := mtvec_w.base;
+				if(mtvec_w.mode < 2'b10) {
+					mtvec.mode := mtvec_w.mode;
+				}
+			}
 			cwadrs == MSCRATCH:			mscratch 	:= cwdata;
 			cwadrs == MEPC: 			mepc 		:= cwdata;
 			cwadrs == MIE:				mie 		:= cwdata;
