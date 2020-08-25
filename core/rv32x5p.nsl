@@ -558,9 +558,6 @@ module rv32x5p {
 	func inst_memory {
 		return EMREG.inst;
 	}
-	func adrs_ifetch {
-		return PC;
-	}
 #ifdef DEBUG
 	debug_x0  = rv32x_reg32.debug_x0;
 	debug_x1  = rv32x_reg32.debug_x1;

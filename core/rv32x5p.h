@@ -55,9 +55,6 @@ declare rv32x5p {
 	func_out instruction_address_misaligned(misaligned_target_address);
 	
 	input ialign[2];
-	output eadrs[32];
-	func_in adrs_ifetch() : eadrs;
-
 #ifdef DEBUG
 	output debug_x0[32];
 	output debug_x1[32];
