@@ -236,11 +236,11 @@ public:
 					einst = core->debug_inst;
 					
 					switch(cause) {
-						case INSTRUCTION_ADDRESS_MISALIGNED: 
 						case INSTRUCTION_ACCESS_FAULT: 
 						case INSTRUCTION_PAGE_FAULT: 
 							got_exception = 0;
 							break;
+						case INSTRUCTION_ADDRESS_MISALIGNED: 
 						case ILLEGAL_INSTRUCTION:
 						case BREAKPOINT: 
 						case ENVIRONMENT_CALL_FROM_U_MODE: 

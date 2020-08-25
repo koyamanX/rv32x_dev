@@ -229,6 +229,9 @@ module rv32x_mcore {
 	func rv32x.illegal_instruction {
 		illegal_instruction();
 	}
+	func rv32x.instruction_address_misaligned {
+		instruction_address_misaligned();
+	}
 	alt {
 		/* Interrupt has higher priorities than exceptions */
 		interrupt_enabled && external_interrupt_pending:	external_interrupt();
@@ -245,12 +248,11 @@ module rv32x_mcore {
 		store_amo_access_fault:									store_amo_access_fault_exception();
 		load_access_fault:										load_access_fault_exception();
 		/* Execute stage */
+		instruction_address_misaligned:							instruction_address_misaligned_exception();	
 		illegal_instruction:									illegal_instruction_exception();
 		environment_call:										environment_call_exception();	
 		environment_break: 										environment_break_exception();	
 		/* Ifetch stage */
-		/* Branch address is sent out to bus in Ifetch so process instruction_address_misaligned at ifetch */
-		instruction_address_misaligned:							instruction_address_misaligned_exception();	
 		instruction_address_breakpoint:							instruction_address_breakpoint_exception();
 		instruction_page_fault:									instruction_page_fault_exception();
 		instruction_access_fault:								instruction_access_fault_exception();
@@ -398,9 +400,8 @@ module rv32x_mcore {
 	}
 	func instruction_address_misaligned_exception {
 		exception();
-		rv32x.adrs_ifetch();
-		mtval := rv32x.eadrs;
-		rv32x.pc_memory();	/* Traped instruction's PC is in memory stage */
+		mtval := rv32x.misaligned_target_address;
+		rv32x.pc_execute();	
 		mtrap(INSTRUCTION_ADDRESS_MISALIGNED, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.flush_ifetch();
@@ -505,11 +506,7 @@ module rv32x_mcore {
 		}
 	}
 	func rv32x.imem_read {
-		if((rv32x.iaddr[1:0] & ialign) != 2'b00) {
-			instruction_address_misaligned();
-		} else {
-			ic.read(rv32x.iaddr);
-		}
+		ic.read(rv32x.iaddr);
 	}
 	func ic.valid {
 		rv32x.inst = ic.rdata;

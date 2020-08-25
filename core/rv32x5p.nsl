@@ -308,6 +308,7 @@ module rv32x5p {
 		func_self misaligned;
 		wire csr_wb_data[32];
 		wire alu_q[32];
+		wire target_address[32];
 
 		emreg.pc = DEREG.pc;
 		emreg.pc4 = DEREG.pc4;
@@ -327,6 +328,7 @@ module rv32x5p {
 		emreg.fencei = DEREG.fencei;
 		emreg.fence = DEREG.fence;
 		emreg.wb = if(execute_nop || misaligned) 1'b0 else DEREG.wb;
+		target_address = if(DEREG.branch) DEREG.nextpc else alu_q;
 
 		if(!load_interlock) {
 			any {
@@ -374,17 +376,8 @@ module rv32x5p {
 			if(DEREG.illegal_instruction) {
 				illegal_instruction();
 			}
-			if(taken && !stall_execute) {		
-				stall_ifetch();				
-				stall_decode();
-				ifetch_nop();
-				ifetch.finish();
-				decode_nop();
-				decode.finish();
-				ifetch(DEREG.nextpc);
-				memory(emreg);
-			} else if(DEREG.jump && !stall_execute) {
-				if((alu_q[1:0] & ialign) != 2'b00) {
+			if((DEREG.jump || taken) && !stall_execute) {
+				if((target_address[1:0] & ialign) != 2'b00) {
 					misaligned();
 				}
 				stall_ifetch();				
@@ -393,7 +386,7 @@ module rv32x5p {
 				ifetch.finish();
 				decode_nop();
 				decode.finish();
-				ifetch(alu_q);
+				ifetch(target_address);
 				memory(emreg);
 			} else if(!taken && (DEREG.alu_sel == ALU) && !stall_execute) {		
 				memory(emreg);		
@@ -401,6 +394,9 @@ module rv32x5p {
 				memory(emreg);		
 			}
 		}
+	}
+	func misaligned {
+		instruction_address_misaligned(target_address);
 	}
 	func condcheck {
 		wire eq, lt;
