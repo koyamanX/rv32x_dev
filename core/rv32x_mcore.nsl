@@ -492,7 +492,7 @@ module rv32x_mcore {
 	}
 	func rv32x.dmem_read {
 
-		check_daddr(rv32x.daddr);
+		check_daddr_range(rv32x.daddr);
 		if(!interrupt) {
 			any {
 				cacheable && !not_mapped && !misaligned:	dc.read(rv32x.daddr, rv32x.dbyteen);
@@ -528,7 +528,7 @@ module rv32x_mcore {
 		}
 	}
 	func rv32x.dmem_write {
-		check_daddr(rv32x.daddr);
+		check_daddr_range(rv32x.daddr);
 		if(!interrupt) {
 			any {
 				cacheable && !not_mapped && !misaligned:	dc.write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
