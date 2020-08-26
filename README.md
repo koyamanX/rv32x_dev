@@ -1,5 +1,5 @@
 ## RISC-V (RV32IMAC) Implementation in NSL
-- This repository contains implementation of RV32IMAC(currently supporting RV32IM,Zicsr,Zifencei with Machine-Mode except for memory protection).  
+- This repository contains implementation of RV32IMAC(currently supporting RV32IM,Zicsr,Zifencei with Machine-Mode except for PMP, PMA, HPM, PLIC).  
 - This implementation is fully synthisable and also able to convert to software simulator(by verilator).  
 - Written in [NSL](http://www.overtone.co.jp/products/and-the-nsl/) 
 ### NSL 
@@ -67,7 +67,13 @@ $ ./rv32x_simulation $NAME_OF_EXECUTABLE
 ```
 
 ### TODO 
-- Implement full feature of Machine mode
+- Implement PLIC
+- Implement PMP, PMA
+- Implement HPM
+- Implement N-Extension
+- Improve Fmax for FPGA implementation
+
+#### low priority TODO
 - Attach GDB RSP server
 - Develop SoC for FPGA
 - Implement Compress and Atomic
