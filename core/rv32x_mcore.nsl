@@ -35,6 +35,7 @@ module rv32x_mcore {
 	/* Trap */
 	reg cause[32];
 	reg epc[32];
+	reg interrupt_taken = 0;						/* interrupt occuries */
 	proc_name mtrap(cause, epc);
 	proc_name mtrap_ret();
 	/* Interrupt */
@@ -113,7 +114,7 @@ module rv32x_mcore {
 
 	rv32x.ialign = ialign;
 
-	if((mode == MACHINE) && mstatus.mie) {
+	if((mode == MACHINE) && mstatus.mie && !interrupt_taken) {
 		interrupt_enabled();
 	}
 	if(mip.meip && mie.meip) {
@@ -136,6 +137,7 @@ module rv32x_mcore {
 		mstatus.mie 				:= 0;
 		mstatus.mprv 				:= 0;
 		mstatush.mbe				:= 0;
+		mstatus.mpp					:= MACHINE;
 		misa.mxl 					:= MISA_MXL_32;
 		misa.extensions 			:= MISA_EXTENSIONS;
 		mcause 						:= RESET;
@@ -265,6 +267,9 @@ module rv32x_mcore {
 		instruction_address_breakpoint:							instruction_address_breakpoint_exception();
 		instruction_page_fault:									instruction_page_fault_exception();
 		instruction_access_fault:								instruction_access_fault_exception();
+	}
+	func interrupt {
+		interrupt_taken := 1;
 	}
 	func external_interrupt {
 		interrupt();
@@ -432,12 +437,6 @@ module rv32x_mcore {
 	func instruction_access_fault_exception {
 		exception();
 	}
-	func interrupt {
-		mstatus.mie 	:= 0;
-	}
-	func exception {
-		mstatus.mie 	:= 0;
-	}
 	func rv32x.mret {
 		mtval := 0;
 		mtrap_ret();
@@ -445,6 +444,7 @@ module rv32x_mcore {
 		rv32x.stall_decode_req();
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
+		interrupt_taken := 0;
 	}
 	proc mtrap_ret {
 		mstatus.mie 	:= mstatus.mpie;
