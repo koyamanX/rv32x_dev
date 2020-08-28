@@ -82,7 +82,7 @@ module uart_receiver {
 			if(clk_cnt == 7) {
 				clk_cnt := 0;
 				readbuffer := buffer;
-				fifo.write(readbuffer);
+				fifo.write(buffer);
 				status.busy := 0;
 				idle();
 				received_char = buffer;
