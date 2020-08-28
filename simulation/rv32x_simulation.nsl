@@ -1,6 +1,21 @@
 #include "opcode.h"
 #include "rv32x_integration.h"
 #include "uart_receiver.h"
+#include "uart_sender.h"
+#include "fifo_8_8.h"
+
+declare debug_uart_sender {
+	input adrs[10];
+	input wdata[32];
+	output rdata[32];
+	output TXD;
+	func_in read(adrs) : rdata;
+	func_in write(adrs, wdata);
+	func_out valid();
+	func_in reset();
+	func_out done();
+}
+
 
 declare rv32x_simulation simulation {
 	func_in reset();
@@ -19,6 +34,8 @@ declare rv32x_simulation simulation {
 #ifdef DEBUG
 	output uart_data[8];
 	func_out uart_done();
+	input uart_wdata[8];
+	func_in uart_write(uart_wdata);
 	output tohost[32];
 	func_out sim_done(tohost);
 	output debug_x0[32];
@@ -78,8 +95,10 @@ declare rv32x_simulation simulation {
 module rv32x_simulation {
 	rv32x_integration core;
 	uart_receiver ur;
+	debug_uart_sender us;	/* same as uart_sender.nsl except for status.en is 1 at reset */
 	
 	ur.RXD = core.TXD;
+	core.RXD = us.TXD;
 
 	func ur.done {
 		uart_done();
@@ -91,6 +110,10 @@ module rv32x_simulation {
 		core.reset();
 		ur.write(10'(0x4), 1);
 		ur.reset();
+		us.reset();
+	}
+	func uart_write {
+		us.write(10'(0x0), uart_wdata);
 	}
 	func core.imem_read {
 		imem_read(core.iaddr, core.ibyteen);
@@ -162,4 +185,81 @@ module rv32x_simulation {
 		debug_raise_exception(core.debug_cause, core.debug_epc, core.debug_mtval, core.debug_inst);
 	}
 #endif
+}
+module debug_uart_sender {
+	reg buffer[8];
+	reg readbuffer[8];
+	reg cnt[32] = 0;
+	reg txd = 1;
+	reg idx[3] = 0;
+	fifo_8_8 fifo;
+	proc_name idle();
+	proc_name send_start_bit(buffer);
+	proc_name send_data_bit(buffer);
+	proc_name send_stop_bit;
+	uart_tx_stat_t reg status = 1;
+
+	TXD = txd;
+	status.empty := fifo.empty;
+	status.full := fifo.full;
+
+	func reset {
+		idle();
+	}
+	proc idle {
+		if(status.en && ~status.busy && ~fifo.empty) {
+			status.busy := 1;
+			send_start_bit(fifo.read());	
+			readbuffer := fifo.rdata;
+		}
+	}
+	proc send_start_bit {
+		if(cnt == TX_BAUD_RATE_CNT) {
+			cnt := 0;
+			send_data_bit(buffer);
+		} else {
+			cnt++;
+		}
+		txd := 0;
+	}
+	proc send_data_bit {
+		if(cnt == TX_BAUD_RATE_CNT) {
+			if(idx == 7) {
+				send_stop_bit();
+				idx := 0;
+			} else {
+				idx++;
+			}
+			cnt := 0;
+		} else {
+			cnt++;
+		}
+		txd := buffer[idx];
+	}
+	proc send_stop_bit {
+		if(cnt == TX_BAUD_RATE_CNT) {
+			idle();
+			done();
+			status.busy := 0;
+			cnt := 0;
+		} else {
+			cnt++;
+		}
+		txd := 1;
+	}
+	
+	func read {
+		any {
+			adrs == 10'(0x0): return 32'(readbuffer);
+			adrs == 10'(0x4): return 32'(status);
+		}
+		valid();
+	}
+	func write {
+		any {
+			adrs == 10'(0x0): fifo.write(wdata[7:0]);
+			adrs == 10'(0x4): status.en := wdata[0];
+		}
+		valid();
+	}
 }

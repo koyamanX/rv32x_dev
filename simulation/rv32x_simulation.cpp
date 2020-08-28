@@ -2,6 +2,9 @@
 #include <bfd.h>
 #include <iostream>
 #include <getopt.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <termios.h>
 #include <dis-asm.h>
 #include <verilated.h>
 #include "verilated_vcd_c.h"
@@ -220,12 +223,23 @@ public:
 			eval();
 			dump();
 			if(rising_edge) {
+				ssize_t nr;
+				int ch;
 				/*
 				if(core->uart_done) {
 					fprintf(stdout, "%c", core->uart_data);
 					fflush(stdout);
 				}
 				*/
+				ch = getchar();
+				if(ch != EOF) {
+					core->uart_wdata = ch;	
+					core->uart_write = 1;
+				} else {
+					core->uart_write = 0;
+				}
+			}
+			if(rising_edge) {
 				if(core->sim_done) {
 					ret = core->tohost;
 				}
@@ -452,9 +466,18 @@ public:
 int main(int argc, char **argv) {
 	processor_t *proc0;
 	int ret = 0;
+	struct termios tmio;
+	struct termios stmio;
 
 	Verilated::commandArgs(argc, argv);
 	Verilated::traceEverOn(true);
+	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+
+	tcgetattr(STDIN_FILENO, &tmio);
+	stmio = tmio;
+	tmio.c_lflag &= ~(ECHO | ICANON);
+	tcsetattr(STDIN_FILENO, TCSANOW, &tmio);
+
 
 	proc0 = new processor_t("core\t0");
 	proc0->load(argv[1]);
@@ -471,6 +494,7 @@ int main(int argc, char **argv) {
 	}
 	proc0->step(); /* flush store instruction */
 	delete proc0;
+	tcsetattr(STDIN_FILENO, TCSANOW, &stmio);
 
 	return (ret == 0x00000001) ? 0 : 1;
 }
