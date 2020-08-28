@@ -1,7 +1,5 @@
 #include "uart_sender.h"
-#define WIDTH 8
-#define DEPTH 8
-#include "fifo.inc"
+#include "fifo_8_8.h"
 
 module uart_sender {
 	reg buffer[8];
