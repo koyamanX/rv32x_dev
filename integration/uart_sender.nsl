@@ -23,7 +23,6 @@ module uart_sender {
 	}
 	proc idle {
 		if(status.en && ~status.busy && ~fifo.empty) {
-			status.en := 0;
 			status.busy := 1;
 			send_start_bit(fifo.read());	
 			readbuffer := fifo.rdata;
@@ -56,9 +55,6 @@ module uart_sender {
 		if(cnt == TX_BAUD_RATE_CNT) {
 			idle();
 			done();
-			if(!fifo.empty) {
-				status.en := 1;
-			}
 			status.busy := 0;
 			cnt := 0;
 		} else {
