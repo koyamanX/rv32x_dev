@@ -1,12 +1,13 @@
 void wait_uart(void) {
-	while(*((volatile unsigned int *) 0x40000004) & 0x2)
+	while((*((volatile unsigned int *) 0x40000004) & 0x6) != 0x4)
 		;
 }
 void uart_putchar(int ch) {
-	wait_uart();
+	while((*((volatile unsigned int *) 0x40000004)) & 0x8)
+		;
 	*((volatile unsigned int *) 0x40000000) = ch;
-	*((volatile unsigned int *) 0x40000004) = 1;
-	wait_uart();
+	if(!(*((volatile unsigned int *)0x40000004) & 0x1))
+		*((volatile unsigned int *) 0x40000004) = 1;
 }
 void uart_puts(char *str) {
 	while(*str) {
@@ -15,6 +16,7 @@ void uart_puts(char *str) {
 	}
 	uart_putchar('\n');
 }
+
 static inline void mstatus_w(unsigned int x) {
 	asm volatile("csrw mstatus, %0" : : "r" (x));
 }
@@ -30,7 +32,8 @@ int main(void) {
 	while(1) {
 		if(x > 3) {
 			mie_w(0x00);
-			uart_puts("hello");
+			uart_puts("hello,world!");
+			wait_uart();
 			return 0;
 		}
 	}

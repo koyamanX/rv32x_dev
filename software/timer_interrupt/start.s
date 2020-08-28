@@ -54,11 +54,20 @@ _clear_bss:
 	li t0, 0
 	li t1, 0
 	mret
+	
+.globl _exit
 _exit:
+	li t0, 0
+	li t1, 0xfff
+_flush:
+	blt t1, t0, __exit
+	add t0, t0, 0x1
+	j _flush
+__exit:
 	la t0, tohost
 	sw a0, 0(t0)
 	j _exit
-	
+
 .section .tohost
 tohost: 
 	.word 0x00000000
