@@ -2,5 +2,5 @@
 #define FIFO_8_8_H
 #define WIDTH 8
 #define DEPTH 8
-#include "fifo.inc"
+#include "fifo.h"
 #endif
