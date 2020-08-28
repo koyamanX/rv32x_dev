@@ -1,28 +1,34 @@
 #include "uart_sender.h"
+#define WIDTH 8
+#define DEPTH 8
+#include "fifo.inc"
+
 module uart_sender {
 	reg buffer[8];
-	reg writebuf[8];
+	reg readbuffer[8];
 	reg cnt[32] = 0;
 	reg txd = 1;
 	reg idx[3] = 0;
-	reg int_flag = 0;
+	fifo_8_8 fifo;
 	proc_name idle();
 	proc_name send_start_bit(buffer);
 	proc_name send_data_bit(buffer);
 	proc_name send_stop_bit;
-	uart_tx_stat_t reg status;
+	uart_tx_stat_t reg status = 0;
 
 	TXD = txd;
+	status.empty := fifo.empty;
+	status.full := fifo.full;
 
 	func reset {
-		status := 0;
 		idle();
 	}
 	proc idle {
-		if(status.en && ~status.busy) {
+		if(status.en && ~status.busy && ~fifo.empty) {
 			status.en := 0;
 			status.busy := 1;
-			send_start_bit(writebuf);	
+			send_start_bit(fifo.read());	
+			readbuffer := fifo.rdata;
 		}
 	}
 	proc send_start_bit {
@@ -52,7 +58,9 @@ module uart_sender {
 		if(cnt == TX_BAUD_RATE_CNT) {
 			idle();
 			done();
-			int_flag := 1;
+			if(!fifo.empty) {
+				status.en := 1;
+			}
 			status.busy := 0;
 			cnt := 0;
 		} else {
@@ -60,22 +68,18 @@ module uart_sender {
 		}
 		txd := 1;
 	}
-	if(int_flag && ~status.busy && ~status.en) {
-		int_flag := 0;
-		int_req();
-	}
 	
 	func read {
 		any {
-			adrs == 10'(0x0): return 32'(writebuf);
+			adrs == 10'(0x0): return 32'(readbuffer);
 			adrs == 10'(0x4): return 32'(status);
 		}
 		valid();
 	}
 	func write {
 		any {
-			adrs == 10'(0x0): writebuf := wdata[7:0];
-			adrs == 10'(0x4): status := wdata[7:0] & 0x01;
+			adrs == 10'(0x0): fifo.write(wdata[7:0]);
+			adrs == 10'(0x4): status.en := wdata[0];
 		}
 		valid();
 	}
