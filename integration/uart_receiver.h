@@ -23,7 +23,9 @@ declare uart_receiver
 }
 
 struct uart_rx_stat_t {
-	x[6];
+	x[4];
+	full[1];
+	empty[1];
 	busy[1];
 	en[1];
 };
