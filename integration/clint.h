@@ -9,9 +9,7 @@ declare clint {
 	func_out valid();
 
 	func_out software_interrupt();
-	func_in software_interrupt_ack();
 	func_out timer_interrupt();
-	func_in timer_interrupt_ack();
 	func_out store_access_fault();
 	func_out load_access_fault();
 }

@@ -40,6 +40,7 @@ int main(void) {
 	return 1;
 }
 __attribute__ ((interrupt ("machine"))) void software_handler(void) {
+	*((volatile unsigned int *) 0x20000000) = 0x0;
 	x++;
 
 	return ;

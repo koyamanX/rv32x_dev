@@ -282,7 +282,6 @@ module rv32x_mcore {
 		rv32x.flush_execute();
 		rv32x.flush_memory();
 		rv32x.get_pc_memory();
-		machine_external_interrupt_ack();
 		mtrap(MACHINE_EXTERNAL_INTERRUPT, rv32x.epc);
 	}
 	func software_interrupt {
@@ -296,7 +295,6 @@ module rv32x_mcore {
 		rv32x.flush_execute();
 		rv32x.flush_memory();
 		rv32x.get_pc_memory();
-		machine_software_interrupt_ack();
 		mtrap(MACHINE_SOFTWARE_INTERRUPT, rv32x.epc);
 	}
 	func timer_interrupt {
@@ -310,7 +308,6 @@ module rv32x_mcore {
 		rv32x.flush_execute();
 		rv32x.flush_memory();
 		rv32x.get_pc_memory();
-		machine_timer_interrupt_ack();
 		mtrap(MACHINE_TIMER_INTERRUPT, rv32x.epc);
 	}
 	func load_store_amo_address_breakpoint_exception {

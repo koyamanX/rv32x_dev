@@ -66,14 +66,8 @@ module rv32x_integration {
 	func rv32x_clint.timer_interrupt {
 		rv32x.machine_timer_interrupt_req();
 	}
-	func rv32x.machine_timer_interrupt_ack {
-		rv32x_clint.timer_interrupt_ack();
-	}
 	func rv32x_clint.software_interrupt {
 		rv32x.machine_software_interrupt_req();
-	}
-	func rv32x.machine_software_interrupt_ack {
-		rv32x_clint.software_interrupt_ack();
 	}
 	func rv32x_clint.store_access_fault {
 		//rv32x.not_mapped();
