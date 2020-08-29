@@ -113,7 +113,7 @@ module rv32x_simulation {
 		us.reset();
 	}
 	func uart_write {
-		us.write(10'(0x0), uart_wdata);
+		us.write(10'(0x0), 32'(uart_wdata));
 	}
 	func core.imem_read {
 		imem_read(core.iaddr, core.ibyteen);

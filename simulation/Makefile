@@ -19,7 +19,7 @@ SIMOPT=-ggdb
 
 all:$(TOP)_fast
 lint: $(VFILES)
-	verilator --lint-only -Wall -Wno-UNUSED -Wno-UNDRIVEN --Wno-VARHIDDEN rv32x_simulation -Iout/
+	verilator --lint-only -Wall -Wno-UNUSED -Wno-UNDRIVEN --Wno-DECLFILENAME --Wno-VARHIDDEN rv32x_simulation -Iout/
 	
 run_riscv_tests: $(TOP)
 	make -C ../software/riscv-tests/isa XLEN=32
