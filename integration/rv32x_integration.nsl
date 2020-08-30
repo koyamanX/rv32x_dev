@@ -8,78 +8,78 @@
 #include "plic.h"
 
 module rv32x_integration {
-	rv32x_mcore rv32x;
+	rv32x_mcore core;
 	bootrom rom;
 	clint rv32x_clint;
 	mmio_dev rv32x_mmio_dev;
 	plic rv32x_plic;
 
 	func reset {
-		rv32x.reset();
+		core.reset();
 		rom.reset();
 		rv32x_mmio_dev.reset();
 	}
 	func dmem_valid {
-		rv32x.rdata = rdata;
-		rv32x.dmem_valid();
+		core.rdata = rdata;
+		core.dmem_valid();
 	}
 	func imem_valid {
-		rv32x.inst = inst;
-		rv32x.imem_valid();
+		core.inst = inst;
+		core.imem_valid();
 	}
 	func rom.port1_valid {
-		rv32x.inst = rom.port1_rdata;
-		rv32x.imem_valid();
+		core.inst = rom.port1_rdata;
+		core.imem_valid();
 	}
-	func rv32x.imem_read {
+	func core.imem_read {
 		any {
 			/* BOOTROM_BASE <= rv32x.iaddr && */
-			rv32x.iaddr < BOOTROM_BASE+BOOTROM_LENGTH:
-				rom.port1_read((rv32x.iaddr-BOOTROM_BASE)[11:0]);
-			else: imem_read(rv32x.iaddr, rv32x.ibyteen);
+			core.iaddr < BOOTROM_BASE+BOOTROM_LENGTH:
+				rom.port1_read((core.iaddr-BOOTROM_BASE)[11:0]);
+			else: imem_read(core.iaddr, core.ibyteen);
 		}
 	}
-	func rv32x.dmem_read {
+	func core.dmem_read {
 		any {
-			CLINT_BASE <= rv32x.daddr && rv32x.daddr < CLINT_BASE + CLINT_LENGTH:	rv32x_clint.read((rv32x.daddr - CLINT_BASE)[15:0]);
-			AHB_LITE_IO_BASE <= rv32x.daddr && rv32x.daddr < AHB_LITE_IO_BASE + AHB_LITE_IO_LENGTH: rv32x_mmio_dev.read((rv32x.daddr - AHB_LITE_IO_BASE)[15:0]);
-			PLIC_BASE <= rv32x.daddr && rv32x.daddr < PLIC_BASE + PLIC_LENGTH: rv32x_plic.read((rv32x.daddr - PLIC_BASE)[23:0]);
-			else: dmem_read(rv32x.daddr, rv32x.dbyteen);
+			CLINT_BASE <= core.daddr && core.daddr < CLINT_BASE + CLINT_LENGTH:	rv32x_clint.read((core.daddr - CLINT_BASE)[15:0]);
+			AHB_LITE_IO_BASE <= core.daddr && core.daddr < AHB_LITE_IO_BASE + AHB_LITE_IO_LENGTH: rv32x_mmio_dev.read((core.daddr - AHB_LITE_IO_BASE)[15:0]);
+			PLIC_BASE <= core.daddr && core.daddr < PLIC_BASE + PLIC_LENGTH: rv32x_plic.read((core.daddr - PLIC_BASE)[23:0]);
+			else: dmem_read(core.daddr, core.dbyteen);
 		}
 	}
-	func rv32x.dmem_write {
+	func core.dmem_write {
 		any {
-			CLINT_BASE <= rv32x.daddr && rv32x.daddr < CLINT_BASE + CLINT_LENGTH:	rv32x_clint.write((rv32x.daddr - CLINT_BASE)[15:0], rv32x.wdata);
-			AHB_LITE_IO_BASE <= rv32x.daddr && rv32x.daddr < AHB_LITE_IO_BASE + AHB_LITE_IO_LENGTH: rv32x_mmio_dev.write((rv32x.daddr - AHB_LITE_IO_BASE)[15:0], rv32x.wdata);
-			PLIC_BASE <= rv32x.daddr && rv32x.daddr < PLIC_BASE + PLIC_LENGTH: rv32x_plic.write((rv32x.daddr - PLIC_BASE)[23:0], rv32x.wdata);
-			else: dmem_write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
+			CLINT_BASE <= core.daddr && core.daddr < CLINT_BASE + CLINT_LENGTH:	rv32x_clint.write((core.daddr - CLINT_BASE)[15:0], core.wdata);
+			AHB_LITE_IO_BASE <= core.daddr && core.daddr < AHB_LITE_IO_BASE + AHB_LITE_IO_LENGTH: rv32x_mmio_dev.write((core.daddr - AHB_LITE_IO_BASE)[15:0], core.wdata);
+			PLIC_BASE <= core.daddr && core.daddr < PLIC_BASE + PLIC_LENGTH: rv32x_plic.write((core.daddr - PLIC_BASE)[23:0], core.wdata);
+			else: dmem_write(core.daddr, core.dbyteen, core.wdata);
 		}
 	}
-	func rv32x.check_daddr_range {
+	func core.check_daddr_range {
 		/* all location are mapped & cacheable for simulation purpose */
 		any {
-			CLINT_BASE <= rv32x.cdaddr && rv32x.cdaddr < CLINT_BASE + CLINT_LENGTH: ;	
-			AHB_LITE_IO_BASE <= rv32x.cdaddr && rv32x.cdaddr < AHB_LITE_IO_BASE + AHB_LITE_IO_LENGTH: ;
-			PLIC_BASE <= rv32x.cdaddr && rv32x.cdaddr < PLIC_BASE + PLIC_LENGTH: ;
-			else: rv32x.cacheable();
+			CLINT_BASE <= core.cdaddr && core.cdaddr < CLINT_BASE + CLINT_LENGTH: ;	
+			AHB_LITE_IO_BASE <= core.cdaddr && core.cdaddr < AHB_LITE_IO_BASE + AHB_LITE_IO_LENGTH: ;
+			PLIC_BASE <= core.cdaddr && core.cdaddr < PLIC_BASE + PLIC_LENGTH: ;
+			else: core.cacheable();
 		}
 	}
 	func rv32x_plic.valid {
-		rv32x.rdata = rv32x_plic.rdata;
-		rv32x.dmem_valid();
+		core.rdata = rv32x_plic.rdata;
+		core.dmem_valid();
 	}
 	func rv32x_clint.valid {
-		rv32x.rdata = rv32x_clint.rdata;
-		rv32x.dmem_valid();
+		core.rdata = rv32x_clint.rdata;
+		core.dmem_valid();
 	}
 	func rv32x_clint.timer_interrupt {
-		rv32x.timer_interrupt_req();
+		core.timer_interrupt_req();
 	}
 	func rv32x_clint.software_interrupt {
-		rv32x.software_interrupt_req();
+		core.software_interrupt_req();
 	}
 	func rv32x_plic.machine_external_interrupt {
-		rv32x.external_interrupt_req();
+		core.external_interrupt_req();
 	}
 	func rv32x_clint.store_access_fault {
 		//rv32x.not_mapped();
@@ -88,8 +88,8 @@ module rv32x_integration {
 		//rv32x.not_mapped();
 	}
 	func rv32x_mmio_dev.valid {
-		rv32x.rdata = rv32x_mmio_dev.rdata;
-		rv32x.dmem_valid();
+		core.rdata = rv32x_mmio_dev.rdata;
+		core.dmem_valid();
 	}
 	func rv32x_mmio_dev.uart_sender_interrupt_req {
 		rv32x_plic.interrupt_req2();
@@ -100,56 +100,56 @@ module rv32x_integration {
 	TXD = rv32x_mmio_dev.TXD;
 	rv32x_mmio_dev.RXD = RXD;
 #ifdef DEBUG
-	debug_x0  = rv32x.debug_x0;
-	debug_x1  = rv32x.debug_x1;
-	debug_x2  = rv32x.debug_x2;
-	debug_x3  = rv32x.debug_x3;
-	debug_x4  = rv32x.debug_x4;
-	debug_x5  = rv32x.debug_x5;
-	debug_x6  = rv32x.debug_x6;
-	debug_x7  = rv32x.debug_x7;
-	debug_x8  = rv32x.debug_x8;
-	debug_x9  = rv32x.debug_x9;
-	debug_x10 = rv32x.debug_x10;
-	debug_x11 = rv32x.debug_x11;
-	debug_x12 = rv32x.debug_x12;
-	debug_x13 = rv32x.debug_x13;
-	debug_x14 = rv32x.debug_x14;
-	debug_x15 = rv32x.debug_x15;
-	debug_x16 = rv32x.debug_x16;
-	debug_x17 = rv32x.debug_x17;
-	debug_x18 = rv32x.debug_x18;
-	debug_x19 = rv32x.debug_x19;
-	debug_x20 = rv32x.debug_x20;
-	debug_x21 = rv32x.debug_x21;
-	debug_x22 = rv32x.debug_x22;
-	debug_x23 = rv32x.debug_x23;
-	debug_x24 = rv32x.debug_x24;
-	debug_x25 = rv32x.debug_x25;
-	debug_x26 = rv32x.debug_x26;
-	debug_x27 = rv32x.debug_x27;
-	debug_x28 = rv32x.debug_x28;
-	debug_x29 = rv32x.debug_x29;
-	debug_x30 = rv32x.debug_x30;
-	debug_x31 = rv32x.debug_x31;
-	debug_pc = rv32x.debug_pc;
-	func rv32x.sim_done {
-		sim_done(rv32x.tohost);
+	debug_x0  = core.debug_x0;
+	debug_x1  = core.debug_x1;
+	debug_x2  = core.debug_x2;
+	debug_x3  = core.debug_x3;
+	debug_x4  = core.debug_x4;
+	debug_x5  = core.debug_x5;
+	debug_x6  = core.debug_x6;
+	debug_x7  = core.debug_x7;
+	debug_x8  = core.debug_x8;
+	debug_x9  = core.debug_x9;
+	debug_x10 = core.debug_x10;
+	debug_x11 = core.debug_x11;
+	debug_x12 = core.debug_x12;
+	debug_x13 = core.debug_x13;
+	debug_x14 = core.debug_x14;
+	debug_x15 = core.debug_x15;
+	debug_x16 = core.debug_x16;
+	debug_x17 = core.debug_x17;
+	debug_x18 = core.debug_x18;
+	debug_x19 = core.debug_x19;
+	debug_x20 = core.debug_x20;
+	debug_x21 = core.debug_x21;
+	debug_x22 = core.debug_x22;
+	debug_x23 = core.debug_x23;
+	debug_x24 = core.debug_x24;
+	debug_x25 = core.debug_x25;
+	debug_x26 = core.debug_x26;
+	debug_x27 = core.debug_x27;
+	debug_x28 = core.debug_x28;
+	debug_x29 = core.debug_x29;
+	debug_x30 = core.debug_x30;
+	debug_x31 = core.debug_x31;
+	debug_pc = core.debug_pc;
+	func core.sim_done {
+		sim_done(core.tohost);
 	}
-	func rv32x.debug_retire {
-		debug_retire(rv32x.debug_retire_pc, rv32x.debug_retire_inst);
+	func core.debug_retire {
+		debug_retire(core.debug_retire_pc, core.debug_retire_inst);
 	}
-	func rv32x.debug_wb {
-		debug_wb(rv32x.debug_wb_rd, rv32x.debug_wb_value);
+	func core.debug_wb {
+		debug_wb(core.debug_wb_rd, core.debug_wb_value);
 	}
-	func rv32x.debug_csr_write {
-		debug_csr_write(rv32x.debug_csr_write_num, rv32x.debug_csr_write_data);
+	func core.debug_csr_write {
+		debug_csr_write(core.debug_csr_write_num, core.debug_csr_write_data);
 	}
-	func rv32x.debug_mem_write {
-		debug_mem_write(rv32x.debug_mem_adrs, rv32x.debug_mem_byteen, rv32x.debug_mem_data);
+	func core.debug_mem_write {
+		debug_mem_write(core.debug_mem_adrs, core.debug_mem_byteen, core.debug_mem_data);
 	}
-	func rv32x.debug_raise_exception {
-		debug_raise_exception(rv32x.debug_cause, rv32x.debug_epc, rv32x.debug_mtval, rv32x.debug_inst);
+	func core.debug_raise_exception {
+		debug_raise_exception(core.debug_cause, core.debug_epc, core.debug_mtval, core.debug_inst);
 	}
 #endif
 }
