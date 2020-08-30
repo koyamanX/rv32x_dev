@@ -1,5 +1,5 @@
 ## RISC-V (RV32IMAC) Implementation in NSL
-- This repository contains implementation of RV32IMAC(currently supporting RV32IM,Zicsr,Zifencei with Machine-Mode except for PMP, PMA, HPM, PLIC).  
+- This repository contains implementation of RV32IMAC(currently supporting RV32IM,Zicsr,Zifencei with Machine-Mode except for PMP, PMA, HPM).  
 - This implementation is fully synthisable and also able to convert to software simulator(by verilator).  
 - Written in [NSL](http://www.overtone.co.jp/products/and-the-nsl/) 
 ### NSL 
@@ -93,9 +93,12 @@ For simulation purpose, address map below is mapped.
 |Name|Region|Is cacheable?|Accessibilty|
 |--|--|--|--|
 |BOOTROM|0x0000\_0000 - 0x0000\_1000|Cacheable|X|
+|PLIC|0x0c00\_0000 - 0x1000\_0000|Non-cacheable|RW|
 |CLINT|0x2000\_0000 - 0x2000\_c000|Non-cacheable|RW|
 |MMIO DEVICES|0x4000\_0000 - 0x4001\_0000|Non-cacheable|RW|
 |RAM0|0x8000\_0000 - 0x8400\_8000|Cacheable|RWX|
+
+
 
 R: means readable through data address space.  
 W: means writable through data address space.  
