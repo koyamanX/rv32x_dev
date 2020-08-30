@@ -30,6 +30,12 @@ module mmio_dev {
 		rdata = ur.rdata;
 		valid();
 	}
+	func us.interrupt_req {
+		uart_sender_interrupt_req();
+	}
+	func ur.interrupt_req {
+		uart_receiver_interrupt_req();
+	}
 
 	TXD = us.TXD;
 	ur.RXD = RXD;

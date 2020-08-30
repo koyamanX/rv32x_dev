@@ -21,6 +21,9 @@ module uart_sender {
 	func reset {
 		idle();
 	}
+	if(fifo.empty && status.en) {
+		interrupt_req();
+	}
 	proc idle {
 		if(status.en && ~status.busy && ~fifo.empty) {
 			status.busy := 1;

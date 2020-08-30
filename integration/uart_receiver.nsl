@@ -23,9 +23,13 @@ module uart_receiver {
 	
 	status.full := fifo.full;
 	status.empty := fifo.empty;
+
 	
 	func reset {
 		idle();
+	}
+	if(fifo.full && status.en) {
+		interrupt_req();
 	}
 	proc idle {
 		if(!status.busy && status.en && ~rxd) {

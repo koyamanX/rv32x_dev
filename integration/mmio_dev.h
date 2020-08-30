@@ -9,6 +9,8 @@ declare mmio_dev {
 	func_out valid();
 
 	func_in reset();
+	func_out uart_sender_interrupt_req();
+	func_out uart_receiver_interrupt_req();
 
 	output TXD;
 	input RXD;

@@ -17,6 +17,7 @@ declare uart_sender {
 	func_out valid();
 	func_in reset();
 	func_out done();
+	func_out interrupt_req();
 }
 
 struct uart_tx_stat_t {

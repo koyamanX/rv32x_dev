@@ -91,6 +91,12 @@ module rv32x_integration {
 		rv32x.rdata = rv32x_mmio_dev.rdata;
 		rv32x.dmem_valid();
 	}
+	func rv32x_mmio_dev.uart_sender_interrupt_req {
+		rv32x_plic.interrupt_req2();
+	}
+	func rv32x_mmio_dev.uart_receiver_interrupt_req {
+		rv32x_plic.interrupt_req1();
+	}
 	TXD = rv32x_mmio_dev.TXD;
 	rv32x_mmio_dev.RXD = RXD;
 #ifdef DEBUG

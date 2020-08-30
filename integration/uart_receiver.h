@@ -19,7 +19,7 @@ declare uart_receiver
 	func_in reset();
 	func_out done();
 	func_out valid();
-	func_out int_req;
+	func_out interrupt_req;
 }
 
 struct uart_rx_stat_t {
