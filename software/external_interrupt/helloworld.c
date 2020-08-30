@@ -83,9 +83,9 @@ int main(void) {
 	*((volatile unsigned int *)PLIC_THRESHOLD_REGISTER) = 0x0;
 
 	uart_puts("enter some character");
-	wait_uart();
 	mie_w(0x800);
 	mstatus_w(0x8);
+	wait_uart();
 
 	while(1) {
 		if(interrupt_cnt > 3)
