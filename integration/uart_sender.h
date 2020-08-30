@@ -5,7 +5,7 @@
 #define TX_BAUD_RATE_38400 1302
 #define TX_BAUD_RATE_19200 2604
 #define TX_BAUD_RATE_115200 434
-#define TX_BAUD_RATE_CNT TX_BAUD_RATE_19200
+#define TX_BAUD_RATE_CNT TX_BAUD_RATE_38400
 
 declare uart_sender {
 	input adrs[10];

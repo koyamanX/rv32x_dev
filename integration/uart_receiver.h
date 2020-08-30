@@ -5,7 +5,7 @@
 #define RX_BAUD_RATE_38400 1302
 #define RX_BAUD_RATE_19200 2604
 #define RX_BAUD_RATE_115200 434
-#define RX_BAUD_RATE_CNT (RX_BAUD_RATE_19200/8)
+#define RX_BAUD_RATE_CNT (RX_BAUD_RATE_38400/8)
 
 declare uart_receiver
 {
