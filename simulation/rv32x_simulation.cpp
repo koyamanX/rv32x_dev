@@ -496,5 +496,5 @@ int main(int argc, char **argv) {
 	delete proc0;
 	tcsetattr(STDIN_FILENO, TCSANOW, &stmio);
 
-	return (ret == 0x00000001) ? 0 : 1;
+	return (ret == 0x00000001) ? 0 : ret;
 }
