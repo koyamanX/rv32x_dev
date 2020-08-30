@@ -103,6 +103,7 @@ module rv32x_mcore {
 	mip_t reg mip					= 0;
 	reg msip 						= 0;
 	reg mtip 						= 0;
+	reg meip 						= 0;
 
 	wire sxlen[2];
 	wire uxlen[2];
@@ -117,7 +118,7 @@ module rv32x_mcore {
 	if((mode == MACHINE) && mstatus.mie && !interrupt_taken) {
 		interrupt_enabled();
 	}
-	if(mip.meip && mie.meip) {
+	if(meip && mie.meip) {
 		external_interrupt_pending();
 	}
 	if(mtip && mie.mtip) {
@@ -129,6 +130,7 @@ module rv32x_mcore {
 
 	msip := machine_software_interrupt_req;
 	mtip := machine_timer_interrupt_req;
+	meip := machine_external_interrupt_req;
 
 	func reset {
 		wire resetvector[32];
@@ -168,7 +170,7 @@ module rv32x_mcore {
 			cradrs == MCAUSE: 			return mcause;
 			cradrs == MTVAL: 			return mtval;
 			cradrs == MIE:				return mie;
-			cradrs == MIP:				return mip | 32'({mtip, 3'b000, msip, 3'b000});
+			cradrs == MIP:				return mip | 32'({meip, 3'b000, mtip, 3'b000, msip, 3'b000});
 			else:						{csr_not_mapped(); return 0x00000000;}
 		}
 	}
