@@ -5,12 +5,14 @@
 #include "memory_map.h"
 #include "clint.h"
 #include "mmio_dev.h"
+#include "plic.h"
 
 module rv32x_integration {
 	rv32x_mcore rv32x;
 	bootrom rom;
 	clint rv32x_clint;
 	mmio_dev rv32x_mmio_dev;
+	plic rv32x_plic;
 
 	func reset {
 		rv32x.reset();
@@ -41,6 +43,7 @@ module rv32x_integration {
 		any {
 			CLINT_BASE <= rv32x.daddr && rv32x.daddr < CLINT_BASE + CLINT_LENGTH:	rv32x_clint.read((rv32x.daddr - CLINT_BASE)[15:0]);
 			AHB_LITE_IO_BASE <= rv32x.daddr && rv32x.daddr < AHB_LITE_IO_BASE + AHB_LITE_IO_LENGTH: rv32x_mmio_dev.read((rv32x.daddr - AHB_LITE_IO_BASE)[15:0]);
+			PLIC_BASE <= rv32x.daddr && rv32x.daddr < PLIC_BASE + PLIC_LENGTH: rv32x_plic.read((rv32x.daddr - PLIC_BASE)[23:0]);
 			else: dmem_read(rv32x.daddr, rv32x.dbyteen);
 		}
 	}
@@ -48,6 +51,7 @@ module rv32x_integration {
 		any {
 			CLINT_BASE <= rv32x.daddr && rv32x.daddr < CLINT_BASE + CLINT_LENGTH:	rv32x_clint.write((rv32x.daddr - CLINT_BASE)[15:0], rv32x.wdata);
 			AHB_LITE_IO_BASE <= rv32x.daddr && rv32x.daddr < AHB_LITE_IO_BASE + AHB_LITE_IO_LENGTH: rv32x_mmio_dev.write((rv32x.daddr - AHB_LITE_IO_BASE)[15:0], rv32x.wdata);
+			PLIC_BASE <= rv32x.daddr && rv32x.daddr < PLIC_BASE + PLIC_LENGTH: rv32x_plic.write((rv32x.daddr - PLIC_BASE)[23:0], rv32x.wdata);
 			else: dmem_write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
 		}
 	}
@@ -56,8 +60,13 @@ module rv32x_integration {
 		any {
 			CLINT_BASE <= rv32x.cdaddr && rv32x.cdaddr < CLINT_BASE + CLINT_LENGTH: ;	
 			AHB_LITE_IO_BASE <= rv32x.cdaddr && rv32x.cdaddr < AHB_LITE_IO_BASE + AHB_LITE_IO_LENGTH: ;
+			PLIC_BASE <= rv32x.cdaddr && rv32x.cdaddr < PLIC_BASE + PLIC_LENGTH: ;
 			else: rv32x.cacheable();
 		}
+	}
+	func rv32x_plic.valid {
+		rv32x.rdata = rv32x_plic.rdata;
+		rv32x.dmem_valid();
 	}
 	func rv32x_clint.valid {
 		rv32x.rdata = rv32x_clint.rdata;
@@ -68,6 +77,9 @@ module rv32x_integration {
 	}
 	func rv32x_clint.software_interrupt {
 		rv32x.machine_software_interrupt_req();
+	}
+	func rv32x_plic.machine_external_interrupt {
+		rv32x.machine_external_interrupt_req();
 	}
 	func rv32x_clint.store_access_fault {
 		//rv32x.not_mapped();

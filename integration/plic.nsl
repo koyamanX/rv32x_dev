@@ -1,0 +1,163 @@
+#include "plic.h"
+
+/* PLIC only one context of machine mode external interrupt and
+	supports 32 interrupt source with maximum priority level of 7 */
+module plic {
+	priority_t reg priority[32] = 0;
+	reg pending[32] = 0;
+	reg enable[32] = 0;
+	threshold_t reg threshold = 0;
+	reg claim[32] = 0;
+	reg gateway[32] = 0xffff_ffff;
+	integer i, j;
+	proc_name interrupt_request_hart0();
+	reg in_service_claim[32] = 0;
+	proc_name interrupt_in_service(in_service_claim);
+	func_self claim_op;
+	wire complete[32];
+	func_self complete_op(complete);
+
+	proc interrupt_request_hart0 {
+		machine_external_interrupt();
+		if(claim_op) {
+			gateway := gateway & ~(0x1<<claim);
+			interrupt_in_service(claim);	
+		}
+	}
+	proc interrupt_in_service {
+		if(complete_op && (in_service_claim == complete)) {
+			gateway := gateway | (0x1<<claim);
+			finish();
+		}
+	}
+
+	alt {
+		pending[1] && (priority[1].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0001; interrupt_request_hart0();}
+		pending[2] && (priority[2].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0002; interrupt_request_hart0();}
+		pending[3] && (priority[3].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0003; interrupt_request_hart0();}
+		pending[4] && (priority[4].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0004; interrupt_request_hart0();}
+		pending[5] && (priority[5].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0005; interrupt_request_hart0();}
+		pending[6] && (priority[6].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0006; interrupt_request_hart0();}
+		pending[7] && (priority[7].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0007; interrupt_request_hart0();}
+		pending[8] && (priority[8].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0008; interrupt_request_hart0();}
+		pending[9] && (priority[9].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0009; interrupt_request_hart0();}
+		pending[10] && (priority[10].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_000a; interrupt_request_hart0();}
+		pending[11] && (priority[11].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_000b; interrupt_request_hart0();}
+		pending[12] && (priority[12].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_000c; interrupt_request_hart0();}
+		pending[13] && (priority[13].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_000d; interrupt_request_hart0();}
+		pending[14] && (priority[14].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_000e; interrupt_request_hart0();}
+		pending[15] && (priority[15].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_000f; interrupt_request_hart0();}
+		pending[16] && (priority[16].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0010; interrupt_request_hart0();}
+		pending[17] && (priority[17].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0011; interrupt_request_hart0();}
+		pending[18] && (priority[18].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0012; interrupt_request_hart0();}
+		pending[19] && (priority[19].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0013; interrupt_request_hart0();}
+		pending[20] && (priority[20].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0014; interrupt_request_hart0();}
+		pending[21] && (priority[21].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0015; interrupt_request_hart0();}
+		pending[22] && (priority[22].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0016; interrupt_request_hart0();}
+		pending[23] && (priority[23].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0017; interrupt_request_hart0();}
+		pending[24] && (priority[24].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0018; interrupt_request_hart0();}
+		pending[25] && (priority[25].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0019; interrupt_request_hart0();}
+		pending[26] && (priority[26].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_001a; interrupt_request_hart0();}
+		pending[27] && (priority[27].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_001b; interrupt_request_hart0();}
+		pending[28] && (priority[28].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_001c; interrupt_request_hart0();}
+		pending[29] && (priority[29].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_001d; interrupt_request_hart0();}
+		pending[30] && (priority[30].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_001e; interrupt_request_hart0();}
+		pending[31] && (priority[31].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_001f; interrupt_request_hart0();}
+	}
+		
+	pending := gateway & (pending |
+		{(interrupt_req31 & enable[31]),
+		(interrupt_req30 & enable[30]),
+		(interrupt_req29 & enable[29]),
+		(interrupt_req28 & enable[28]),
+		(interrupt_req27 & enable[27]),
+		(interrupt_req26 & enable[26]),
+		(interrupt_req25 & enable[25]),
+		(interrupt_req24 & enable[24]),
+		(interrupt_req23 & enable[23]),
+		(interrupt_req22 & enable[22]),
+		(interrupt_req21 & enable[21]),
+		(interrupt_req20 & enable[20]),
+		(interrupt_req19 & enable[19]),
+		(interrupt_req18 & enable[18]),
+		(interrupt_req17 & enable[17]),
+		(interrupt_req16 & enable[16]),
+		(interrupt_req15 & enable[15]),
+		(interrupt_req14 & enable[14]),
+		(interrupt_req13 & enable[13]),
+		(interrupt_req12 & enable[12]),
+		(interrupt_req11 & enable[11]),
+		(interrupt_req10 & enable[10]),
+		(interrupt_req9 & enable[9]),
+		(interrupt_req8 & enable[8]),
+		(interrupt_req7 & enable[7]),
+		(interrupt_req6 & enable[6]),
+		(interrupt_req5 & enable[5]),
+		(interrupt_req4 & enable[4]),
+		(interrupt_req3 & enable[3]),
+		(interrupt_req2 & enable[2]),
+		(interrupt_req1 & enable[1]),
+		1'b0});
+
+	func read {
+		any {
+			adrs == PLIC_PRIORITY_REGISTER_BASE: return 0x0000_0000;
+			PLIC_PRIORITY_REGISTER_BASE + 0x00_0004 <= adrs
+				&& adrs < PLIC_PRIORITY_REGISTER_BASE + PLIC_PRIORITY_REGISTER_SIZE:  {
+						j = 4;
+						generate(i = 1; i < PLIC_PRIORITY_REGISTER_LEN; i++) {
+							if(adrs-PLIC_PRIORITY_REGISTER_BASE == j) return 32'(priority[i].priority);
+							j = j + 4;
+						}
+					}
+			PLIC_PENDING_REGISTER_BASE <= adrs
+				&& adrs < PLIC_PENDING_REGISTER_BASE + PLIC_PENDING_REGISTER_SIZE:  {
+						return pending;
+					}
+			PLIC_ENABLE_REGISTER_BASE <= adrs
+				&& adrs < PLIC_ENABLE_REGISTER_BASE + PLIC_ENABLE_REGISTER_SIZE:  {
+						return enable;
+					}
+			PLIC_THRESHOLD_REGISTER_BASE <= adrs
+				&& adrs < PLIC_THRESHOLD_REGISTER_BASE + PLIC_THRESHOLD_REGISTER_SIZE:  {
+						return 32'(threshold);
+					}
+			PLIC_CLAIM_REGISTER_BASE <= adrs
+				&& adrs < PLIC_CLAIM_REGISTER_BASE + PLIC_CLAIM_REGISTER_SIZE:  {
+						claim_op();
+						return claim;
+					}
+			else: return 0x0000_0000;
+
+		}
+		valid();
+	}
+	func write {
+		any {
+			adrs == PLIC_PRIORITY_REGISTER_BASE: ;
+			PLIC_PRIORITY_REGISTER_BASE + 0x00_0004 <= adrs
+				&& adrs < PLIC_PRIORITY_REGISTER_BASE + PLIC_PRIORITY_REGISTER_SIZE:  {
+						j = 4;
+						generate(i = 1; i < PLIC_PRIORITY_REGISTER_LEN; i++) {
+							if(adrs-PLIC_PRIORITY_REGISTER_BASE == j) priority[i].priority := wdata[2:0];
+							j = j + 4;
+						}
+					}
+			PLIC_ENABLE_REGISTER_BASE <= adrs
+				&& adrs < PLIC_ENABLE_REGISTER_BASE + PLIC_ENABLE_REGISTER_SIZE:  {
+						enable := wdata;
+					}
+			PLIC_THRESHOLD_REGISTER_BASE <= adrs
+				&& adrs < PLIC_THRESHOLD_REGISTER_BASE + PLIC_THRESHOLD_REGISTER_SIZE:  {
+						threshold := wdata[2:0];
+					}
+			PLIC_CLAIM_REGISTER_BASE <= adrs
+				&& adrs < PLIC_CLAIM_REGISTER_BASE + PLIC_CLAIM_REGISTER_SIZE:  {
+						claim := if(in_service_claim == wdata) 0x0000_0000 else in_service_claim;
+						complete_op(wdata);
+					}
+
+		}
+		valid();
+	}
+}
