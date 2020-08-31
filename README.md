@@ -57,7 +57,6 @@ $ ./run.sh 'make -C run_riscv_tests'
 ### Executing arbitary executable file
 - You can simply give executable file to its first arguments.
 - If none is given, then a.out in current directory is assumed.
-- Memory is created by reading sections in executable.
 - If writting or reading locations not allocated explicitly in executable file 
 will cause simulator to finish its execution with error message.
 
