@@ -100,6 +100,8 @@ module rv32x_core {
 	misa_t reg misa					= 0;
 	mie_t reg mie					= 0;
 	mip_t reg mip					= 0;
+	mideleg_t reg mideleg			= 0;
+	medeleg_t reg medeleg			= 0;
 	reg msip 						= 0;
 	reg mtip 						= 0;
 	reg meip 						= 0;
@@ -186,6 +188,8 @@ module rv32x_core {
 			(mode >= MACHINE) && cradrs == MTVAL:			return mtval;
 			(mode >= MACHINE) && cradrs == MIE:				return mie | uie;
 			(mode >= MACHINE) && cradrs == MIP:				return mip | 32'({meip, 2'b00, ueip, mtip, 2'b00, utip, msip, 2'b00, usip});
+			(mode >= MACHINE) && cradrs == MEDELEG:			return medeleg;
+			(mode >= MACHINE) && cradrs == MIDELEG:			return mideleg;
 			/* User-mode */
 			(mode >= USER) && cradrs == USTATUS:			return ustatus;
 			(mode >= USER) && cradrs == UIE:				return uie;
@@ -269,6 +273,12 @@ module rv32x_core {
 				/* mip.meip, mip.mtip, mip.msip is read-only */
 				/* Only interrupt controller can set or reset */
 				mip := mip;
+			}
+			(mode >= MACHINE) && cwadrs == MEDELEG: {
+				medeleg := cwdata;
+			}
+			(mode >= MACHINE) && cwadrs == MIDELEG: {
+				mideleg := cwdata;
 			}
 			(mode >= USER) && cwadrs == USTATUS: {
 				mstatus_w = cwdata;
