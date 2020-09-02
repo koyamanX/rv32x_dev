@@ -208,6 +208,6 @@ struct mcause_t {
 #define uepc_t mepc_t
 #define mtval_t csr32_t
 #define utval_t mtval_t
-#define medeleg csr32_t
-#define mideleg csr32_t
+#define medeleg_t csr32_t
+#define mideleg_t csr32_t
 #endif
