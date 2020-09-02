@@ -184,7 +184,7 @@ module rv32x_core {
 			(mode >= MACHINE) && cradrs == MEPC:			return mepc;
 			(mode >= MACHINE) && cradrs == MCAUSE:			return mcause;
 			(mode >= MACHINE) && cradrs == MTVAL:			return mtval;
-			(mode >= MACHINE) && cradrs == MIE:				return mie;
+			(mode >= MACHINE) && cradrs == MIE:				return mie | uie;
 			(mode >= MACHINE) && cradrs == MIP:				return mip | 32'({meip, 2'b00, ueip, mtip, 2'b00, utip, msip, 2'b00, usip});
 			/* User-mode */
 			(mode >= USER) && cradrs == USTATUS:			return ustatus;
@@ -213,6 +213,7 @@ module rv32x_core {
 		mstatus_t wire mstatus_w;
 		mtvec_t  wire mtvec_w;
 		mip_t wire mip_w;
+		mie_t wire mie_w;
 
 		any {
 			(mode >= MACHINE) && cwadrs == MSTATUS: {
@@ -252,7 +253,16 @@ module rv32x_core {
 			(mode >= MACHINE) && cwadrs == MSCRATCH:	mscratch := cwdata;
 			(mode >= MACHINE) && cwadrs == MEPC:		mepc := {cwdata[31:2], (cwdata[1:0] & ~ialign)};
 			(mode >= MACHINE) && cwadrs == MCAUSE:		mcause := mcause;
-			(mode >= MACHINE) && cwadrs == MIE:			mie	:= cwdata;
+			(mode >= MACHINE) && cwadrs == MIE: {
+				mie_w = cwdata;
+
+				mie.meip := mie_w.meip;
+				mie.mtip := mie_w.mtip;
+				mie.msip := mie_w.msip;
+				uie.ueip := mie_w.ueip;
+				uie.utip := mie_w.utip;
+				uie.usip := mie_w.usip;
+			}
 			(mode >= MACHINE) && cwadrs == MIP: {
 				mip_w = cwdata;
 				
@@ -266,7 +276,13 @@ module rv32x_core {
 				ustatus.uie := mstatus_w.uie;
 				ustatus.upie := mstatus_w.upie;
 			}
-			(mode >= USER) && cwadrs == UIE:			uie := cwdata;
+			(mode >= USER) && cwadrs == UIE: {
+				mie_w = cwdata;
+
+				uie.ueip := mie_w.ueip;
+				uie.utip := mie_w.utip;
+				uie.usip := mie_w.usip;
+			}
 			(mode >= USER) && cwadrs == UTVEC: {
 				mtvec_w = cwdata;
 				
