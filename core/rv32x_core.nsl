@@ -116,7 +116,7 @@ module rv32x_core {
 
 	rv32x.ialign = ialign;
 
-	if((mode == MACHINE) && mstatus.mie && !interrput_servicing) {
+	if(((mode < MACHINE) || (mode == MACHINE) && mstatus.mie) && !interrput_servicing) {
 		interrupt_enabled();
 	}
 	if(meip && mie.meip) {
