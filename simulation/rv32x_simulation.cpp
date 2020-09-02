@@ -80,6 +80,7 @@ private:
 	int memory_output_flag = 0;
 	int trace_output_flag = 0;
 	int print_all_flag = 0;
+	int priv_mode = 3;
 public:
 	processor_t(const char *name) {
 		procname = name;
@@ -289,7 +290,7 @@ public:
 			retire_inst = einst;
 		}
 		if(trace_output_flag) {
-			fprintf(logfile, "%s: 0x%016x (0x%08x) ", procname, retire_pc, retire_inst);
+			fprintf(logfile, "%s(%c): 0x%016x (0x%08x) ", procname, "USHM"[priv_mode], retire_pc, retire_inst);
 		}
 		if((disasm != NULL) && disasm_output_flag) {
 			printDisasm(retire_pc, retire_inst);
