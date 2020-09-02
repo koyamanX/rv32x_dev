@@ -103,6 +103,9 @@ module rv32x_core {
 	reg msip 						= 0;
 	reg mtip 						= 0;
 	reg meip 						= 0;
+	reg usip						= 0;
+	reg utip						= 0;
+	reg ueip						= 0;
 
 	ustatus_t reg ustatus			= 0;
 	uie_t reg uie					= 0;
@@ -182,7 +185,7 @@ module rv32x_core {
 			(mode >= MACHINE) && cradrs == MCAUSE:			return mcause;
 			(mode >= MACHINE) && cradrs == MTVAL:			return mtval;
 			(mode >= MACHINE) && cradrs == MIE:				return mie;
-			(mode >= MACHINE) && cradrs == MIP:				return mip | 32'({meip, 3'b000, mtip, 3'b000, msip, 3'b000});
+			(mode >= MACHINE) && cradrs == MIP:				return mip | 32'({meip, 2'b00, ueip, mtip, 2'b00, utip, msip, 2'b00, usip});
 			/* User-mode */
 			(mode >= USER) && cradrs == USTATUS:			return ustatus;
 			(mode >= USER) && cradrs == UIE:				return uie;
@@ -264,7 +267,14 @@ module rv32x_core {
 				ustatus.upie := mstatus_w.upie;
 			}
 			(mode >= USER) && cwadrs == UIE:			uie := cwdata;
-			(mode >= USER) && cwadrs == UTVEC:			utvec := cwdata;
+			(mode >= USER) && cwadrs == UTVEC: {
+				mtvec_w = cwdata;
+				
+				utvec.base := mtvec_w.base;
+				if(mtvec_w.mode < 2'b10) {
+					utvec.mode := mtvec_w.mode;
+				}
+			}
 			(mode >= USER) && cwadrs == USCRATCH:		uscratch := cwdata;
 			(mode >= USER) && cwadrs == UEPC:			uepc := cwdata;
 			(mode >= USER) && cwadrs == UCAUSE:			ucause := cwdata;
