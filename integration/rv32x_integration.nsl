@@ -1,5 +1,5 @@
 #include "rv32x_integration.h"
-#include "rv32x_mcore.h"
+#include "rv32x_core.h"
 #include "opcode.h"
 #include "bootrom.h"
 #include "memory_map.h"
@@ -8,7 +8,7 @@
 #include "plic.h"
 
 module rv32x_integration {
-	rv32x_mcore core;
+	rv32x_core core;
 	bootrom rom;
 	clint rv32x_clint;
 	mmio_dev rv32x_mmio_dev;

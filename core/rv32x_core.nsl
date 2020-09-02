@@ -1,4 +1,4 @@
-#include "rv32x_mcore.h"
+#include "rv32x_core.h"
 #include "rv32x5p.h"
 #include "opcode.h"
 #include "priv.h"
@@ -10,7 +10,7 @@
 #define INIT_MTVEC {30'b00000_00000_00000_00000_00000_00000, MTVEC_MODE_DIRECT}
 #define MISA_EXTENSIONS MISA_EXTENSIONS_I|MISA_EXTENSIONS_M
 
-module rv32x_mcore {
+module rv32x_core {
 	rv32x5p rv32x;							/* 5-stage pipelined processor(single issue, in-order) */
 	icache_unit ic;
 	dcache_unit dc;
