@@ -417,6 +417,9 @@ module rv32x5p {
 	} 
 	func csrrw {
 		csr_wb_data = if(DEREG.uimm) 32'(DEREG.rs1) else execute_alu_a;
+		if(DEREG.uimm) {
+			csr_write_uimm();
+		}
 		if(DEREG.rd != 5'b00000) {
 			csr_read(DEREG.funct12);
 		}
@@ -425,6 +428,9 @@ module rv32x5p {
 	func csrrs {
 		csr_wb_data = if(DEREG.uimm) 32'(DEREG.rs1) else execute_alu_a;
 		csr_read(DEREG.funct12);
+		if(DEREG.uimm) {
+			csr_write_uimm();
+		}
 		if(DEREG.rs1 != 5'b00000) {
 			if((csr_wb_data != 0x00000000)) {
 				csr_write(DEREG.funct12, (csr_wb_data | 32'(crdata)));
@@ -436,6 +442,9 @@ module rv32x5p {
 	func csrrc {
 		csr_wb_data = if(DEREG.uimm) 32'(DEREG.rs1) else execute_alu_a;
 		csr_read(DEREG.funct12);
+		if(DEREG.uimm) {
+			csr_write_uimm();
+		}
 		if(DEREG.rs1 != 5'b00000) {
 			if((csr_wb_data != 0x00000000)) {
 				csr_write(DEREG.funct12, (~csr_wb_data & 32'(crdata)));

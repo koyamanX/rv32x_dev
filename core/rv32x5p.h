@@ -19,6 +19,7 @@ declare rv32x5p {
 	func_out imem_read(iaddr, ibyteen);         /* When data is ready on 'inst', imem_valid is asserted */
 	func_out dmem_read(daddr, dbyteen);         /* When data is ready on 'rdata', dmem_valid is asserted */
 	func_out dmem_write(daddr, dbyteen, wdata); /* When data is written, dmem_valid is asserted */
+	func_out csr_write_uimm();
 	func_out csr_read(cradrs) : crdata;         /* CSR read */
 	func_out csr_write(cwadrs, cwdata);         /* CSR write */
 	//func_in csr_failed();						/* CSR operation failed */
