@@ -350,45 +350,27 @@ module rv32x_core {
 		instruction_access_fault:									instruction_access_fault_exception();
 	}
 	func interrupt {
+		rv32x.stall_ifetch_req();
+		rv32x.stall_decode_req();
+		rv32x.stall_execute_req();
+		rv32x.stall_memory_req();
+		rv32x.flush_ifetch();
+		rv32x.flush_decode();
+		rv32x.flush_execute();
+		rv32x.flush_memory();
+		rv32x.get_pc_memory();
 		interrput_servicing := 1;
 	}
 	func machine_external_interrupt {
 		interrupt();
-		rv32x.stall_ifetch_req();
-		rv32x.stall_decode_req();
-		rv32x.stall_execute_req();
-		rv32x.stall_memory_req();
-		rv32x.flush_ifetch();
-		rv32x.flush_decode();
-		rv32x.flush_execute();
-		rv32x.flush_memory();
-		rv32x.get_pc_memory();
 		mtrap(MACHINE_EXTERNAL_INTERRUPT, rv32x.epc);
 	}
 	func machine_software_interrupt {
 		interrupt();
-		rv32x.stall_ifetch_req();
-		rv32x.stall_decode_req();
-		rv32x.stall_execute_req();
-		rv32x.stall_memory_req();
-		rv32x.flush_ifetch();
-		rv32x.flush_decode();
-		rv32x.flush_execute();
-		rv32x.flush_memory();
-		rv32x.get_pc_memory();
 		mtrap(MACHINE_SOFTWARE_INTERRUPT, rv32x.epc);
 	}
 	func machine_timer_interrupt {
 		interrupt();
-		rv32x.stall_ifetch_req();
-		rv32x.stall_decode_req();
-		rv32x.stall_execute_req();
-		rv32x.stall_memory_req();
-		rv32x.flush_ifetch();
-		rv32x.flush_decode();
-		rv32x.flush_execute();
-		rv32x.flush_memory();
-		rv32x.get_pc_memory();
 		mtrap(MACHINE_TIMER_INTERRUPT, rv32x.epc);
 	}
 	func load_store_amo_address_breakpoint_exception {
