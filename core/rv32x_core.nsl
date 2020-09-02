@@ -97,10 +97,19 @@ module rv32x_core {
 	reg mtip 						= 0;
 	reg meip 						= 0;
 
+	ustatus_t reg ustatus			= 0;
+	uie_t reg uie					= 0;
+	utvec_t reg utvec				= 0;
+	uscratch_t reg uscratch			= 0;
+	uepc_t reg uepc					= 0;
+	ucause_t reg ucause				= 0;
+	utval_t reg utval 				= 0;
+	uip_t reg uip					= 0;
+
 	wire sxlen[2];
 	wire uxlen[2];
 	wire ialign[2];
-
+	
 	sxlen = MISA_MXL_32;
 	uxlen = MISA_MXL_32;
 	ialign = 2'b11;
@@ -144,23 +153,25 @@ module rv32x_core {
 	}
 	/* CSR accesses */
 	func rv32x.csr_read {
-		any {
-			rv32x.cradrs == MISA: 			return misa;
-			rv32x.cradrs == MVENDORID: 		return mvendorid;
-			rv32x.cradrs == MARCHID: 		return marchid;
-			rv32x.cradrs == MIMPID: 		return mimpid;
-			rv32x.cradrs == MHARTID: 		return mhartid;
-											/* Hardwire SPP, SPIE, UPIE, SIE, UIE, MPRV, MXR, SUM, TVM, TW, TSR, FS, XS, SD to zero */
-			rv32x.cradrs == MSTATUS: 		return mstatus;
-			rv32x.cradrs == MSTATUSH:		return mstatush;
-			rv32x.cradrs == MTVEC: 			return mtvec;
-			rv32x.cradrs == MSCRATCH: 		return mscratch;
-			rv32x.cradrs == MEPC: 			return mepc;
-			rv32x.cradrs == MCAUSE: 		return mcause;
-			rv32x.cradrs == MTVAL: 			return mtval;
-			rv32x.cradrs == MIE:			return mie;
-			rv32x.cradrs == MIP:			return mip | 32'({meip, 3'b000, mtip, 3'b000, msip, 3'b000});
-			else:							{csr_not_mapped(); return 0x00000000;}
+		if(mode >= MACHINE) {
+			any {
+				rv32x.cradrs == MISA: 			return misa;
+				rv32x.cradrs == MVENDORID: 		return mvendorid;
+				rv32x.cradrs == MARCHID: 		return marchid;
+				rv32x.cradrs == MIMPID: 		return mimpid;
+				rv32x.cradrs == MHARTID: 		return mhartid;
+												/* Hardwire SPP, SPIE, UPIE, SIE, UIE, MPRV, MXR, SUM, TVM, TW, TSR, FS, XS, SD to zero */
+				rv32x.cradrs == MSTATUS: 		return mstatus;
+				rv32x.cradrs == MSTATUSH:		return mstatush;
+				rv32x.cradrs == MTVEC: 			return mtvec;
+				rv32x.cradrs == MSCRATCH: 		return mscratch;
+				rv32x.cradrs == MEPC: 			return mepc;
+				rv32x.cradrs == MCAUSE: 		return mcause;
+				rv32x.cradrs == MTVAL: 			return mtval;
+				rv32x.cradrs == MIE:			return mie;
+				rv32x.cradrs == MIP:			return mip | 32'({meip, 3'b000, mtip, 3'b000, msip, 3'b000});
+				else:							{csr_not_mapped(); return 0x00000000;}
+			}
 		}
 	}
 	func rv32x.csr_write {
@@ -168,49 +179,51 @@ module rv32x_core {
 		mtvec_t  wire mtvec_w;
 		mip_t wire mip_w;
 
-		any {
-			rv32x.cwadrs == MSTATUS: {
-				mstatus_w = rv32x.cwdata;
-				
-				//mstatus.sd := mstatus_w.sd;
-				//mstatus.tsr := mstatus_w.tsr;
-				//mstatus.tw := mstatus_w.tw;
-				//mstatus.tvm := mstatus_w.tvm;
-				//mstatus.mxr := mstatus_w.mxr;
-				//mstatus.sum := mstatus_w.sum;
-				mstatus.mprv := mstatus_w.mprv;
-				//mstatus.xs := mstatus_w.xs;
-				//mstatus.fs := mstatus_w.fs;
-				//mstatus.mpp := mstatus_w.mpp;	// Only Machine mode
-				//mstatus.spp := mstatus_w.spp;
-				//mstatus.mpie := mstatus_w.mpie;
-				//mstatus.ube := mstatus_w.ube;
-				//mstatus.spie := mstatus_w.spie;
-				mstatus.mie := mstatus_w.mie;
-				//mstatus.sie := mstatus_w.sie;
-			}
-			rv32x.cwadrs == MSTATUSH: mstatush := rv32x.cwdata & 0x00000000;
-			rv32x.cwadrs == MTVEC: {
-				mtvec_w = rv32x.cwdata;
-				
-				mtvec.base := mtvec_w.base;
-				if(mtvec_w.mode < 2'b10) {
-					mtvec.mode := mtvec_w.mode;
+		if(mode >= MACHINE) {
+			any {
+				rv32x.cwadrs == MSTATUS: {
+					mstatus_w = rv32x.cwdata;
+					
+					//mstatus.sd := mstatus_w.sd;
+					//mstatus.tsr := mstatus_w.tsr;
+					//mstatus.tw := mstatus_w.tw;
+					//mstatus.tvm := mstatus_w.tvm;
+					//mstatus.mxr := mstatus_w.mxr;
+					//mstatus.sum := mstatus_w.sum;
+					mstatus.mprv := mstatus_w.mprv;
+					//mstatus.xs := mstatus_w.xs;
+					//mstatus.fs := mstatus_w.fs;
+					//mstatus.mpp := mstatus_w.mpp;	// Only Machine mode
+					//mstatus.spp := mstatus_w.spp;
+					//mstatus.mpie := mstatus_w.mpie;
+					//mstatus.ube := mstatus_w.ube;
+					//mstatus.spie := mstatus_w.spie;
+					mstatus.mie := mstatus_w.mie;
+					//mstatus.sie := mstatus_w.sie;
 				}
+				rv32x.cwadrs == MSTATUSH: mstatush := rv32x.cwdata & 0x00000000;
+				rv32x.cwadrs == MTVEC: {
+					mtvec_w = rv32x.cwdata;
+					
+					mtvec.base := mtvec_w.base;
+					if(mtvec_w.mode < 2'b10) {
+						mtvec.mode := mtvec_w.mode;
+					}
+				}
+				rv32x.cwadrs == MTVAL:		mtval := rv32x.cwdata;
+				rv32x.cwadrs == MSCRATCH:	mscratch := rv32x.cwdata;
+				rv32x.cwadrs == MEPC: 		mepc := {rv32x.cwdata[31:2], (rv32x.cwdata[1:0] & ~ialign)};
+				rv32x.cwadrs == MCAUSE:		mcause := mcause;
+				rv32x.cwadrs == MIE:		mie	:= rv32x.cwdata;
+				rv32x.cwadrs == MIP: {
+					mip_w = rv32x.cwdata;
+					
+					/* mip.meip, mip.mtip, mip.msip is read-only */
+					/* Only interrupt controller can set or reset */
+					mip := mip;
+				}
+				else: csr_not_mapped();
 			}
-			rv32x.cwadrs == MTVAL:		mtval := rv32x.cwdata;
-			rv32x.cwadrs == MSCRATCH:	mscratch := rv32x.cwdata;
-			rv32x.cwadrs == MEPC: 		mepc := {rv32x.cwdata[31:2], (rv32x.cwdata[1:0] & ~ialign)};
-			rv32x.cwadrs == MCAUSE:		mcause := mcause;
-			rv32x.cwadrs == MIE:		mie	:= rv32x.cwdata;
-			rv32x.cwadrs == MIP: {
-				mip_w = rv32x.cwdata;
-				
-				/* mip.meip, mip.mtip, mip.msip is read-only */
-				/* Only interrupt controller can set or reset */
-				mip := mip;	
-			}
-			else: csr_not_mapped();
 		}
 #ifdef DEBUG
 		debug_csr_write(rv32x.cwadrs, rv32x.cwdata);
