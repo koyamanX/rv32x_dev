@@ -153,25 +153,33 @@ module rv32x_core {
 	}
 	/* CSR accesses */
 	func rv32x.csr_read {
-		if(mode >= MACHINE) {
-			any {
-				rv32x.cradrs == MISA: 			return misa;
-				rv32x.cradrs == MVENDORID: 		return mvendorid;
-				rv32x.cradrs == MARCHID: 		return marchid;
-				rv32x.cradrs == MIMPID: 		return mimpid;
-				rv32x.cradrs == MHARTID: 		return mhartid;
-												/* Hardwire SPP, SPIE, UPIE, SIE, UIE, MPRV, MXR, SUM, TVM, TW, TSR, FS, XS, SD to zero */
-				rv32x.cradrs == MSTATUS: 		return mstatus;
-				rv32x.cradrs == MSTATUSH:		return mstatush;
-				rv32x.cradrs == MTVEC: 			return mtvec;
-				rv32x.cradrs == MSCRATCH: 		return mscratch;
-				rv32x.cradrs == MEPC: 			return mepc;
-				rv32x.cradrs == MCAUSE: 		return mcause;
-				rv32x.cradrs == MTVAL: 			return mtval;
-				rv32x.cradrs == MIE:			return mie;
-				rv32x.cradrs == MIP:			return mip | 32'({meip, 3'b000, mtip, 3'b000, msip, 3'b000});
-				else:							{csr_not_mapped(); return 0x00000000;}
-			}
+		any {
+			/* Machine-mode */
+			(mode >= MACHINE) && rv32x.cradrs == MISA: 			return misa;
+			(mode >= MACHINE) && rv32x.cradrs == MVENDORID: 	return mvendorid;
+			(mode >= MACHINE) && rv32x.cradrs == MARCHID: 		return marchid;
+			(mode >= MACHINE) && rv32x.cradrs == MIMPID: 		return mimpid;
+			(mode >= MACHINE) && rv32x.cradrs == MHARTID: 		return mhartid;
+											/* Hardwire SPP, SPIE, UPIE, SIE, UIE, MPRV, MXR, SUM, TVM, TW, TSR, FS, XS, SD to zero */
+			(mode >= MACHINE) && rv32x.cradrs == MSTATUS: 		return mstatus;
+			(mode >= MACHINE) && rv32x.cradrs == MSTATUSH:		return mstatush;
+			(mode >= MACHINE) && rv32x.cradrs == MTVEC: 		return mtvec;
+			(mode >= MACHINE) && rv32x.cradrs == MSCRATCH: 		return mscratch;
+			(mode >= MACHINE) && rv32x.cradrs == MEPC: 			return mepc;
+			(mode >= MACHINE) && rv32x.cradrs == MCAUSE: 		return mcause;
+			(mode >= MACHINE) && rv32x.cradrs == MTVAL: 		return mtval;
+			(mode >= MACHINE) && rv32x.cradrs == MIE:			return mie;
+			(mode >= MACHINE) && rv32x.cradrs == MIP:			return mip | 32'({meip, 3'b000, mtip, 3'b000, msip, 3'b000});
+			/* User-mode */
+			(mode >= USER) && rv32x.cradrs == USTATUS:			return ustatus;
+			(mode >= USER) && rv32x.cradrs == UIE:				return uie;
+			(mode >= USER) && rv32x.cradrs == UTVEC:			return utvec;
+			(mode >= USER) && rv32x.cradrs == USCRATCH:			return uscratch;
+			(mode >= USER) && rv32x.cradrs == UEPC:				return uepc;
+			(mode >= USER) && rv32x.cradrs == UCAUSE:			return ucause;
+			(mode >= USER) && rv32x.cradrs == UTVAL:			return utval;
+			(mode >= USER) && rv32x.cradrs == UIP:				return uip;
+			else:												{csr_not_mapped(); return 0x00000000;}
 		}
 	}
 	func rv32x.csr_write {
@@ -181,7 +189,7 @@ module rv32x_core {
 
 		if(mode >= MACHINE) {
 			any {
-				rv32x.cwadrs == MSTATUS: {
+				(mode >= MACHINE) && rv32x.cwadrs == MSTATUS: {
 					mstatus_w = rv32x.cwdata;
 					
 					//mstatus.sd := mstatus_w.sd;
@@ -201,8 +209,8 @@ module rv32x_core {
 					mstatus.mie := mstatus_w.mie;
 					//mstatus.sie := mstatus_w.sie;
 				}
-				rv32x.cwadrs == MSTATUSH: mstatush := rv32x.cwdata & 0x00000000;
-				rv32x.cwadrs == MTVEC: {
+				(mode >= MACHINE) && rv32x.cwadrs == MSTATUSH: mstatush := rv32x.cwdata & 0x00000000;
+				(mode >= MACHINE) && rv32x.cwadrs == MTVEC: {
 					mtvec_w = rv32x.cwdata;
 					
 					mtvec.base := mtvec_w.base;
@@ -210,18 +218,26 @@ module rv32x_core {
 						mtvec.mode := mtvec_w.mode;
 					}
 				}
-				rv32x.cwadrs == MTVAL:		mtval := rv32x.cwdata;
-				rv32x.cwadrs == MSCRATCH:	mscratch := rv32x.cwdata;
-				rv32x.cwadrs == MEPC: 		mepc := {rv32x.cwdata[31:2], (rv32x.cwdata[1:0] & ~ialign)};
-				rv32x.cwadrs == MCAUSE:		mcause := mcause;
-				rv32x.cwadrs == MIE:		mie	:= rv32x.cwdata;
-				rv32x.cwadrs == MIP: {
+				(mode >= MACHINE) && rv32x.cwadrs == MTVAL:		mtval := rv32x.cwdata;
+				(mode >= MACHINE) && rv32x.cwadrs == MSCRATCH:	mscratch := rv32x.cwdata;
+				(mode >= MACHINE) && rv32x.cwadrs == MEPC: 		mepc := {rv32x.cwdata[31:2], (rv32x.cwdata[1:0] & ~ialign)};
+				(mode >= MACHINE) && rv32x.cwadrs == MCAUSE:	mcause := mcause;
+				(mode >= MACHINE) && rv32x.cwadrs == MIE:		mie	:= rv32x.cwdata;
+				(mode >= MACHINE) && rv32x.cwadrs == MIP: {
 					mip_w = rv32x.cwdata;
 					
 					/* mip.meip, mip.mtip, mip.msip is read-only */
 					/* Only interrupt controller can set or reset */
 					mip := mip;
 				}
+				(mode >= USER) && rv32x.cwadrs == USTATUS:		ustatus := rv32x.cwdata;
+				(mode >= USER) && rv32x.cwadrs == UIE:			uie := rv32x.cwdata;
+				(mode >= USER) && rv32x.cwadrs == UTVEC:		utvec := rv32x.cwdata;
+				(mode >= USER) && rv32x.cwadrs == USCRATCH:		uscratch := rv32x.cwdata;
+				(mode >= USER) && rv32x.cwadrs == UEPC:			uepc := rv32x.cwdata;
+				(mode >= USER) && rv32x.cwadrs == UCAUSE:		ucause := rv32x.cwdata;
+				(mode >= USER) && rv32x.cwadrs == UTVAL:		utval := rv32x.cwdata;
+				(mode >= USER) && rv32x.cwadrs == UIP:			uip := rv32x.cwdata;
 				else: csr_not_mapped();
 			}
 		}
