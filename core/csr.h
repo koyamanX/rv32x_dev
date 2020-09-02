@@ -124,11 +124,11 @@ struct mstatus_t {
 	mpie[1];
 	ube[1];
 	spie[1];
-	reserved2[1];
+	upie[1];
 	mie[1];
 	reserved3[1];
 	sie[1];
-	reserved4[1];
+	uie[1];
 };
 #define ustatus_t mstatus_t
 struct mstatush_t {
