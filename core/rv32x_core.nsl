@@ -174,7 +174,7 @@ module rv32x_core {
 			(mode >= MACHINE) && cradrs == MIMPID:			return mimpid;
 			(mode >= MACHINE) && cradrs == MHARTID:			return mhartid;
 											/* Hardwire SPP, SPIE, UPIE, SIE, UIE, MPRV, MXR, SUM, TVM, TW, TSR, FS, XS, SD to zero */
-			(mode >= MACHINE) && cradrs == MSTATUS:			return mstatus;
+			(mode >= MACHINE) && cradrs == MSTATUS:			return (mstatus | ustatus);
 			(mode >= MACHINE) && cradrs == MSTATUSH:		return mstatush;
 			(mode >= MACHINE) && cradrs == MTVEC:			return mtvec;
 			(mode >= MACHINE) && cradrs == MSCRATCH:		return mscratch;
@@ -231,6 +231,10 @@ module rv32x_core {
 				//mstatus.spie := mstatus_w.spie;
 				mstatus.mie := mstatus_w.mie;
 				//mstatus.sie := mstatus_w.sie;
+				mstatus.uie := mstatus_w.uie;
+				mstatus.upie := mstatus_w.upie;
+				ustatus.uie := mstatus_w.uie;
+				ustatus.upie := mstatus_w.upie;
 			}
 			(mode >= MACHINE) && cwadrs == MSTATUSH:	mstatush := cwdata & 0x00000000;
 			(mode >= MACHINE) && cwadrs == MTVEC: {
@@ -253,7 +257,12 @@ module rv32x_core {
 				/* Only interrupt controller can set or reset */
 				mip := mip;
 			}
-			(mode >= USER) && cwadrs == USTATUS:		ustatus := cwdata;
+			(mode >= USER) && cwadrs == USTATUS: {
+				mstatus_w = cwdata;
+
+				ustatus.uie := mstatus_w.uie;
+				ustatus.upie := mstatus_w.upie;
+			}
 			(mode >= USER) && cwadrs == UIE:			uie := cwdata;
 			(mode >= USER) && cwadrs == UTVEC:			utvec := cwdata;
 			(mode >= USER) && cwadrs == USCRATCH:		uscratch := cwdata;
