@@ -179,4 +179,18 @@
 #define MTVAL			0x343
 #define MIP				0x344
 
+#define USTATUS			0x000
+#define UIE				0x004
+#define UTVEC			0x005
+#define USCRATCH		0x040
+#define UEPC			0x041
+#define UCAUSE			0x042
+#define UTVAL			0x043
+#define UIP				0x044
+#define FFLAGS			0x001
+#define FRM				0x002
+#define FCSR			0x003
+
+/* define address of  User-mode HPM, CYCLE, TIME, INSTRET here */
+
 #endif
