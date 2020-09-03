@@ -278,7 +278,12 @@ module rv32x_core {
 				
 				/* mip.meip, mip.mtip, mip.msip is read-only */
 				/* Only interrupt controller can set or reset */
-				mip := mip;
+				mip.usip := mip_w.usip;
+				mip.ueip := mip_w.ueip;
+				mip.utip := mip_w.utip;
+				uip.usip := mip_w.usip;
+				uip.ueip := mip_w.ueip;
+				uip.utip := mip_w.utip;
 			}
 			(mode >= MACHINE) && cwadrs == MEDELEG: {
 				medeleg := cwdata;
@@ -289,12 +294,17 @@ module rv32x_core {
 			(mode >= USER) && cwadrs == USTATUS: {
 				mstatus_w = cwdata;
 
+				mstatus.uie := mstatus_w.uie;
+				mstatus.upie := mstatus_w.upie;
 				ustatus.uie := mstatus_w.uie;
 				ustatus.upie := mstatus_w.upie;
 			}
 			(mode >= USER) && cwadrs == UIE: {
 				mie_w = cwdata;
 
+				mie.ueie := mie_w.ueie;
+				mie.utie := mie_w.utie;
+				mie.usie := mie_w.usie;
 				uie.ueie := mie_w.ueie;
 				uie.utie := mie_w.utie;
 				uie.usie := mie_w.usie;
@@ -311,7 +321,12 @@ module rv32x_core {
 			(mode >= USER) && cwadrs == UEPC:			uepc := cwdata;
 			(mode >= USER) && cwadrs == UCAUSE:			ucause := cwdata;
 			(mode >= USER) && cwadrs == UTVAL:			utval := cwdata;
-			(mode >= USER) && cwadrs == UIP:			uip := cwdata;
+			(mode >= USER) && cwadrs == UIP: {
+				mip_w = cwdata;
+
+				mip.usip := mip_w.usip;
+				uip.usip := mip_w.usip;
+			}
 			else: csr_write_not_mapped();
 		}
 #ifdef DEBUG
