@@ -27,7 +27,7 @@ module rv32x_core {
 	/* Trap */
 	reg cause[32];
 	reg epc[32];
-	proc_name mtrap(cause, epc);
+	proc_name trap(cause, epc);
 	proc_name mtrap_ret();
 	/* Interrupt */
 	func_self interrupt();
@@ -127,14 +127,14 @@ module rv32x_core {
 
 	rv32x.ialign = ialign;
 
-	/* checking !mtrap is required, since most of interrupt pending bits
+	/* checking !trap is required, since most of interrupt pending bits
 		only be cleared from software via writing one of correspoinding
 		register in PLIC, CLINT not xip registers(some may be read-only).
 		Hence, until disabling xstatus.mie, interrupts pendings are handled
-		many times. So check if currently handling interrupts(in mtrap state)
+		many times. So check if currently handling interrupts(in trap state)
 		or not.
 	*/
-	if(((mode < MACHINE) || (mode == MACHINE) && mstatus.mie) && !mtrap) {
+	if(((mode < MACHINE) || (mode == MACHINE) && mstatus.mie) && !trap) {
 		machine_interrupt_enabled();
 	}
 	if(meip && mie.meie) {
@@ -383,15 +383,15 @@ module rv32x_core {
 	}
 	func machine_external_interrupt {
 		interrupt();
-		mtrap(MACHINE_EXTERNAL_INTERRUPT, rv32x.epc);
+		trap(MACHINE_EXTERNAL_INTERRUPT, rv32x.epc);
 	}
 	func machine_software_interrupt {
 		interrupt();
-		mtrap(MACHINE_SOFTWARE_INTERRUPT, rv32x.epc);
+		trap(MACHINE_SOFTWARE_INTERRUPT, rv32x.epc);
 	}
 	func machine_timer_interrupt {
 		interrupt();
-		mtrap(MACHINE_TIMER_INTERRUPT, rv32x.epc);
+		trap(MACHINE_TIMER_INTERRUPT, rv32x.epc);
 	}
 	func load_store_amo_address_breakpoint_exception {
 		exception();
@@ -401,7 +401,7 @@ module rv32x_core {
 		mtval := rv32x.daddr;
 		rv32x.get_inst_memory();
 		rv32x.get_pc_memory();
-		mtrap(STORE_AMO_ADDRESS_MISALIGNED, rv32x.epc);
+		trap(STORE_AMO_ADDRESS_MISALIGNED, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
 		rv32x.stall_execute_req();
@@ -419,7 +419,7 @@ module rv32x_core {
 		mtval := rv32x.daddr;
 		rv32x.get_inst_memory();
 		rv32x.get_pc_memory();
-		mtrap(LOAD_ADDRESS_MISALIGNED, rv32x.epc);
+		trap(LOAD_ADDRESS_MISALIGNED, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
 		rv32x.stall_execute_req();
@@ -449,7 +449,7 @@ module rv32x_core {
 		mtval := rv32x.einst;
 		rv32x.get_pc_execute();
 		rv32x.get_inst_execute();
-		mtrap(ILLEGAL_INSTRUCTION, rv32x.epc);
+		trap(ILLEGAL_INSTRUCTION, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
 		rv32x.stall_execute_req();
@@ -465,7 +465,7 @@ module rv32x_core {
 		mtval := 0;
 		rv32x.get_pc_execute();
 		rv32x.get_inst_execute();
-		mtrap(ENVIRONMENT_CALL_FROM_M_MODE, rv32x.epc);
+		trap(ENVIRONMENT_CALL_FROM_M_MODE, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
 		rv32x.stall_execute_req();
@@ -481,7 +481,7 @@ module rv32x_core {
 		mtval := rv32x.epc;
 		rv32x.get_pc_execute();
 		rv32x.get_inst_execute();
-		mtrap(BREAKPOINT, rv32x.epc);
+		trap(BREAKPOINT, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
 		rv32x.stall_execute_req();
@@ -496,7 +496,7 @@ module rv32x_core {
 		exception();
 		mtval := rv32x.misaligned_target_address;
 		rv32x.get_pc_execute();	
-		mtrap(INSTRUCTION_ADDRESS_MISALIGNED, rv32x.epc);
+		trap(INSTRUCTION_ADDRESS_MISALIGNED, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.flush_ifetch();
 		rv32x.stall_decode_req();
@@ -539,7 +539,7 @@ module rv32x_core {
 		rv32x.trap({mepc[31:2], mepc[1:0] & ~ialign});
 		finish();
 	}
-	proc mtrap {
+	proc trap {
 		wire v[32];
 
 		mode := MACHINE;
