@@ -8,7 +8,7 @@
 #include "dcache_unit.h"
 
 #define INIT_MTVEC {30'b00000_00000_00000_00000_00000_00000, MTVEC_MODE_DIRECT}
-#define MISA_EXTENSIONS MISA_EXTENSIONS_I|MISA_EXTENSIONS_M
+#define MISA_EXTENSIONS MISA_EXTENSIONS_I|MISA_EXTENSIONS_M|MISA_EXTENSIONS_U
 
 module rv32x_core {
 	rv32x5p rv32x;							/* 5-stage pipelined processor(single issue, in-order) */
