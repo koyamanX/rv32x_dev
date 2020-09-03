@@ -30,6 +30,7 @@ module rv32x_core {
 	reg trap_mode[2];
 	proc_name trap(trap_mode, cause, epc);
 	proc_name trap_mret();
+	proc_name trap_uret();
 	/* Interrupt */
 	func_self interrupt();
 	func_self machine_interrupt_enabled();
@@ -530,6 +531,18 @@ module rv32x_core {
 			rv32x.flush_decode();
 		}
 	}
+	func rv32x.uret {
+		if(mode != USER) {
+			illegal_instruction();
+		} else {
+			utval := 0;
+			trap_uret();
+			rv32x.stall_ifetch_req();
+			rv32x.stall_decode_req();
+			rv32x.flush_ifetch();
+			rv32x.flush_decode();
+		}
+	}
 	proc trap_mret {
 		mstatus.mie 	:= mstatus.mpie;
 		mstatus.mpie	:= 1;
@@ -538,6 +551,16 @@ module rv32x_core {
 		mode 			:= mstatus.mpp;
 		rv32x.stall_ifetch_req();
 		rv32x.trap({mepc[31:2], mepc[1:0] & ~ialign});
+		finish();
+	}
+	proc trap_uret {
+		ustatus.upie	:= 1;
+		mstatus.upie	:= 1;
+		ustatus.uie		:= ustatus.upie;
+		mstatus.uie		:= ustatus.upie;
+		mode			:= USER;
+		rv32x.stall_ifetch_req();
+		rv32x.trap({uepc[31:2], uepc[1:0] & ~ialign});
 		finish();
 	}
 	proc trap {
