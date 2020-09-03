@@ -31,7 +31,7 @@ module rv32x_core {
 	proc_name mtrap_ret();
 	/* Interrupt */
 	func_self interrupt();
-	func_self interrupt_enabled();
+	func_self machine_interrupt_enabled();
 	func_self machine_timer_interrupt_pending();
 	func_self machine_software_interrupt_pending();
 	func_self machine_external_interrupt_pending();
@@ -135,7 +135,7 @@ module rv32x_core {
 		or not.
 	*/
 	if(((mode < MACHINE) || (mode == MACHINE) && mstatus.mie) && !mtrap) {
-		interrupt_enabled();
+		machine_interrupt_enabled();
 	}
 	if(meip && mie.meie) {
 		machine_external_interrupt_pending();
@@ -332,9 +332,9 @@ module rv32x_core {
 	}
 	alt {
 		/* Interrupt has higher priorities than exceptions */
-		interrupt_enabled && machine_external_interrupt_pending:	machine_external_interrupt();
-		interrupt_enabled && machine_software_interrupt_pending:	machine_software_interrupt();
-		interrupt_enabled && machine_timer_interrupt_pending:		machine_timer_interrupt();
+		machine_interrupt_enabled && machine_external_interrupt_pending:	machine_external_interrupt();
+		machine_interrupt_enabled && machine_software_interrupt_pending:	machine_software_interrupt();
+		machine_interrupt_enabled && machine_timer_interrupt_pending:		machine_timer_interrupt();
 		/* Process exception in preceeding instruction in pipeline */	
 		/* Memory stage */
 		/* memory address is sent out to bus in memory stage process load_store_amo_address_breakpoint at memory stage */
