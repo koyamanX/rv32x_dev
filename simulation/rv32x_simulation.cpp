@@ -285,6 +285,14 @@ public:
 		}
 		retire_pc = core->debug_retire_pc;
 		retire_inst = core->debug_retire_inst;
+		if((got_exception == 0) && exception_output_flag) {
+			printException(epc, cause, mtval);
+			got_exception = -1;
+		} else if(got_exception == -1) {
+			;
+		} else {
+			got_exception--;
+		}
 		if(got_exception == 0) {
 			retire_pc = epc;
 			retire_inst = einst;
@@ -310,14 +318,8 @@ public:
 			fprintf(logfile, "\n");
 		}
 		dumpRegs();
-		if((got_exception == 0) && exception_output_flag) {
-			printException(epc, cause, mtval);
-			got_exception = -1;
-		} else if(got_exception == -1) {
-			;
-		} else {
-			got_exception--;
-		}
+
+
 
 		return ret;
 	};
