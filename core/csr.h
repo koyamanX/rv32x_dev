@@ -157,7 +157,22 @@ struct mip_t {
 	ssip[1];
 	usip[1];
 };
-#define mie_t mip_t
+struct mie_t {
+	reserved0[20]; 
+	meie[1];
+	reserved1[1];
+	seie[1];
+	ueie[1];
+	mtie[1];
+	reserved3[1];
+	stie[1];
+	utie[1];
+	msie[1];
+	reserved5[1];
+	ssie[1];
+	usie[1];
+};
+
 #define uip_t mip_t
 #define uie_t mie_t
 struct mcounteren_t {

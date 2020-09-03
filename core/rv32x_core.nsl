@@ -131,13 +131,13 @@ module rv32x_core {
 	if(((mode < MACHINE) || (mode == MACHINE) && mstatus.mie) && !interrput_servicing) {
 		interrupt_enabled();
 	}
-	if(meip && mie.meip) {
+	if(meip && mie.meie) {
 		machine_external_interrupt_pending();
 	}
-	if(mtip && mie.mtip) {
+	if(mtip && mie.mtie) {
 		machine_timer_interrupt_pending();
 	}
-	if(msip && mie.msip) {
+	if(msip && mie.msie) {
 		machine_software_interrupt_pending();
 	}
 
@@ -260,12 +260,12 @@ module rv32x_core {
 			(mode >= MACHINE) && cwadrs == MIE: {
 				mie_w = cwdata;
 
-				mie.meip := mie_w.meip;
-				mie.mtip := mie_w.mtip;
-				mie.msip := mie_w.msip;
-				uie.ueip := mie_w.ueip;
-				uie.utip := mie_w.utip;
-				uie.usip := mie_w.usip;
+				mie.meie := mie_w.meie;
+				mie.mtie := mie_w.mtie;
+				mie.msie := mie_w.msie;
+				uie.ueie := mie_w.ueie;
+				uie.utie := mie_w.utie;
+				uie.usie := mie_w.usie;
 			}
 			(mode >= MACHINE) && cwadrs == MIP: {
 				mip_w = cwdata;
@@ -289,9 +289,9 @@ module rv32x_core {
 			(mode >= USER) && cwadrs == UIE: {
 				mie_w = cwdata;
 
-				uie.ueip := mie_w.ueip;
-				uie.utip := mie_w.utip;
-				uie.usip := mie_w.usip;
+				uie.ueie := mie_w.ueie;
+				uie.utie := mie_w.utie;
+				uie.usie := mie_w.usie;
 			}
 			(mode >= USER) && cwadrs == UTVEC: {
 				mtvec_w = cwdata;
