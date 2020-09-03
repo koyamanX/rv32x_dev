@@ -518,12 +518,16 @@ module rv32x_core {
 		exception();
 	}
 	func rv32x.mret {
-		mtval := 0;
-		mtrap_ret();
-		rv32x.stall_ifetch_req();
-		rv32x.stall_decode_req();
-		rv32x.flush_ifetch();
-		rv32x.flush_decode();
+		if(mode != MACHINE) {
+			illegal_instruction();
+		} else {
+			mtval := 0;
+			mtrap_ret();
+			rv32x.stall_ifetch_req();
+			rv32x.stall_decode_req();
+			rv32x.flush_ifetch();
+			rv32x.flush_decode();
+		}
 	}
 	proc mtrap_ret {
 		mstatus.mie 	:= mstatus.mpie;
