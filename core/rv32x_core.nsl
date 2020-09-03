@@ -241,7 +241,7 @@ module rv32x_core {
 				mstatus.mprv := mstatus_w.mprv;
 				//mstatus.xs := mstatus_w.xs;
 				//mstatus.fs := mstatus_w.fs;
-				//mstatus.mpp := mstatus_w.mpp;	// Only Machine mode
+				mstatus.mpp := if(mstatus_w.mpp == USER || mstatus_w.mpp == MACHINE) mstatus_w.mpp else mstatus.mpp;
 				//mstatus.spp := mstatus_w.spp;
 				//mstatus.mpie := mstatus_w.mpie;
 				//mstatus.ube := mstatus_w.ube;
