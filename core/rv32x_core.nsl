@@ -29,7 +29,7 @@ module rv32x_core {
 	reg epc[32];
 	reg trap_mode[2];
 	proc_name trap(trap_mode, cause, epc);
-	proc_name mtrap_ret();
+	proc_name trap_mret();
 	/* Interrupt */
 	func_self interrupt();
 	func_self machine_interrupt_enabled();
@@ -523,14 +523,14 @@ module rv32x_core {
 			illegal_instruction();
 		} else {
 			mtval := 0;
-			mtrap_ret();
+			trap_mret();
 			rv32x.stall_ifetch_req();
 			rv32x.stall_decode_req();
 			rv32x.flush_ifetch();
 			rv32x.flush_decode();
 		}
 	}
-	proc mtrap_ret {
+	proc trap_mret {
 		mstatus.mie 	:= mstatus.mpie;
 		mstatus.mpie	:= 1;
 		mstatus.mpp		:= MACHINE;
@@ -542,18 +542,24 @@ module rv32x_core {
 	}
 	proc trap {
 		wire v[32];
-
-		mode := MACHINE;
-		mstatus.mpie 	:= mstatus.mie;
-		mstatus.mie 	:= 0;
-		mstatus.mpp 	:= mode;
-		mcause 			:= cause;
-		mepc 			:= epc;
+		mtvec_t wire tvec;
+		
+		any {
+			mode == MACHINE: {
+				//mode := MACHINE;
+				mstatus.mpie 	:= mstatus.mie;
+				mstatus.mie 	:= 0;
+				mstatus.mpp 	:= mode;
+				mcause 			:= cause;
+				mepc 			:= epc;
+				tvec = mtvec;
+			}
+		}
 
 		any {
-			mtvec.mode == 2'b00: 				v = {mtvec.base, 2'b00};
-			mtvec.mode == 2'b01 && !cause[31]:	v = {mtvec.base, 2'b00};
-			mtvec.mode == 2'b01 && cause[31]:	v = {mtvec.base, 2'b00}
+			tvec.mode == 2'b00: 				v = {tvec.base, 2'b00};
+			tvec.mode == 2'b01 && !cause[31]:	v = {tvec.base, 2'b00};
+			tvec.mode == 2'b01 && cause[31]:	v = {tvec.base, 2'b00}
 														+32'({cause[9:0], 2'b00});
 		}
 		rv32x.stall_ifetch_req();
