@@ -27,7 +27,6 @@ module rv32x_core {
 	/* Trap */
 	reg cause[32];
 	reg epc[32];
-	reg interrput_servicing = 0;						/* interrupt occuries */
 	proc_name mtrap(cause, epc);
 	proc_name mtrap_ret();
 	/* Interrupt */
@@ -102,12 +101,12 @@ module rv32x_core {
 	mip_t reg mip					= 0;
 	mideleg_t reg mideleg			= 0;
 	medeleg_t reg medeleg			= 0;
-	reg msip 						= 0;
-	reg mtip 						= 0;
-	reg meip 						= 0;
-	reg usip						= 0;
-	reg utip						= 0;
-	reg ueip						= 0;
+	wire msip;
+	wire mtip;
+	wire meip;
+	wire usip;
+	wire utip;
+	wire ueip;
 
 	ustatus_t reg ustatus			= 0;
 	uie_t reg uie					= 0;
@@ -128,7 +127,14 @@ module rv32x_core {
 
 	rv32x.ialign = ialign;
 
-	if(((mode < MACHINE) || (mode == MACHINE) && mstatus.mie) && !interrput_servicing) {
+	/* checking !mtrap is required, since most of interrupt pending bits
+		only be cleared from software via writing one of correspoinding
+		register in PLIC, CLINT not xip registers(some may be read-only).
+		Hence, until disabling xstatus.mie, interrupts pendings are handled
+		many times. So check if currently handling interrupts(in mtrap state)
+		or not.
+	*/
+	if(((mode < MACHINE) || (mode == MACHINE) && mstatus.mie) && !mtrap) {
 		interrupt_enabled();
 	}
 	if(meip && mie.meie) {
@@ -141,9 +147,9 @@ module rv32x_core {
 		machine_software_interrupt_pending();
 	}
 
-	msip := software_interrupt_req;
-	mtip := timer_interrupt_req;
-	meip := external_interrupt_req;
+	msip = software_interrupt_req;
+	mtip = timer_interrupt_req;
+	meip = external_interrupt_req;
 
 	func reset {
 		wire resetvector[32];
@@ -359,7 +365,6 @@ module rv32x_core {
 		rv32x.flush_execute();
 		rv32x.flush_memory();
 		rv32x.get_pc_memory();
-		interrput_servicing := 1;
 	}
 	func machine_external_interrupt {
 		interrupt();
@@ -504,7 +509,6 @@ module rv32x_core {
 		rv32x.stall_decode_req();
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
-		interrput_servicing := 0;
 	}
 	proc mtrap_ret {
 		mstatus.mie 	:= mstatus.mpie;
