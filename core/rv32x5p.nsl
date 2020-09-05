@@ -305,7 +305,7 @@ module rv32x5p {
 		func_self csrrw;
 		func_self csrrs;
 		func_self csrrc;
-		func_self misaligned;
+		func_self i_misaligned;
 		func_self m_misaligned;
 		wire csr_wb_data[32];
 		wire alu_q[32];
@@ -328,7 +328,7 @@ module rv32x5p {
 		emreg.alu_q = if(DEREG.jump) DEREG.pc4 else if(DEREG.csrrw || DEREG.csrrc || DEREG.csrrs) crdata else alu_q;		/* address for link register */
 		emreg.fencei = DEREG.fencei;
 		emreg.fence = DEREG.fence;
-		emreg.wb = if(execute_nop || misaligned) 1'b0 else DEREG.wb;
+		emreg.wb = if(execute_nop || i_misaligned) 1'b0 else DEREG.wb;
 		target_address = if(DEREG.branch) DEREG.nextpc else alu_q;
 
 		if(!load_interlock) {
@@ -392,7 +392,7 @@ module rv32x5p {
 				memory(emreg);		
 			}
 			if((DEREG.jump || taken) && ((target_address[1:0] & ialign) != 2'b00)) {
-				misaligned();
+				i_misaligned();
 			}
 			any {
 				((alu_q[1:0] != 2'b00) && ({1'b0, DEREG.funct3[1:0]} == MEM_WORD)):		m_misaligned();	
@@ -404,7 +404,7 @@ module rv32x5p {
 			}
 		}
 	}
-	func misaligned {
+	func i_misaligned {
 		instruction_address_misaligned(target_address);
 	}
 	func condcheck {
