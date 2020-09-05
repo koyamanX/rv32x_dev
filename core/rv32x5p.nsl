@@ -306,6 +306,7 @@ module rv32x5p {
 		func_self csrrs;
 		func_self csrrc;
 		func_self misaligned;
+		func_self m_misaligned;
 		wire csr_wb_data[32];
 		wire alu_q[32];
 		wire target_address[32];
@@ -392,6 +393,14 @@ module rv32x5p {
 			}
 			if((DEREG.jump || taken) && ((target_address[1:0] & ialign) != 2'b00)) {
 				misaligned();
+			}
+			any {
+				((alu_q[1:0] != 2'b00) && ({1'b0, DEREG.funct3[1:0]} == MEM_WORD)):		m_misaligned();	
+				((alu_q[0] != 1'b0) && ({1'b0, DEREG.funct3[1:0]} == MEM_HALFWORD)):	m_misaligned();	
+			}
+			any {
+				(DEREG.load && m_misaligned):	load_address_misaligned(alu_q);
+				(DEREG.store && m_misaligned):	store_address_misaligned(alu_q);
 			}
 		}
 	}

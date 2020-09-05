@@ -81,7 +81,6 @@ module rv32x_core {
 	func_self csr_read(cradrs) : crdata;
 	func_self csr_read_not_mapped();
 	func_self csr_write_not_mapped();
-	func_self misaligned();
 #ifdef DEBUG
 	reg debug_einst[32];
 #endif
@@ -348,6 +347,12 @@ module rv32x_core {
 	func rv32x.instruction_address_misaligned {
 		instruction_address_misaligned();
 	}
+	func rv32x.store_address_misaligned {
+		store_amo_address_misaligned();
+	}
+	func rv32x.load_address_misaligned {
+		load_address_misaligned();
+	}
 	alt {
 		/* Interrupt has higher priorities than exceptions */
 		machine_interrupt_enabled && machine_external_interrupt_pending:	machine_external_interrupt();
@@ -401,34 +406,30 @@ module rv32x_core {
 	}
 	func store_amo_address_misaligned_exception {
 		exception();
-		rv32x.get_inst_memory();
-		rv32x.get_pc_memory();
-		trap(MACHINE, STORE_AMO_ADDRESS_MISALIGNED, rv32x.epc, rv32x.daddr);
+		rv32x.get_inst_execute();
+		rv32x.get_pc_execute();
+		trap(MACHINE, STORE_AMO_ADDRESS_MISALIGNED, rv32x.epc, rv32x.misaligned_memory_address);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
 		rv32x.stall_execute_req();
-		rv32x.stall_memory_req();
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 		rv32x.flush_execute();
-		rv32x.flush_memory();
 #ifdef DEBUG
 		debug_einst := rv32x.einst;
 #endif
 	}
 	func load_address_misaligned_exception {
 		exception();
-		rv32x.get_inst_memory();
-		rv32x.get_pc_memory();
-		trap(MACHINE, LOAD_ADDRESS_MISALIGNED, rv32x.epc, rv32x.daddr);
+		rv32x.get_inst_execute();
+		rv32x.get_pc_execute();
+		trap(MACHINE, LOAD_ADDRESS_MISALIGNED, rv32x.epc, rv32x.misaligned_memory_address);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
 		rv32x.stall_execute_req();
-		rv32x.stall_memory_req();
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 		rv32x.flush_execute();
-		rv32x.flush_memory();
 #ifdef DEBUG
 		debug_einst := rv32x.einst;
 #endif
@@ -644,19 +645,14 @@ module rv32x_core {
 		rv32x.inst = ic.rdata;
 		rv32x.imem_valid();
 	}
-	any {
-		(rv32x.daddr[1:0] != 2'b00) && (rv32x.dbyteen == MEM_WORD):	misaligned();
-		(rv32x.daddr[0] != 1'b0) && (rv32x.dbyteen == MEM_HALFWORD): misaligned();
-	}
 	func rv32x.dmem_read {
 
 		check_daddr_range(rv32x.daddr);
 		if(!interrupt) {
 			any {
-				cacheable && !not_mapped && !misaligned:	dc.read(rv32x.daddr, rv32x.dbyteen);
-				!cacheable && !not_mapped && !misaligned:	noncacheable_read(rv32x.daddr, rv32x.dbyteen);	
+				cacheable && !not_mapped:					dc.read(rv32x.daddr, rv32x.dbyteen);
+				!cacheable && !not_mapped:					noncacheable_read(rv32x.daddr, rv32x.dbyteen);	
 				not_mapped:									load_access_fault(); 
-				misaligned:									load_address_misaligned();
 			}
 		}
 	}
@@ -689,10 +685,9 @@ module rv32x_core {
 		check_daddr_range(rv32x.daddr);
 		if(!interrupt) {
 			any {
-				cacheable && !not_mapped && !misaligned:	dc.write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
-				!cacheable && !not_mapped && !misaligned:	noncacheable_write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
+				cacheable && !not_mapped:					dc.write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
+				!cacheable && !not_mapped:					noncacheable_write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
 				not_mapped:									store_amo_access_fault();
-				misaligned:									store_amo_address_misaligned();
 			}
 #ifdef DEBUG
 			if(rv32x.daddr == 0x80001000) {
