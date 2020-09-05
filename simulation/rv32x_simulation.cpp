@@ -261,11 +261,11 @@ public:
 						case ENVIRONMENT_CALL_FROM_U_MODE: 
 						case ENVIRONMENT_CALL_FROM_S_MODE: 
 						case ENVIRONMENT_CALL_FROM_M_MODE: 
+						case LOAD_ADDRESS_MISALIGNED: 
+						case STORE_AMO_ADDRESS_MISALIGNED: 
 							got_exception = 1;
 							break;
-						case LOAD_ADDRESS_MISALIGNED: 
 						case LOAD_ACCESS_FAULT: 
-						case STORE_AMO_ADDRESS_MISALIGNED: 
 						case STORE_AMO_ACCESS_FAULT: 
 						case LOAD_PAGE_FAULT: 
 						case STORE_AMO_PAGE_FAULT: 
