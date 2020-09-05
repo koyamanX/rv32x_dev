@@ -382,12 +382,10 @@ module rv32x_core {
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
 		rv32x.stall_execute_req();
-		rv32x.stall_memory_req();
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 		rv32x.flush_execute();
-		rv32x.flush_memory();
-		rv32x.get_pc_memory();
+		rv32x.get_pc_execute();
 	}
 	func machine_external_interrupt {
 		interrupt();
@@ -648,12 +646,10 @@ module rv32x_core {
 	func rv32x.dmem_read {
 
 		check_daddr_range(rv32x.daddr);
-		if(!interrupt) {
-			any {
-				cacheable && !not_mapped:					dc.read(rv32x.daddr, rv32x.dbyteen);
-				!cacheable && !not_mapped:					noncacheable_read(rv32x.daddr, rv32x.dbyteen);	
-				not_mapped:									load_access_fault(); 
-			}
+		any {
+			cacheable && !not_mapped:					dc.read(rv32x.daddr, rv32x.dbyteen);
+			!cacheable && !not_mapped:					noncacheable_read(rv32x.daddr, rv32x.dbyteen);	
+			not_mapped:									load_access_fault(); 
 		}
 	}
 	func noncacheable_read {
@@ -683,18 +679,16 @@ module rv32x_core {
 	}
 	func rv32x.dmem_write {
 		check_daddr_range(rv32x.daddr);
-		if(!interrupt) {
-			any {
-				cacheable && !not_mapped:					dc.write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
-				!cacheable && !not_mapped:					noncacheable_write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
-				not_mapped:									store_amo_access_fault();
-			}
-#ifdef DEBUG
-			if(rv32x.daddr == 0x80001000) {
-				sim_done(rv32x.wdata);
-			}
-#endif
+		any {
+			cacheable && !not_mapped:					dc.write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
+			!cacheable && !not_mapped:					noncacheable_write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
+			not_mapped:									store_amo_access_fault();
 		}
+#ifdef DEBUG
+		if(rv32x.daddr == 0x80001000) {
+			sim_done(rv32x.wdata);
+		}
+#endif
 	}
 	func noncacheable_write {
 		dmem_write(ncadrs, ncbyteen, ncdata);
