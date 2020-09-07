@@ -463,7 +463,11 @@ module rv32x_core {
 		exception();
 		rv32x.get_pc_execute();
 		rv32x.get_inst_execute();
-		trap(MACHINE, ENVIRONMENT_CALL_FROM_M_MODE, rv32x.epc, 0x00000000);
+		if(mode == MACHINE) {
+			trap(MACHINE, ENVIRONMENT_CALL_FROM_M_MODE, rv32x.epc, 0x00000000);
+		} else if(mode == USER) {
+			trap(MACHINE, ENVIRONMENT_CALL_FROM_U_MODE, rv32x.epc, 0x00000000);
+		}
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
 		rv32x.stall_execute_req();
