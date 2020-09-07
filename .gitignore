@@ -12,3 +12,5 @@ simulation/rv32x_simulation
 simulation/rv32x_simulation.vcd
 simulation/*.log
 software/tests
+*.a
+*.o
