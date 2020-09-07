@@ -4,7 +4,7 @@ CFLAGS=-nostartfiles -nostdlib -nostdinc -march=rv32im -mabi=ilp32 -I/opt/riscv/
 AS=$(RISCV_PREFIX)as
 LD=$(RISCV_PREFIX)ld
 GLOSS=../gloss
-LDFLAGS=-L$(GLOSS) -L/opt/riscv/riscv32-unknown-elf/lib -lcrt0 -lc -lgloss_riscvx -lgloss -lg -Tlink.ld
+LDFLAGS=-L$(GLOSS) -L/opt/riscv/riscv32-unknown-elf/lib -L/opt/riscv/lib/gcc/riscv32-unknown-elf/10.1.0/lib -lcrt0 -lc -lm -lgloss_riscvx -lgloss -lg -lgcov -lgcc -Tlink.ld
 OBJCOPY=$(RISCV_PREFIX)objcopy
 TEST=helloworld
 SIMDIR=../../simulation
