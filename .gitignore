@@ -14,3 +14,7 @@ simulation/*.log
 software/tests
 *.a
 *.o
+*.elf
+*.log
+*.hex
+
