@@ -75,6 +75,7 @@ private:
 	disassembler_ftype disasm = NULL;
 	struct disassemble_info disasm_info = {};
 	int exception_output_flag = 0;
+	int no_sim_exit = 0;
 	int writeback_output_flag = 0;
 	int disasm_output_flag = 0;
 	int memory_output_flag = 0;
@@ -241,7 +242,7 @@ public:
 				}
 			}
 			if(rising_edge) {
-				if(core->sim_done) {
+				if(core->sim_done && !no_sim_exit) {
 					ret = core->tohost;
 				}
 				if(core->debug_raise_exception) {
@@ -342,10 +343,11 @@ public:
 			{"print-memory-write", no_argument, NULL, 'm'},
 			{"print-inst-trace", no_argument, NULL, 'i'},
 			{"print-all", no_argument, NULL, 'a'},
+			{"no-sim-exit", no_argument, NULL, 'n'},
 			{0, 0, 0, 0},
 		};
 
-		while((opt = getopt_long(argc, argv, "ewdmia", longopts, &longindex)) != -1) {
+		while((opt = getopt_long(argc, argv, "ewdmian", longopts, &longindex)) != -1) {
 			switch(opt) {
 				case 'e':
 					exception_output_flag = 1;
@@ -364,6 +366,9 @@ public:
 					break;
 				case 'a':
 					print_all_flag = 1;
+					break;
+				case 'n':
+					no_sim_exit = 1;
 					break;
 				default:
 					exit(1);
