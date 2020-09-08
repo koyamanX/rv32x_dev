@@ -19,6 +19,7 @@ gloss_srcs = \
 	sys_fstat.c \
 	sys_getpid.c \
 	sys_isatty.c \
+	sys_sbrk.c \
 	sys_misc.c \
 	uart.c
 
