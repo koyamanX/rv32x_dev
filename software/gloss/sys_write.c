@@ -6,7 +6,7 @@
 #undef errno
 extern int errno;
 
-ssize_t _write(int file, const void *ptr, size_t len) {
+ssize_t sys_write(int file, const void *ptr, size_t len) {
 	int i;
 	unsigned char *p;
 

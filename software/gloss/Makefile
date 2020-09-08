@@ -11,16 +11,10 @@ OBJCOPY=$(RISCV_PREFIX)objcopy
 
 
 gloss_srcs = \
-	sys_exit.c	\
-	sys_close.c \
-	sys_execve.c \
 	sys_write.c	\
-	sys_fork.c \
-	sys_fstat.c \
-	sys_getpid.c \
-	sys_isatty.c \
-	sys_sbrk.c \
+	sys_exit.c	\
 	sys_misc.c \
+	syscall.c \
 	uart.c
 
 crt0_srcs = crt0.S \
