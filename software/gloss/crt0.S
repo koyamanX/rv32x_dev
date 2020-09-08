@@ -28,7 +28,8 @@ _trap_vector:
 _start:
 	csrwi mstatus, 0
 	la t0, _trap_vector
-	and t0, t0, 0x7fc
+	li t1, 0xfffffffc
+	and t0, t1, t0
 	ori t0, t0, 0x1
 	csrw mtvec, t0
 	la t0, _bss_start	# 4-byte aligned
