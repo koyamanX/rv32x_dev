@@ -76,6 +76,7 @@ private:
 	struct disassemble_info disasm_info = {};
 	int exception_output_flag = 0;
 	int no_sim_exit = 0;
+	int no_log = 0;
 	int writeback_output_flag = 0;
 	int disasm_output_flag = 0;
 	int memory_output_flag = 0;
@@ -325,6 +326,10 @@ public:
 		return ret;
 	};
 	void openLogFile(const char *s) {
+		if(no_log) {
+			logfilename = (char *)"/dev/null";
+			return ;
+		}
 		if(logfilename != NULL) {
 			free(logfilename);
 			logfilename = NULL;
@@ -343,11 +348,12 @@ public:
 			{"print-memory-write", no_argument, NULL, 'm'},
 			{"print-inst-trace", no_argument, NULL, 'i'},
 			{"print-all", no_argument, NULL, 'a'},
+			{"no-log", no_argument, NULL, 'x'},
 			{"no-sim-exit", no_argument, NULL, 'n'},
 			{0, 0, 0, 0},
 		};
 
-		while((opt = getopt_long(argc, argv, "ewdmian", longopts, &longindex)) != -1) {
+		while((opt = getopt_long(argc, argv, "ewdmianx", longopts, &longindex)) != -1) {
 			switch(opt) {
 				case 'e':
 					exception_output_flag = 1;
@@ -369,6 +375,9 @@ public:
 					break;
 				case 'n':
 					no_sim_exit = 1;
+					break;
+				case 'x':
+					no_log = 1;
 					break;
 				default:
 					exit(1);

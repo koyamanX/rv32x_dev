@@ -16,7 +16,7 @@ run: $(TEST).elf $(BOOTROM).hex
 	make -C $(SIMDIR)
 	cp $(SIMDIR)/$(SIM) $(SIM)
 	clear
-	./$(SIM) $< --no-sim-exit 2> /dev/null || true
+	./$(SIM) $< --no-sim-exit --no-log 2> /dev/null || true
 $(TEST).elf: $(TEST).c 
 	$(CC) $(CFLAGS) $< -c -o $(TEST).o
 	make all -C $(GLOSS)
