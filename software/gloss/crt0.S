@@ -39,10 +39,10 @@ _clear_bss:
 	bltu t0, t1, _clear_bss
 _enter_u_mode:
 	csrr t0, mstatus
-	li t1, 0x00001808
+	li t1, 0x00001800
 	not t2, t1
 	and t0, t0, t2
-	or t0, t0, t1
+	or t0, t0, 0x8
 	csrw mstatus, t0	# set mstatus.mpp, mstatus.mie
 	la t0, _call_main
 	csrw mepc, t0
