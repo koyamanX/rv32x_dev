@@ -1,4 +1,4 @@
-void _exit(int exit_status) {
+void _exit(int status) {
 
 	while(1)
 		asm volatile("nop");
