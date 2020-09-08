@@ -12,6 +12,7 @@ module uart_sender {
 	proc_name send_start_bit(buffer);
 	proc_name send_data_bit(buffer);
 	proc_name send_stop_bit;
+	proc_name wait_some_cycle();
 	uart_tx_stat_t reg status = 0;
 
 	TXD = txd;
@@ -56,14 +57,22 @@ module uart_sender {
 	}
 	proc send_stop_bit {
 		if(cnt == TX_BAUD_RATE_CNT) {
-			idle();
-			done();
-			status.busy := 0;
 			cnt := 0;
+			wait_some_cycle();
 		} else {
 			cnt++;
 		}
 		txd := 1;
+	}
+	proc wait_some_cycle {
+		if(cnt == 0xf) {
+			cnt := 0;
+			idle();
+			done();
+			status.busy := 0;
+		} else {
+			cnt++;
+		}
 	}
 	
 	func read {
