@@ -134,19 +134,19 @@ module rv32x5p {
 		dereg.bge = rv32x_inst_dec.bge;
 		dereg.bgeu = rv32x_inst_dec.bgeu;
 		dereg.nextpc = rv32x_adder32.q;
-		dereg.csrrw = system_csrrw;
-		dereg.csrrs = system_csrrs;
-		dereg.csrrc = system_csrrc;
+		dereg.csrrw = if(decode_nop) 1'b0 else system_csrrw;
+		dereg.csrrs = if(decode_nop) 1'b0 else system_csrrs;
+		dereg.csrrc = if(decode_nop) 1'b0 else system_csrrc;
 		dereg.uimm = uimm;
-		dereg.fencei = misc_mem_fencei;
-		dereg.fence = misc_mem_fence;
+		dereg.fencei = if(decode_nop) 1'b0 else misc_mem_fencei;
+		dereg.fence = if(decode_nop) 1'b0 else misc_mem_fence;
 		dereg.wb = if(decode_nop) 1'b0 else rv32x_inst_dec.wb;
-		dereg.ecall = system_ecall;
-		dereg.ebreak = system_ebreak;
-		dereg.mret = system_mret;
-		dereg.sret = system_sret;
-		dereg.uret = system_uret;
-		dereg.illegal_instruction = rv32x_inst_dec.illegal_instruction || decode_illegal_instruction;
+		dereg.ecall = if(decode_nop) 1'b0 else system_ecall;
+		dereg.ebreak = if(decode_nop) 1'b0 else system_ebreak;
+		dereg.mret = if(decode_nop) 1'b0 else system_mret;
+		dereg.sret = if(decode_nop) 1'b0 else system_sret;
+		dereg.uret = if(decode_nop) 1'b0 else system_uret;
+		dereg.illegal_instruction = if(decode_nop) 1'b0 else (rv32x_inst_dec.illegal_instruction || decode_illegal_instruction);
 
 		if(!stall_decode) {			
 			execute(dereg);
@@ -326,8 +326,8 @@ module rv32x5p {
 		emreg.load = if(execute_nop) 1'b0 else DEREG.load;
 		emreg.store = if(execute_nop) 1'b0 else DEREG.store;
 		emreg.alu_q = if(DEREG.jump) DEREG.pc4 else if(DEREG.csrrw || DEREG.csrrc || DEREG.csrrs) crdata else alu_q;		/* address for link register */
-		emreg.fencei = DEREG.fencei;
-		emreg.fence = DEREG.fence;
+		emreg.fencei = if(execute_nop) 1'b0 else DEREG.fencei;
+		emreg.fence = if(execute_nop) 1'b0 else DEREG.fence;
 		emreg.wb = if(execute_nop || i_misaligned) 1'b0 else DEREG.wb;
 		target_address = if(DEREG.branch) DEREG.nextpc else alu_q;
 
