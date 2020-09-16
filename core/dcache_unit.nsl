@@ -13,10 +13,11 @@ module dcache_unit {
 	wire byteen_mask[32];
 	wire wb_data[128];
 	wire wb_mask[128];
+	wire flush_index[8];
 	reg reg_adrs[32];
 	reg reg_byteen[3];
 	reg reg_data[32];
-	reg flush_cnt[8] = 0;
+	reg flush_cnt[9] = 0;
 	mem cache_data[256][128];
 	mem cache_valid[256] = {0};
 	mem cache_tag[256][20];
@@ -128,16 +129,17 @@ module dcache_unit {
 		cache_dirty[index] := CLEAN;
 	}
 	proc flush_cache {
-		if(flush_cnt == 255) {
+		flush_index = flush_cnt[7:0];
+		if(flush_cnt == 256) {
 			flush_cnt := 0;
 			flush_done();
 			idle();
 		} else {
-			if(cache_dirty[flush_cnt] == DIRTY) {
-				mem_write({cache_tag[flush_cnt], flush_cnt, 4'b0000}, cache_data[flush_cnt]);
+			if(cache_dirty[flush_index] == DIRTY) {
+				mem_write({cache_tag[flush_index], flush_index, 4'b0000}, cache_data[flush_index]);
 				if(mem_valid) {
-					cache_valid[flush_cnt] := INVALID;
-					cache_dirty[flush_cnt] := CLEAN;
+					cache_valid[flush_index] := INVALID;
+					cache_dirty[flush_index] := CLEAN;
 					flush_cnt++;
 				}
 			} else {
