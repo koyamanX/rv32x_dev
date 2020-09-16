@@ -45,15 +45,16 @@ module dcache_unit {
 	func reset {
 		idle();
 	}
+
+	ctag := cache_tag[i];
+	cvalid := cache_valid[i];
+	cdirty := cache_dirty[i];
+	cdata := cache_data[i];
 	proc idle {
 		if(flush) {
 			flush_cache();
 		} else if(read || write) {
 			compare_tag(adrs, byteen, wdata);
-			cdata := cache_data[i];
-			ctag := cache_tag[i];
-			cvalid := cache_valid[i];
-			cdirty := cache_dirty[i];
 		}
 	}
 	proc compare_tag {
@@ -129,7 +130,7 @@ module dcache_unit {
 		mem_read({tag, index, 4'b0000});
 		if(mem_valid) {
 			refill();
-			compare_tag();
+			compare_tag(reg_adrs, reg_byteen, reg_data);
 		}
 	}
 	func refill {
