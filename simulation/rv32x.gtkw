@@ -13,53 +13,53 @@
 [treeopen] TOP.
 [treeopen] TOP.rv32x_simulation.
 [treeopen] TOP.rv32x_simulation.core.
-[treeopen] TOP.rv32x_simulation.core.rv32x.
-[treeopen] TOP.rv32x_simulation.core.rv32x.rv32x.
-[treeopen] TOP.rv32x_simulation.core.rv32x.rv32x.rv32x_munit32.
+[treeopen] TOP.rv32x_simulation.core.core.
+[treeopen] TOP.rv32x_simulation.core.core.rv32x.
+[treeopen] TOP.rv32x_simulation.core.core.rv32x.rv32x_munit32.
 [sst_width] 333
 [signals_width] 352
 [sst_expanded] 1
 [sst_vpaned_height] 472
 @28
-TOP.rv32x_simulation.core.rv32x.rv32x.m_clock
+TOP.rv32x_simulation.core.core.rv32x.m_clock
 @22
-TOP.rv32x_simulation.core.rv32x.rv32x.PC[31:0]
+TOP.rv32x_simulation.core.core.rv32x.PC[31:0]
 @28
-TOP.rv32x_simulation.core.rv32x.rv32x.ifetch
+TOP.rv32x_simulation.core.core.rv32x.ifetch
 @22
-TOP.rv32x_simulation.core.rv32x.rv32x._IDREG_pc[31:0]
-TOP.rv32x_simulation.core.rv32x.rv32x._IDREG_inst[31:0]
+TOP.rv32x_simulation.core.core.rv32x._IDREG_pc[31:0]
+TOP.rv32x_simulation.core.core.rv32x._IDREG_inst[31:0]
 @28
-TOP.rv32x_simulation.core.rv32x.rv32x.decode
+TOP.rv32x_simulation.core.core.rv32x.decode
 @22
-TOP.rv32x_simulation.core.rv32x.rv32x._DEREG_pc[31:0]
-TOP.rv32x_simulation.core.rv32x.rv32x._DEREG_inst[31:0]
+TOP.rv32x_simulation.core.core.rv32x._DEREG_pc[31:0]
+TOP.rv32x_simulation.core.core.rv32x._DEREG_inst[31:0]
 @28
-TOP.rv32x_simulation.core.rv32x.rv32x.execute
+TOP.rv32x_simulation.core.core.rv32x.execute
 @22
-TOP.rv32x_simulation.core.rv32x.rv32x._EMREG_pc[31:0]
-TOP.rv32x_simulation.core.rv32x.rv32x._EMREG_inst[31:0]
+TOP.rv32x_simulation.core.core.rv32x._EMREG_pc[31:0]
+TOP.rv32x_simulation.core.core.rv32x._EMREG_inst[31:0]
 @28
-TOP.rv32x_simulation.core.rv32x.rv32x.memory
+TOP.rv32x_simulation.core.core.rv32x.memory
 @22
-TOP.rv32x_simulation.core.rv32x.rv32x._MWREG_pc[31:0]
-TOP.rv32x_simulation.core.rv32x.rv32x._MWREG_inst[31:0]
+TOP.rv32x_simulation.core.core.rv32x._MWREG_pc[31:0]
+TOP.rv32x_simulation.core.core.rv32x._MWREG_inst[31:0]
 @28
-TOP.rv32x_simulation.core.rv32x.rv32x.writeback
-TOP.rv32x_simulation.core.rv32x.rv32x.stall
+TOP.rv32x_simulation.core.core.rv32x.writeback
+TOP.rv32x_simulation.core.core.rv32x.stall
 @29
-TOP.rv32x_simulation.core.rv32x.rv32x.trap
+TOP.rv32x_simulation.core.core.rv32x.trap
 @28
-TOP.rv32x_simulation.core.rv32x.rv32x.load_interlock
-TOP.rv32x_simulation.core.rv32x.rv32x.taken
-TOP.rv32x_simulation.core.rv32x.rv32x._DEREG_jump
+TOP.rv32x_simulation.core.core.rv32x.load_interlock
+TOP.rv32x_simulation.core.core.rv32x.taken
+TOP.rv32x_simulation.core.core.rv32x._DEREG_jump
 @24
-TOP.rv32x_simulation.core.rv32x.rv32x.rv32x_munit32.div.a[31:0]
-TOP.rv32x_simulation.core.rv32x.rv32x.rv32x_munit32.div.b[31:0]
-TOP.rv32x_simulation.core.rv32x.rv32x.rv32x_munit32.div.q[31:0]
+TOP.rv32x_simulation.core.core.rv32x.rv32x_munit32.div.a[31:0]
+TOP.rv32x_simulation.core.core.rv32x.rv32x_munit32.div.b[31:0]
+TOP.rv32x_simulation.core.core.rv32x.rv32x_munit32.div.q[31:0]
 @28
-TOP.rv32x_simulation.core.rv32x.rv32x.rv32x_munit32.div.exe
-TOP.rv32x_simulation.core.rv32x.rv32x.rv32x_munit32.div.done
-TOP.rv32x_simulation.core.rv32x.rv32x.rv32x_munit32.div.exe_div
+TOP.rv32x_simulation.core.core.rv32x.rv32x_munit32.div.exe
+TOP.rv32x_simulation.core.core.rv32x.rv32x_munit32.div.done
+TOP.rv32x_simulation.core.core.rv32x.rv32x_munit32.div.exe_div
 [pattern_trace] 1
 [pattern_trace] 0
