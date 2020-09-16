@@ -3,31 +3,35 @@
 #define MEM_HALFWORD    3'b001
 #define MEM_BYTE        3'b000
 
-
 module icache_unit {
-	wire tag[21];
-	wire index[7];
+	wire tag[20];
+	wire index[8];
 	wire blockoffset[2];
 	wire byteoffset[2];
-	reg cache_valid[128] = 0;
-	mem cache_data[128][128];
-	mem cache_tag[128][21];
-	reg regadrs[32];
-	wire regtag[21];
-	wire regindex[7];
-	wire regblockoffset[2];
-	wire regbyteoffset[2];
-	wire refill_data[128];
-	proc_name idle;
-	proc_name invalidate_cache;
-	proc_name fetch(regadrs);
-	func_self compare_tag;
-	func_self refill(refill_data);
-	func_self hit;
-	func_self miss;
+	wire cache_block[128];
+	wire cache_word[32];
+	wire invalidate_index[8];
+	reg reg_adrs[32];
+	reg invalidate_cnt[9] = 0;
+	reg cdata[128];
+	reg cvalid;
+	reg ctag[20];
+	wire t[20], i[8], l[2], y[2];
+	mem cache_data[256][128];
+	mem cache_valid[256] = {0};
+	mem cache_tag[256][20];
 
-	.{tag, index, blockoffset, byteoffset} = adrs;
-	.{regtag, regindex, regblockoffset, regbyteoffset} = regadrs;
+	func_self hit();
+	func_self miss();
+	func_self refill();
+	proc_name idle();
+	proc_name compare_tag(reg_adrs, cdata, ctag, cvalid);
+	proc_name allocate(reg_adrs); 
+	proc_name invalidate_cache();
+
+	.{tag, index, blockoffset, byteoffset} = reg_adrs;
+	.{t, i, l, y} = adrs;
+
 
 	func reset {
 		idle();
@@ -36,49 +40,56 @@ module icache_unit {
 		if(invalidate) {
 			invalidate_cache();
 		} else if(read) {
-			compare_tag();
-			if(miss) {
-				fetch(adrs);
-			}
+			compare_tag(adrs, cache_data[i], cache_tag[i], cache_valid[i]);
 		}
 	}
-	proc invalidate_cache {
-		cache_valid := 0;
-		invalidate_done();
-		idle();
-	}
-	func compare_tag {
-		if((cache_tag[index] == tag) && cache_valid[index]) {
+	proc compare_tag {
+		if(cvalid && (ctag == tag)) {
 			hit();
 		} else {
 			miss();
 		}
+		if(hit) {
+			idle();
+		} else if(miss) {
+			allocate(reg_adrs);
+		}
 	}
 	func hit {
-		wire cdata[128];
-
-		cdata = cache_data[index];
+		cache_block = cdata;
 		any {
-			/* TODO: replace shift with bit concatenation */
-			blockoffset == 2'b00: rdata = (cdata[31:0]>>5'({byteoffset, 3'b000}));
-			blockoffset == 2'b01: rdata = (cdata[63:32]>>5'({byteoffset, 3'b000}));
-			blockoffset == 2'b10: rdata = (cdata[95:64]>>5'({byteoffset, 3'b000}));
-			blockoffset == 2'b11: rdata = (cdata[127:96]>>5'({byteoffset, 3'b000}));
+			blockoffset == 2'b00: cache_word = cache_block[31:0];
+			blockoffset == 2'b01: cache_word = cache_block[63:32];
+			blockoffset == 2'b10: cache_word = cache_block[95:64];
+			blockoffset == 2'b11: cache_word = cache_block[127:96];
 		}
-		
-		valid();
+		if(read) {
+			rdata = (cache_word >> 5'({byteoffset, 3'b000})) & 0xffff_ffff;
+			valid();
+		}
+	}
+	proc allocate {
+		mem_read({tag, index, 4'b0000});
+		if(mem_valid) {
+			refill();
+			/* use new address to enable cancellation of read operation */
+			compare_tag(adrs, cache_data[i], cache_tag[i], cache_valid[i]);
+		}
 	}
 	func refill {
-		cache_data[regindex] := refill_data;
-		cache_tag[regindex] := regtag;
-		cache_valid := cache_valid | (128'(VALID) << regindex);
+		cache_data[index] := mem_rdata;
+		cache_tag[index] := tag;
+		cache_valid[index] := VALID;
 	}
-	proc fetch {
-		mem_read({regtag, regindex, 4'b0000});
-		if(mem_valid) {
-			refill(mem_rdata);
+	proc invalidate_cache {
+		invalidate_index = invalidate_cnt[7:0];
+		if(invalidate_cnt == 256) {
+			invalidate_cnt := 0;
+			invalidate_done();
 			idle();
+		} else {
+			cache_valid[invalidate_index] := INVALID;
+			invalidate_cnt++;
 		}
 	}
 }
-
