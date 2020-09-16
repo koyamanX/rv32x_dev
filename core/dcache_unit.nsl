@@ -18,6 +18,11 @@ module dcache_unit {
 	reg reg_byteen[3];
 	reg reg_data[32];
 	reg flush_cnt[9] = 0;
+	reg cdata[128];
+	reg cvalid;
+	reg cdirty;
+	reg ctag[20];
+	wire t[20], i[8], l[2], y[2];
 	mem cache_data[256][128];
 	mem cache_valid[256] = {0};
 	mem cache_tag[256][20];
@@ -35,6 +40,7 @@ module dcache_unit {
 	proc_name flush_cache();
 
 	.{tag, index, blockoffset, byteoffset} = reg_adrs;
+	.{t, i, l, y} = adrs;
 
 	func reset {
 		idle();
@@ -44,15 +50,19 @@ module dcache_unit {
 			flush_cache();
 		} else if(read || write) {
 			compare_tag(adrs, byteen, wdata);
+			cdata := cache_data[i];
+			ctag := cache_tag[i];
+			cvalid := cache_valid[i];
+			cdirty := cache_dirty[i];
 		}
 	}
 	proc compare_tag {
-		if(cache_valid[index] && (cache_tag[index] == tag)) {
+		if(cvalid && (ctag == tag)) {
 			hit();
 		} else {
 			miss();
 		}
-		if(cache_dirty[index] == DIRTY) {
+		if(cdirty == DIRTY) {
 			dirty();
 		} else {
 			clean();
@@ -66,7 +76,7 @@ module dcache_unit {
 		}
 	}
 	func hit {
-		cache_block = cache_data[index];
+		cache_block = cdata;
 		any {
 			reg_byteen == MEM_WORD: {byteen_mask = 0xffff_ffff; wb_data = 4{reg_data};}
 			reg_byteen == MEM_HALFWORD: {byteen_mask = 0x0000_ffff; wb_data = 8{reg_data[15:0]};}
@@ -108,7 +118,7 @@ module dcache_unit {
 		}
 	}
 	proc writeback {
-		mem_write({tag, index, 4'b0000}, cache_data[index]);
+		mem_write({tag, index, 4'b0000}, cdata);
 		cache_valid[index] := INVALID;
 		cache_dirty[index] := CLEAN;
 		if(mem_valid) {
@@ -135,8 +145,8 @@ module dcache_unit {
 			flush_done();
 			idle();
 		} else {
-			if(cache_dirty[flush_index] == DIRTY) {
-				mem_write({cache_tag[flush_index], flush_index, 4'b0000}, cache_data[flush_index]);
+			if(cdirty == DIRTY) {
+				mem_write({ctag, flush_index, 4'b0000}, cdata);
 				if(mem_valid) {
 					cache_valid[flush_index] := INVALID;
 					cache_dirty[flush_index] := CLEAN;
