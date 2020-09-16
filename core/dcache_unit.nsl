@@ -34,7 +34,7 @@ module dcache_unit {
 	func_self dirty();
 	func_self clean();
 	proc_name idle();
-	proc_name compare_tag(reg_adrs, reg_byteen, reg_data);
+	proc_name compare_tag(reg_adrs, reg_byteen, reg_data, cdata, ctag, cvalid, cdirty);
 	proc_name writeback(reg_adrs, reg_byteen, reg_data);
 	proc_name allocate(reg_adrs, reg_byteen, reg_data); 
 	proc_name flush_cache();
@@ -46,15 +46,11 @@ module dcache_unit {
 		idle();
 	}
 
-	ctag := cache_tag[i];
-	cvalid := cache_valid[i];
-	cdirty := cache_dirty[i];
-	cdata := cache_data[i];
 	proc idle {
 		if(flush) {
 			flush_cache();
 		} else if(read || write) {
-			compare_tag(adrs, byteen, wdata);
+			compare_tag(adrs, byteen, wdata, cache_data[i], cache_tag[i], cache_valid[i], cache_dirty[i]);
 		}
 	}
 	proc compare_tag {
@@ -130,7 +126,7 @@ module dcache_unit {
 		mem_read({tag, index, 4'b0000});
 		if(mem_valid) {
 			refill();
-			compare_tag(reg_adrs, reg_byteen, reg_data);
+			compare_tag(adrs, byteen, wdata, cache_data[i], cache_tag[i], cache_valid[i], cache_dirty[i]);
 		}
 	}
 	func refill {
@@ -146,8 +142,8 @@ module dcache_unit {
 			flush_done();
 			idle();
 		} else {
-			if(cdirty == DIRTY) {
-				mem_write({ctag, flush_index, 4'b0000}, cdata);
+			if(cache_dirty[flush_index] == DIRTY) {
+				mem_write({cache_tag[flush_index], flush_index, 4'b0000}, cache_data[flush_index]);
 				if(mem_valid) {
 					cache_valid[flush_index] := INVALID;
 					cache_dirty[flush_index] := CLEAN;
