@@ -20,9 +20,7 @@ declare dcache_unit {
 	func_out valid;	/* hit */
 
 	func_in flush;
-	func_in invalidate;
 	func_out flush_done;
-	func_out invalidate_done;
 
 	/* Cache Unit <-> Memory Interface */
 	output mem_adrs[32];
