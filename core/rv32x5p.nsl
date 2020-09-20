@@ -515,6 +515,7 @@ module rv32x5p {
 			ext();
 			writeback(mwreg);
 		} else if(dmem_valid && !stall_memory && EMREG.fencei) {
+			/* ifetch, decode, execute are flushed along side with fence.i*/
 			ifetch(EMREG.pc4);
 			//writeback(mwreg);
 		} else {
