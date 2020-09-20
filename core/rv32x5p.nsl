@@ -220,7 +220,6 @@ module rv32x5p {
 						|| (rv32x_inst_dec.imm[11:0] != 12'b0000_0000_0000)): decode_illegal_instruction();
 				}
 			}
-			/* TODO: imeplement fence */
 			rv32x_inst_dec.funct3 == FENCE: 	{misc_mem_fence(); nop(); decode_nop(); /* check if illegal instruction */}
 		}
 	}
@@ -510,9 +509,9 @@ module rv32x5p {
 			EMREG.fencei: 	{fencei(); ifetch.finish(); decode.finish(); execute.finish();}
 			EMREG.fence: 	fence();
 		}
-		if(!EMREG.store && !EMREG.load && !EMREG.fencei && !stall_memory) {
+		if(!EMREG.store && !EMREG.load && !EMREG.fencei && !EMREG.fence && !stall_memory) {
 			writeback(mwreg);
-		} else if(dmem_valid && !stall_memory && !EMREG.fencei) {
+		} else if(dmem_valid && !stall_memory && !EMREG.fencei && !EMREG.fence) {
 			ext();
 			writeback(mwreg);
 		} else if(dmem_valid && !stall_memory && EMREG.fencei) {

@@ -616,6 +616,9 @@ module rv32x_core {
 			rv32x.dmem_valid();
 		}
 	}
+	func rv32x.fence {
+		rv32x.dmem_valid();
+	}
 	func ic.invalidate_done {
 		ic_invalidate_done := 1;
 	}
