@@ -20,6 +20,7 @@ int sys_open(const char *pathname, int flags);
 int sys_stat(const char *pathname, struct stat *statbuf);
 int sys_unlink(const char *pathname);
 int sys_gettimeofday(struct timeval *tv, struct timezone *tz);
+ssize_t sys_read(int fd, void *buf, size_t count);
 
 char *__env[1] = {0};
 char **environ = __env;
@@ -75,6 +76,9 @@ long syscall(long arg0, long arg1, long arg2, long arg3, long arg4, long arg5, l
 			break;
 		case SYS_gettimeofday:
 			ret = sys_gettimeofday((struct timeval *)arg0, (struct timezone *)arg1);
+			break;
+		case SYS_read:
+			ret = sys_read((int)arg0, (void *)arg1, (size_t)arg2);
 			break;
 		case SYS_exit: /* no-break */
 		default:
@@ -198,4 +202,15 @@ int sys_gettimeofday(struct timeval *tv, struct timezone *tz) {
 	errno = EFAULT;
 
 	return ret;
+}
+ssize_t sys_read(int fd, void *buf, size_t count) {
+	int ret = -1;
+
+	if(fd == STDIN_FILENO) {
+		return 0;
+	} else {
+		errno = EBADF;
+	}
+
+	return (ssize_t)ret;
 }
