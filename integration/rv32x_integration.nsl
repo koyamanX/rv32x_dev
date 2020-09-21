@@ -61,7 +61,7 @@ module rv32x_integration {
 			CLINT_BASE <= core.cdaddr && core.cdaddr < CLINT_BASE + CLINT_LENGTH: ;	
 			AHB_LITE_IO_BASE <= core.cdaddr && core.cdaddr < AHB_LITE_IO_BASE + AHB_LITE_IO_LENGTH: ;
 			PLIC_BASE <= core.cdaddr && core.cdaddr < PLIC_BASE + PLIC_LENGTH: ;
-			else: core.cacheable();
+			else: ;/*core.cacheable(); */
 		}
 	}
 	func rv32x_plic.valid {
