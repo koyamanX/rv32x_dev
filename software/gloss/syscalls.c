@@ -14,6 +14,9 @@ int sys_fstat(int fd, struct stat *statbuf);
 int sys_link(const char *oldpath, const char *newpath);
 off_t sys_lseek(int fd, off_t offset, int whence);
 
+char *__env[1] = {0};
+char **environ = __env;
+
 /* 
 	arguments are set by __internal_syscall (newlib risc-v ports)
 	a0~a5	-> arguments to system call	(some may not be used by actual system call) 
