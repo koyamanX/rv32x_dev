@@ -1,6 +1,7 @@
 #include <machine/syscall.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include "uart.h"
 
@@ -18,6 +19,7 @@ int sys_openat(int dirfd, const char *pathname, int flag, mode_t mode);
 int sys_open(const char *pathname, int flags);
 int sys_stat(const char *pathname, struct stat *statbuf);
 int sys_unlink(const char *pathname);
+int sys_gettimeofday(struct timeval *tv, struct timezone *tz);
 
 char *__env[1] = {0};
 char **environ = __env;
@@ -70,6 +72,9 @@ long syscall(long arg0, long arg1, long arg2, long arg3, long arg4, long arg5, l
 			break;
 		case SYS_unlink:
 			ret = sys_unlink((const char *)arg0);
+			break;
+		case SYS_gettimeofday:
+			ret = sys_gettimeofday((struct timeval *)arg0, (struct timezone *)arg1);
 			break;
 		case SYS_exit: /* no-break */
 		default:
@@ -185,6 +190,12 @@ int sys_stat(const char *pathname, struct stat *statbuf) {
 int sys_unlink(const char *pathname) {
 	int ret = -1;
 	errno = ENOENT;
+
+	return ret;
+}
+int sys_gettimeofday(struct timeval *tv, struct timezone *tz) {
+	int ret = -1;
+	errno = EFAULT;
 
 	return ret;
 }
