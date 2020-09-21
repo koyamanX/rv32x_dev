@@ -11,14 +11,12 @@ OBJCOPY=$(RISCV_PREFIX)objcopy
 
 
 gloss_srcs = \
-	sys_write.c	\
-	sys_exit.c	\
-	sys_misc.c \
-	syscall.c \
-	uart.c
+	uart.c 
 
 crt0_srcs = crt0.S \
-			isr.c
+			trap_handler.S \
+			isr.c \
+			syscall.c 
 all_dummy: all
 
 gloss_c_srcs = $(filter %.c, $(gloss_srcs))
@@ -35,13 +33,13 @@ $(gloss_lib): $(gloss_objs)
 
 crt0_asm_srcs = $(filter %.S, $(crt0_srcs))
 crt0_asm_objs = $(patsubst %.S, %.o, $(notdir $(crt0_asm_srcs)))
-$(crt0_asm_objs): $(crt0_asm_srcs)
+$(crt0_asm_objs): %.o : %.S
 	$(CC) $(CFLAGS) -c $^ -o $@
 crt0_objs += $(crt0_asm_objs)
 
 crt0_c_srcs = $(filter %.c, $(crt0_srcs))
 crt0_c_objs = $(patsubst %.c, %.o, $(notdir $(crt0_c_srcs)))
-$(crt0_c_objs): $(crt0_c_srcs)
+$(crt0_c_objs): %.o : %.c
 	$(CC) $(CFLAGS) -c $^ -o $@
 crt0_objs += $(crt0_c_objs)
 
