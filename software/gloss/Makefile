@@ -11,6 +11,9 @@ OBJCOPY=$(RISCV_PREFIX)objcopy
 
 
 gloss_srcs = \
+	sbrk.c \
+	nanosleep.c \
+	times.c \
 	uart.c 
 
 crt0_srcs = crt0.S \
