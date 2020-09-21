@@ -34,6 +34,7 @@ module dcache_unit {
 	func_self dirty();
 	func_self clean();
 	proc_name idle();
+	/* registering output of mem block is required to infer bram */
 	proc_name compare_tag(reg_adrs, reg_byteen, reg_data, cdata, ctag, cvalid, cdirty);
 	proc_name writeback(reg_adrs, reg_byteen, reg_data);
 	proc_name allocate(reg_adrs, reg_byteen, reg_data); 
@@ -54,7 +55,8 @@ module dcache_unit {
 		}
 	}
 	proc compare_tag {
-		if(cvalid && (ctag == tag)) {
+		/* checking (index == i) is required, to support cancellation of read operation in any stage */
+		if(cvalid && (ctag == tag) && (index == i)) {
 			hit();
 		} else {
 			miss();

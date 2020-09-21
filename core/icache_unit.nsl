@@ -25,6 +25,7 @@ module icache_unit {
 	func_self miss();
 	func_self refill();
 	proc_name idle();
+	/* registering output of mem block is required to infer bram */
 	proc_name compare_tag(reg_adrs, cdata, ctag, cvalid);
 	proc_name allocate(reg_adrs); 
 	proc_name invalidate_cache();
@@ -44,7 +45,8 @@ module icache_unit {
 		}
 	}
 	proc compare_tag {
-		if(cvalid && (ctag == tag)) {
+		/* checking (index == i) is required, to support cancellation of read operation in any stage */
+		if(cvalid && (ctag == tag) && (index == i)) {
 			hit();
 		} else {
 			miss();
