@@ -1,18 +1,46 @@
 #include <machine/syscall.h>
-#include "syscalls.h"
+#include <sys/types.h>
+#include <unistd.h>
+#include "uart.h"
 
-int syscall(int syscall_id, int arg0, int arg1, int arg2, int arg3, int arg4, int arg5) {
-	int ret = -1;
+ssize_t sys_write(int fd, const void *buf, size_t count);
+
+/* 
+	arguments are set by __internal_syscall (newlib risc-v ports)
+	a0~a5	-> arguments to system call	(some may not be used by actual system call) 
+	a6		-> unused 
+	a7		-> system call id 
+*/
+long syscall(long arg0, long arg1, long arg2, long arg3, long arg4, long arg5, long unused, long syscall_id) {
+	long ret = -1;
 
 	switch(syscall_id) {
 		case SYS_write:
-			ret = sys_write(arg0, (void *)arg1, arg2);
-		case SYS_exit:
-			sys_exit(arg0);
-		default:
-			sys_write(1, "not implemented\n", 16);
-			sys_exit(syscall_id);
+			sys_write((int)arg0, (const void *)arg1, (size_t)arg2);
 			break;
 	}
+	
+	return ret;
+}
+
+#include <errno.h>
+#undef errno
+extern int errno;
+
+ssize_t sys_write(int fd, const void *buf, size_t count) {
+	unsigned char ch;
+	int i;
+	int ret = -1;
+
+	if(fd != STDOUT_FILENO && fd != STDERR_FILENO) {
+		errno = EBADF;
+		return ret;
+	}
+	for(i = 0; i < count; i++) {
+		ch = ((unsigned char *)buf)[i];
+		uart_putchar(ch);
+	}
+	ret = i;
+
 	return ret;
 }

@@ -3,7 +3,6 @@
 #endif
 
 .section .text.init
-.extern exception_handler
 .extern trap_handler
 .extern machine_software_interrupt_handler
 .extern machine_timer_interrupt_handler
@@ -11,7 +10,7 @@
 _reset_vector:
 	j _start
 _trap_vector:
-	j exception_handler						/* Exception handler */
+	j trap_handler							/* Exception handler */
 	j trap_handler							/* Supervisor software interrupt */
 	j trap_handler							/* vacant */
 	j machine_software_interrupt_handler	/* Machine software interrupt */
