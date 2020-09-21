@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>
+#include <signal.h>
 #include <dis-asm.h>
 #include <verilated.h>
 #include "verilated_vcd_c.h"
@@ -47,6 +48,7 @@ const char *abi_reg_strs[] = {
 	"t3", "t4", "t5", "t6"
 };
 
+void safe_exit(int signal);
 
 class processor_t {
 private:
@@ -216,16 +218,16 @@ public:
 				core->dmem_valid = 0;
 			}
 			if(imem_stat == -1) {
-				fprintf(stderr, "Instruction Memory violation occuries at address of %08x, byteen %02x", core->iaddr, core->ibyteen);
+				fprintf(stderr, "Instruction Memory violation occuries at address of %08x, byteen %02x\n", core->iaddr, core->ibyteen);
 				fflush(stderr);
 				fflush(stdout);
-				exit(-1);
+				safe_exit(-1);
 			}
 			if(dmem_stat == -1) {
-				fprintf(stderr, "Data memory violation occuries at address of %08x, byteen %02x", core->daddr, core->dbyteen);
+				fprintf(stderr, "Data memory violation occuries at address of %08x, byteen %02x\n", core->daddr, core->dbyteen);
 				fflush(stderr);
 				fflush(stdout);
-				exit(-1);
+				safe_exit(-1);
 			}
 			eval();
 			dump();
@@ -484,11 +486,14 @@ public:
 	};
 };
 
+
+processor_t *proc0;
+struct termios stmio;
+
+
 int main(int argc, char **argv) {
-	processor_t *proc0;
 	int ret = 0;
 	struct termios tmio;
-	struct termios stmio;
 
 	Verilated::commandArgs(argc, argv);
 	Verilated::traceEverOn(true);
@@ -499,6 +504,10 @@ int main(int argc, char **argv) {
 	tmio.c_lflag &= ~(ECHO | ICANON);
 	tcsetattr(STDIN_FILENO, TCSANOW, &tmio);
 
+	signal(SIGINT, safe_exit);
+	signal(SIGABRT, safe_exit);
+	signal(SIGSEGV, safe_exit);
+	signal(SIGTERM, safe_exit);
 
 	proc0 = new processor_t("core\t0");
 	proc0->load(argv[1]);
@@ -519,3 +528,13 @@ int main(int argc, char **argv) {
 
 	return (ret == 0x00000001) ? 0 : ret;
 }
+
+void safe_exit(int signal) {
+	tcsetattr(STDIN_FILENO, TCSANOW, &stmio);
+	delete proc0;	
+
+	fprintf(stderr, "exit on failure! signal == %x\n", signal);
+
+	exit(signal);
+}
+
