@@ -217,10 +217,14 @@ public:
 			}
 			if(imem_stat == -1) {
 				fprintf(stderr, "Instruction Memory violation occuries at address of %08x, byteen %02x", core->iaddr, core->ibyteen);
+				fflush(stderr);
+				fflush(stdout);
 				exit(-1);
 			}
 			if(dmem_stat == -1) {
 				fprintf(stderr, "Data memory violation occuries at address of %08x, byteen %02x", core->daddr, core->dbyteen);
+				fflush(stderr);
+				fflush(stdout);
 				exit(-1);
 			}
 			eval();
