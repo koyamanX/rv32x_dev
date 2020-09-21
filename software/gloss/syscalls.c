@@ -10,6 +10,7 @@ int sys_access(const char *pathname, int mode);
 int sys_close(int fd);
 int sys_faccessat(int dirfd, const char *pathname, int mode, int flags);
 int sys_fstatat(int dirfd, const char *pathname, struct stat *statbuf, int flags);
+int sys_fstat(int fd, struct stat *statbuf);
 
 /* 
 	arguments are set by __internal_syscall (newlib risc-v ports)
@@ -35,6 +36,9 @@ long syscall(long arg0, long arg1, long arg2, long arg3, long arg4, long arg5, l
 			break;
 		case SYS_fstatat:
 			ret = sys_fstatat((int)arg0, (const char *)arg1, (struct stat *)arg2, (int)arg3);
+			break;
+		case SYS_fstat:
+			ret = sys_fstat((int)arg0, (struct stat *)arg1);
 			break;
 		case SYS_exit: /* no-break */
 		default:
@@ -89,6 +93,12 @@ int sys_faccessat(int dirfd, const char *pathname, int mode, int flags) {
 	return ret;
 }
 int sys_fstatat(int dirfd, const char *pathname, struct stat *statbuf, int flags) {
+	int ret = -1;
+	errno = ENOENT;
+
+	return ret;
+}
+int sys_fstat(int fd, struct stat *statbuf) {
 	int ret = -1;
 	errno = ENOENT;
 
