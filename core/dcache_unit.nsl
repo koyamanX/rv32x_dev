@@ -22,6 +22,7 @@ module dcache_unit {
 	reg cvalid;
 	reg cdirty;
 	reg ctag[20];
+	reg cindex[8];
 	wire t[20], i[8], l[2], y[2];
 	mem cache_data[256][128];
 	mem cache_valid[256] = {0};
@@ -35,7 +36,7 @@ module dcache_unit {
 	func_self clean();
 	proc_name idle();
 	/* registering output of mem block is required to infer bram */
-	proc_name compare_tag(reg_adrs, reg_byteen, reg_data, cdata, ctag, cvalid, cdirty);
+	proc_name compare_tag(reg_adrs, reg_byteen, reg_data, cdata, ctag, cvalid, cdirty, cindex);
 	proc_name writeback(reg_adrs, reg_byteen, reg_data);
 	proc_name allocate(reg_adrs, reg_byteen, reg_data); 
 	proc_name flush_cache();
@@ -51,12 +52,12 @@ module dcache_unit {
 		if(flush) {
 			flush_cache();
 		} else if(read || write) {
-			compare_tag(adrs, byteen, wdata, cache_data[i], cache_tag[i], cache_valid[i], cache_dirty[i]);
+			compare_tag(adrs, byteen, wdata, cache_data[i], cache_tag[i], cache_valid[i], cache_dirty[i], i);
 		}
 	}
 	proc compare_tag {
 		/* checking (index == i) is required, to support cancellation of read operation in any stage */
-		if(cvalid && (ctag == tag) && (index == i)) {
+		if(cvalid && (ctag == tag) && (cindex == i)) {
 			hit();
 		} else {
 			miss();
@@ -84,27 +85,27 @@ module dcache_unit {
 		any {
 			read: {
 				any {
-					blockoffset == 2'b00: cache_word = cache_block[31:0];
-					blockoffset == 2'b01: cache_word = cache_block[63:32];
-					blockoffset == 2'b10: cache_word = cache_block[95:64];
-					blockoffset == 2'b11: cache_word = cache_block[127:96];
+					l == 2'b00: cache_word = cache_block[31:0];
+					l == 2'b01: cache_word = cache_block[63:32];
+					l == 2'b10: cache_word = cache_block[95:64];
+					l == 2'b11: cache_word = cache_block[127:96];
 				}
-				rdata = (cache_word >> 5'({byteoffset, 3'b000})) & byteen_mask;
+				rdata = (cache_word >> 5'({y, 3'b000})) & byteen_mask;
 				valid();
 			}
 			write: {
 				any {
-					blockoffset == 2'b00: {
-						wb_mask = {0x0000_0000, 0x0000_0000, 0x0000_0000, 32'((byteen_mask << 5'({byteoffset, 3'b000}))[31:0])};
+					l == 2'b00: {
+						wb_mask = {0x0000_0000, 0x0000_0000, 0x0000_0000, 32'((byteen_mask << 5'({y, 3'b000}))[31:0])};
 					}
-					blockoffset == 2'b01: {
-						wb_mask = {0x0000_0000, 0x0000_0000, 32'((byteen_mask << 5'({byteoffset, 3'b000}))[31:0]), 0x0000_0000};
+					l == 2'b01: {
+						wb_mask = {0x0000_0000, 0x0000_0000, 32'((byteen_mask << 5'({y, 3'b000}))[31:0]), 0x0000_0000};
 					}
-					blockoffset == 2'b10: {
-						wb_mask = {0x0000_0000, 32'((byteen_mask << 5'({byteoffset, 3'b000}))[31:0]), 0x0000_0000, 0x0000_0000};
+					l == 2'b10: {
+						wb_mask = {0x0000_0000, 32'((byteen_mask << 5'({y, 3'b000}))[31:0]), 0x0000_0000, 0x0000_0000};
 					}
-					blockoffset == 2'b11: {
-						wb_mask = {32'((byteen_mask << 5'({byteoffset, 3'b000}))[31:0]), 0x0000_0000, 0x0000_0000, 0x0000_0000};
+					l == 2'b11: {
+						wb_mask = {32'((byteen_mask << 5'({y, 3'b000}))[31:0]), 0x0000_0000, 0x0000_0000, 0x0000_0000};
 					}
 				}
 
@@ -128,7 +129,7 @@ module dcache_unit {
 		mem_read({tag, index, 4'b0000});
 		if(mem_valid) {
 			refill();
-			compare_tag(adrs, byteen, wdata, cache_data[i], cache_tag[i], cache_valid[i], cache_dirty[i]);
+			compare_tag(adrs, byteen, wdata, cache_data[i], cache_tag[i], cache_valid[i], cache_dirty[i], i);
 		}
 	}
 	func refill {

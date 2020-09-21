@@ -16,6 +16,7 @@ module icache_unit {
 	reg cdata[128];
 	reg cvalid;
 	reg ctag[20];
+	reg cindex[8];
 	wire t[20], i[8], l[2], y[2];
 	mem cache_data[256][128];
 	mem cache_valid[256] = {0};
@@ -26,7 +27,7 @@ module icache_unit {
 	func_self refill();
 	proc_name idle();
 	/* registering output of mem block is required to infer bram */
-	proc_name compare_tag(reg_adrs, cdata, ctag, cvalid);
+	proc_name compare_tag(reg_adrs, cdata, ctag, cvalid, cindex);
 	proc_name allocate(reg_adrs); 
 	proc_name invalidate_cache();
 
@@ -41,12 +42,12 @@ module icache_unit {
 		if(invalidate) {
 			invalidate_cache();
 		} else if(read) {
-			compare_tag(adrs, cache_data[i], cache_tag[i], cache_valid[i]);
+			compare_tag(adrs, cache_data[i], cache_tag[i], cache_valid[i], i);
 		}
 	}
 	proc compare_tag {
 		/* checking (index == i) is required, to support cancellation of read operation in any stage */
-		if(cvalid && (ctag == tag) && (index == i)) {
+		if(cvalid && (ctag == tag) && (cindex == i)) {
 			hit();
 		} else {
 			miss();
@@ -60,13 +61,13 @@ module icache_unit {
 	func hit {
 		cache_block = cdata;
 		any {
-			blockoffset == 2'b00: cache_word = cache_block[31:0];
-			blockoffset == 2'b01: cache_word = cache_block[63:32];
-			blockoffset == 2'b10: cache_word = cache_block[95:64];
-			blockoffset == 2'b11: cache_word = cache_block[127:96];
+			l == 2'b00: cache_word = cache_block[31:0];
+			l == 2'b01: cache_word = cache_block[63:32];
+			l == 2'b10: cache_word = cache_block[95:64];
+			l == 2'b11: cache_word = cache_block[127:96];
 		}
 		if(read) {
-			rdata = (cache_word >> 5'({byteoffset, 3'b000})) & 0xffff_ffff;
+			rdata = (cache_word >> 5'({y, 3'b000})) & 0xffff_ffff;
 			valid();
 		}
 	}
@@ -75,7 +76,7 @@ module icache_unit {
 		if(mem_valid) {
 			refill();
 			/* use new address to enable cancellation of read operation */
-			compare_tag(adrs, cache_data[i], cache_tag[i], cache_valid[i]);
+			compare_tag(adrs, cache_data[i], cache_tag[i], cache_valid[i], i);
 		}
 	}
 	func refill {
