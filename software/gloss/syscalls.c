@@ -13,6 +13,7 @@ int sys_fstatat(int dirfd, const char *pathname, struct stat *statbuf, int flags
 int sys_fstat(int fd, struct stat *statbuf);
 int sys_link(const char *oldpath, const char *newpath);
 off_t sys_lseek(int fd, off_t offset, int whence);
+int sys_lstat(const char *pathname, struct stat *statbuf);
 
 char *__env[1] = {0};
 char **environ = __env;
@@ -50,6 +51,9 @@ long syscall(long arg0, long arg1, long arg2, long arg3, long arg4, long arg5, l
 			break;
 		case SYS_lseek:
 			ret = sys_lseek((int)arg0, (off_t)arg1, (int)arg2);
+			break;
+		case SYS_lstat:
+			ret = sys_lstat((const char *)arg0, (struct stat *)arg1);
 			break;
 		case SYS_exit: /* no-break */
 		default:
@@ -137,4 +141,10 @@ off_t sys_lseek(int fd, off_t offset, int whence) {
 	}
 
 	return (off_t)ret;
+}
+int sys_lstat(const char *pathname, struct stat *statbuf) {
+	int ret = -1;
+	errno = EACCES;
+
+	return ret;
 }
