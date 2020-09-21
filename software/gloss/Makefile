@@ -16,7 +16,7 @@ gloss_srcs = \
 crt0_srcs = crt0.S \
 			trap_handler.S \
 			isr.c \
-			syscall.c 
+			syscalls.c 
 all_dummy: all
 
 gloss_c_srcs = $(filter %.c, $(gloss_srcs))
