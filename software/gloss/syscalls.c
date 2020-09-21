@@ -111,7 +111,13 @@ int sys_fstatat(int dirfd, const char *pathname, struct stat *statbuf, int flags
 }
 int sys_fstat(int fd, struct stat *statbuf) {
 	int ret = -1;
-	errno = ENOENT;
+
+	if((fd == STDOUT_FILENO) || (fd == STDERR_FILENO)) {
+		statbuf->st_mode = S_IFCHR;
+		ret = 0;
+	} else {
+		errno = EBADF;
+	}
 
 	return ret;
 }
