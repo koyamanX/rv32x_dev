@@ -4,6 +4,7 @@
 #include "uart.h"
 
 ssize_t sys_write(int fd, const void *buf, size_t count);
+void sys_exit(int status);
 
 /* 
 	arguments are set by __internal_syscall (newlib risc-v ports)
@@ -17,6 +18,10 @@ long syscall(long arg0, long arg1, long arg2, long arg3, long arg4, long arg5, l
 	switch(syscall_id) {
 		case SYS_write:
 			sys_write((int)arg0, (const void *)arg1, (size_t)arg2);
+			break;
+		case SYS_exit: /* no-break */
+		default:
+			sys_exit((int)arg0);
 			break;
 	}
 	
@@ -43,4 +48,8 @@ ssize_t sys_write(int fd, const void *buf, size_t count) {
 	ret = i;
 
 	return ret;
+}
+void sys_exit(int status) {
+_sys_exit:
+	goto _sys_exit;
 }
