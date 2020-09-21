@@ -12,6 +12,7 @@ int sys_faccessat(int dirfd, const char *pathname, int mode, int flags);
 int sys_fstatat(int dirfd, const char *pathname, struct stat *statbuf, int flags);
 int sys_fstat(int fd, struct stat *statbuf);
 int sys_link(const char *oldpath, const char *newpath);
+off_t sys_lseek(int fd, off_t offset, int whence);
 
 /* 
 	arguments are set by __internal_syscall (newlib risc-v ports)
@@ -44,6 +45,9 @@ long syscall(long arg0, long arg1, long arg2, long arg3, long arg4, long arg5, l
 		case SYS_link:
 			ret = sys_link((const char *)arg0, (const char *)arg1);
 			break;
+		case SYS_lseek:
+			ret = sys_lseek((int)arg0, (off_t)arg1, (int)arg2);
+			break;
 		case SYS_exit: /* no-break */
 		default:
 			sys_exit((int)arg0);
@@ -62,7 +66,7 @@ ssize_t sys_write(int fd, const void *buf, size_t count) {
 	int i;
 	int ret = -1;
 
-	if(fd != STDOUT_FILENO && fd != STDERR_FILENO) {
+	if((fd != STDOUT_FILENO) && (fd != STDERR_FILENO)) {
 		errno = EBADF;
 		return ret;
 	}
@@ -113,4 +117,15 @@ int sys_link(const char *oldpath, const char *newpath) {
 	errno = EBADF;
 
 	return ret;
+}
+off_t sys_lseek(int fd, off_t offset, int whence) {
+	int ret = -1;
+
+	if((fd == STDOUT_FILENO) || (fd == STDERR_FILENO)) {
+		ret = 0;
+	} else {
+		errno = EBADF;
+	}
+
+	return (off_t)ret;
 }
