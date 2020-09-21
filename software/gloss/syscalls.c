@@ -6,6 +6,7 @@
 ssize_t sys_write(int fd, const void *buf, size_t count);
 void sys_exit(int status);
 int sys_access(const char *pathname, int mode);
+int sys_close(int fd);
 
 /* 
 	arguments are set by __internal_syscall (newlib risc-v ports)
@@ -22,6 +23,9 @@ long syscall(long arg0, long arg1, long arg2, long arg3, long arg4, long arg5, l
 			break;
 		case SYS_access:
 			ret = sys_access((const char *)arg0, (int)arg1);
+			break;
+		case SYS_close:
+			ret = sys_close((int) arg0);
 			break;
 		case SYS_exit: /* no-break */
 		default:
@@ -60,6 +64,12 @@ _sys_exit:
 int access(const char *pathname, int mode) {
 	int ret = -1;
 	errno = ENOENT;
+
+	return ret;
+}
+int sys_close(int fd) {
+	int ret = -1;
+	errno = EBADF;
 
 	return ret;
 }
