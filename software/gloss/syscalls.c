@@ -114,7 +114,7 @@ int sys_fstat(int fd, struct stat *statbuf) {
 }
 int sys_link(const char *oldpath, const char *newpath) {
 	int ret = -1;
-	errno = EBADF;
+	errno = EMLINK;
 
 	return ret;
 }
