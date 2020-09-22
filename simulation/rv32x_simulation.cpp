@@ -175,6 +175,7 @@ public:
 		while(1) {
 			tick();
 			eval();
+			core->inst = 0;
 			if(core->imem_read) {
 				if(imem_wait == IMEM_WAIT) {
 					imem_stat = read_word(memory, core->iaddr, (uint32_t *)&core->inst);
@@ -187,6 +188,7 @@ public:
 			} else {
 				core->imem_valid = 0;
 			}
+			core->rdata = 0;
 			if(core->dmem_read || core->dmem_write) {
 				if(dmem_wait == DMEM_WAIT) {
 					if((core->dbyteen & 0x3) == 0) {
@@ -240,6 +242,7 @@ public:
 					fflush(stdout);
 				}
 				*/
+				core->uart_wdata = 0;
 				ch = getchar();
 				if(ch != EOF) {
 					core->uart_wdata = ch;	
