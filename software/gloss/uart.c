@@ -1,4 +1,5 @@
 #include "uart.h"
+#include <stdlib.h>
 
 int uart_putchar(int ch) {
 
@@ -6,9 +7,22 @@ int uart_putchar(int ch) {
 		asm volatile("nop");
 
 	*UART_TX_BUF = ch;
-	UART_SET_EN(1);
+	UART_TX_SET_EN(1);
 
 	return (unsigned int) ch;
+}
+
+int uart_getchar(void) {
+	int ch = -1;
+
+	UART_RX_SET_EN(1);
+
+	/* Blocking */
+	while(UART_RX_GET_STAT_EMPTY()) {
+		asm volatile("nop");
+	}
+	ch = *UART_RX_BUF;
+	return ch;
 }
 
 
