@@ -31,6 +31,7 @@ typedef union {
 typedef uart_tx_stat_t uart_rx_stat_t;
 
 int uart_putchar(int ch);
+int uart_getchar(void);
 
 extern void uart_rx_interrupt_handler(void);
 extern void uart_tx_interrupt_handler(void);
