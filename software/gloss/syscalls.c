@@ -205,9 +205,14 @@ int sys_gettimeofday(struct timeval *tv, struct timezone *tz) {
 }
 ssize_t sys_read(int fd, void *buf, size_t count) {
 	int ret = -1;
+	int i;
 
 	if(fd == STDIN_FILENO) {
-		return 0;
+		for(i = 0; i < count; i++) {
+			/* blocking */
+			((unsigned char *)buf)[i] = uart_getchar();
+		}
+		ret = i;
 	} else {
 		errno = EBADF;
 	}
