@@ -25,4 +25,11 @@ int uart_getchar(void) {
 	return ch;
 }
 
+void uart_rx_interrupt_handler(void) {
+	exit(1);
+}
+void uart_tx_interrupt_handler(void) {
+	exit(1);
+}
+
 
