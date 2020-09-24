@@ -191,6 +191,4 @@
 #define FRM				0x002
 #define FCSR			0x003
 
-/* define address of  User-mode HPM, CYCLE, TIME, INSTRET here */
-
 #endif

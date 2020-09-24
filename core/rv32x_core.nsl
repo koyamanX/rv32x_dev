@@ -122,12 +122,22 @@ module rv32x_core {
 	wire sxlen[2];
 	wire uxlen[2];
 	wire ialign[2];
+
+	reg minstret[64]				= 0;
+	reg mcycle[64]					= 0;
+	reg utime[64]					= 0;
 	
 	sxlen = MISA_MXL_32;
 	uxlen = MISA_MXL_32;
 	ialign = 2'b11;
 
 	rv32x.ialign = ialign;
+
+	if(!csr_write) {	/* precisely, !((mcycle || minstret) && csr_write) */
+		mcycle++;	/* if wfi, then stop counting up */
+		minstret++;	/* not-precise, some instruction such as ecall will not retire */
+	}
+	utime++;	/* if m_clock == 50MHz, then 1 tick is 20ns */
 
 	/* checking !trap is required, since most of interrupt pending bits
 		only be cleared from software via writing one of correspoinding
@@ -198,6 +208,10 @@ module rv32x_core {
 			(mode >= MACHINE) && cradrs == MIP:				return mip | 32'({meip, 2'b00, ueip, mtip, 2'b00, utip, msip, 2'b00, usip});
 			(mode >= MACHINE) && cradrs == MEDELEG:			return medeleg;
 			(mode >= MACHINE) && cradrs == MIDELEG:			return mideleg;
+			(mode >= MACHINE) && cradrs == MCYCLEH:			return mcycle[63:32];
+			(mode >= MACHINE) && cradrs == MCYCLE:			return mcycle[31:0];
+			(mode >= MACHINE) && cradrs == MINSTRETH:		return minstret[63:32];
+			(mode >= MACHINE) && cradrs == MINSTRET:		return minstret[31:0];
 			/* User-mode */
 			(mode >= USER) && cradrs == USTATUS:			return ustatus;
 			(mode >= USER) && cradrs == UIE:				return uie;
@@ -207,6 +221,12 @@ module rv32x_core {
 			(mode >= USER) && cradrs == UCAUSE:				return ucause;
 			(mode >= USER) && cradrs == UTVAL:				return utval;
 			(mode >= USER) && cradrs == UIP:				return uip;
+			(mode >= USER) && cradrs == CYCLEH:				return mcycle[63:32];
+			(mode >= USER) && cradrs == CYCLE:				return mcycle[31:0];
+			(mode >= USER) && cradrs == INSTRETH:			return minstret[63:32];
+			(mode >= USER) && cradrs == INSTRET:			return minstret[31:0];
+			(mode >= USER) && cradrs == TIMEH:				return utime[63:32];
+			(mode >= USER) && cradrs == TIME:				return utime[31:0];
 			else:											{csr_read_not_mapped(); return 0x00000000;}
 		}
 	}
@@ -293,6 +313,10 @@ module rv32x_core {
 			(mode >= MACHINE) && cwadrs == MIDELEG: {
 				mideleg := cwdata;
 			}
+			(mode >= MACHINE) && cradrs == MCYCLEH:			mcycle	:= {cwdata, mcycle[31:0]};
+			(mode >= MACHINE) && cradrs == MCYCLE:			mcycle	:= {mcycle[63:32], cwdata};
+			(mode >= MACHINE) && cradrs == MINSTRETH:		minstret := {cwdata, minstret[31:0]};
+			(mode >= MACHINE) && cradrs == MINSTRET:		minstret := {minstret[63:32], cwdata};
 			(mode >= USER) && cwadrs == USTATUS: {
 				mstatus_w = cwdata;
 
