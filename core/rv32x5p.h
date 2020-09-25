@@ -57,6 +57,8 @@ declare rv32x5p {
 	output misaligned_memory_address[32];
 	func_out store_address_misaligned(misaligned_memory_address);
 	func_out load_address_misaligned(misaligned_memory_address);
+
+	func_out instret();
 	
 	input ialign[2];
 #ifdef DEBUG

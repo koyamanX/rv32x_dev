@@ -135,7 +135,9 @@ module rv32x_core {
 
 	if(!csr_write) {	/* precisely, !((mcycle || minstret) && csr_write) */
 		mcycle++;	/* if wfi, then stop counting up */
-		minstret++;	/* not-precise, some instruction such as ecall will not retire */
+		if(rv32x.instret) {
+			minstret++;	/* not-precise, some instruction such as ecall will not retire */
+		}
 	}
 	utime++;	/* if m_clock == 50MHz, then 1 tick is 20ns */
 

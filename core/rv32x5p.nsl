@@ -544,6 +544,7 @@ module rv32x5p {
 		
 		wb_value = MWREG.wb_value;
 		if(MWREG.wb) {
+			instret();	/* not precise but for now, use this */
 			rv32x_reg32.writea(MWREG.rd, wb_value);
 		}
 
