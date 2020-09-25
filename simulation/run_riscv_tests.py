@@ -13,11 +13,24 @@ targets = [
 	'rv32ui-p-*',
 	'rv32um-p-*',
 	'rv32mi-p-*',
+	'rv32ua-p-*',
+
 ]
 targets_should_be_failed = [
 	'rv32mi-p-breakpoint',
+	'rv32ua-p-amoadd_w',
+	'rv32ua-p-amoand_w',
+	'rv32ua-p-amomaxu_w',
+	'rv32ua-p-amomax_w',
+	'rv32ua-p-amominu_w',
+	'rv32ua-p-amomin_w',
+	'rv32ua-p-amoor_w',
+	'rv32ua-p-amoswap_w',
+	'rv32ua-p-amoxor_w',
+	'rv32ua-p-lrsc',
 ]
 failed=0
+failed_tests = []
 timeout=0
 passed=0
 def gen_tests_list():
@@ -40,13 +53,16 @@ def run_tests(tests_list, tests_assertion):
 		except subprocess.CalledProcessError as err:
 			if(a == 'should_be_passed'):
 				print('{:20}\t{:20}  and it\'s FAILED\tNG'.format(t, a))
+				failed_tests.append(t)
 				failed+=1
 			else:
 				print('{:20}\t{:20}  and it\'s FAILED\tOK'.format(t, a))
+				failed_tests.append(t)
 				failed+=1
 			continue
 		except subprocess.TimeoutExpired:
 			print('{:20}\t{:20}  and it\'s TIMEOUT\tNG'.format(t, a))
+			failed_tests.append(t)
 			timeout+=1
 			failed+=1
 			return 1
@@ -60,6 +76,7 @@ def run_tests(tests_list, tests_assertion):
 			passed+=1
 		elif(a == 'should_not_passed'):
 			print('{:20}\t{:20}  and it\'s PASSED\tNG'.format(t, a))
+			failed_tests.append(t)
 			failed+=1
 def main():
 	md_opt = 0
@@ -76,6 +93,11 @@ def main():
 	if md_opt == 1:
 		print('```')
 	print('{} tests done, {} passed, {} failed, timeout {}'.format(len(tests_list), passed, failed, timeout))
+	print('-'*100)
+	print('failed tests')
+	for i in failed_tests:
+		print('\t{}'.format(i))
+	print('-'*100)
 
 	return exit_code
 if __name__ == '__main__':
