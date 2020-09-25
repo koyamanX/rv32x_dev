@@ -1,25 +1,18 @@
 #include <stdio.h>
 
 int main(void) {
-	register unsigned int cycle = 0;
+	register unsigned long long int cycle = 0;
+	unsigned int data[10];
+	int i;
 
-	asm volatile("rdcycle %0" :: "r" (cycle));
-	printf("cycle : %d\n", cycle);
-	asm volatile("rdcycle %0" :: "r" (cycle));
-	printf("cycle : %d\n", cycle);
-	asm volatile("rdcycle %0" :: "r" (cycle));
-	printf("cycle : %d\n", cycle);
-	asm volatile("rdcycle %0" :: "r" (cycle));
-	printf("cycle : %d\n", cycle);
-	asm volatile("rdcycle %0" :: "r" (cycle));
-	printf("cycle : %d\n", cycle);
-
-	while(1) {
+	for(i = 0; i < 10; i++) {
 		asm volatile("rdcycle %0" :: "r" (cycle));
-		if(cycle >= 10000000)
-			break;
+		data[i] = cycle;
 	}
-	printf("cycle : %d\n", cycle);
+
+	for(i = 0; i < 10; i++) {
+		printf("cycle : %d\n", data[i]);
+	}
 
 	return 0;
 }
