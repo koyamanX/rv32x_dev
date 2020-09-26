@@ -65,7 +65,7 @@ def run_tests(tests_list, tests_assertion):
 			failed_tests.append(t)
 			timeout+=1
 			failed+=1
-			return 1
+			continue
 		except:
 			print('unexpected error')
 			sys.exit(1)
@@ -89,7 +89,9 @@ def main():
 	tests_assertion = gen_tests_assertion(tests_list)
 	if md_opt == 1:
 		print('```')
-	exit_code = run_tests(tests_list, tests_assertion)
+	run_tests(tests_list, tests_assertion)
+	exit_code = failed
+
 	if md_opt == 1:
 		print('```')
 	print('{} tests done, {} passed, {} failed, timeout {}'.format(len(tests_list), passed, failed, timeout))
