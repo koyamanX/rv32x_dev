@@ -46,7 +46,7 @@ module icache_unit {
 		}
 	}
 	proc compare_tag {
-		/* checking (index == i) is required, to support cancellation of read operation in any stage */
+		/* checking (index == i) is required, to support cancellation of read operation in this stage */
 		if(cvalid && (ctag == tag) && (cindex == i)) {
 			hit();
 		} else {
