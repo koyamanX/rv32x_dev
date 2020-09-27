@@ -557,7 +557,7 @@ module rv32x5p {
 		any {
 			EMREG.store:    dmem_write(mem_adrs, mem_byteen, mem_data);
 			EMREG.load:     dmem_read(mem_adrs, mem_byteen);
-			EMREG.fencei: 	{fencei(); ifetch.finish(); decode.finish(); execute.finish();}
+			EMREG.fencei: 	{fencei(); ifetch.finish(); decode.finish(); execute.finish(); rv32x_btb.flush();}
 			EMREG.fence: 	fence();
 		}
 		if(!EMREG.store && !EMREG.load && !EMREG.fencei && !EMREG.fence && !stall_memory) {
