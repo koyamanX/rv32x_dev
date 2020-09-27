@@ -1,6 +1,7 @@
 #include "btb.h"
 
 module btb {
+	/* mem declaration below may not be inferred */
 	/* branch instruction's address */
 	mem btb_branch_instruction_address[32][32] = {0};	/* use full address for now, but only tag is adequate */
 	/* branch instruction's target address */
