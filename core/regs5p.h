@@ -8,6 +8,8 @@ struct idreg_t {
 	pc[32];
 	pc4[32];
 	inst[32];
+	predict_as_taken;
+	predict_as_not_taken;
 };
 struct dereg_t {
 	pc[32];
@@ -50,6 +52,8 @@ struct dereg_t {
 	uret;
 	wb;
 	illegal_instruction;
+	predict_as_taken;
+	predict_as_not_taken;
 };
 struct emreg_t {
 	pc[32];

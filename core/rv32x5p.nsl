@@ -7,6 +7,7 @@
 #include "adder32.h"
 #include "munit32.h"
 #include "regs5p.h"
+#include "btb.h"
 
 module rv32x5p {
 	/* Pipeline registers */
@@ -37,6 +38,7 @@ module rv32x5p {
 	wire execute_alu_b[32];						/* forwarded ALU input B */
 	reg32 rv32x_reg32;							/* General-purpose registers */
 	munit32 rv32x_munit32;						/* Extension unit for M-Extensions */
+	btb rv32x_btb;
 
 	func reset {
 		/* Reset Extension Unit */
@@ -54,16 +56,29 @@ module rv32x5p {
 	}
 	proc ifetch {
 		wire pc4[32];
-		inc32 rv32x_inc32;
+		wire predicted_new_pc[32];
+		wire predict_as_taken;
+		wire predict_as_not_taken;
+		inc32 rv32x_inc32_0;
+		inc32 rv32x_inc32_1;
 
+		rv32x_btb.predict(PC);
 		imem_read(PC, MEM_WORD);
-		pc4 = rv32x_inc32.exe(PC);
+		pc4 = rv32x_inc32_0.exe(PC);
+		if(rv32x_btb.predict_as_taken) {
+			predicted_new_pc = rv32x_btb.predicted_new_pc;
+		}
+		if(rv32x_btb.predict_as_not_taken) {
+			predicted_new_pc = rv32x_inc32_1.exe(rv32x_btb.predicted_new_pc);
+		}
 
+		predict_as_taken = if(ifetch_nop) 1'b0 else rv32x_btb.predict_as_taken;
+		predict_as_not_taken = if(ifetch_nop) 1'b0 else rv32x_btb.predict_as_not_taken;
 		if(imem_valid) {
 			if(!stall_ifetch) {		
 #define NOP (0x00000013)
-				ifetch(pc4);
-				decode({PC, pc4, if(ifetch_nop) NOP else inst});
+				ifetch(predicted_new_pc);
+				decode({PC, pc4, if(ifetch_nop) NOP else inst, predict_as_taken, predict_as_not_taken});
 			}
 		}
 	}
@@ -147,6 +162,8 @@ module rv32x5p {
 		dereg.sret = if(decode_nop) 1'b0 else system_sret;
 		dereg.uret = if(decode_nop) 1'b0 else system_uret;
 		dereg.illegal_instruction = if(decode_nop) 1'b0 else (rv32x_inst_dec.illegal_instruction || decode_illegal_instruction);
+		dereg.predict_as_taken = if(decode_nop) 1'b0 else IDREG.predict_as_taken;
+		dereg.predict_as_not_taken = if(decode_nop) 1'b0 else IDREG.predict_as_not_taken;
 
 		if(!stall_decode) {			
 			execute(dereg);
@@ -300,16 +317,20 @@ module rv32x5p {
 		emreg_t wire emreg;
 		alu32 rv32x_alu32;
 		func_self taken;
+		wire not_taken;
 		func_self condcheck;
 		func_self csrrw;
 		func_self csrrs;
 		func_self csrrc;
 		func_self i_misaligned;
 		func_self m_misaligned;
+		func_self miss_prediction;
+		func_self correct_prediction;
 		wire csr_wb_data[32];
 		wire alu_q[32];
 		wire target_address[32];
 
+		not_taken = (!taken && DEREG.branch);
 		emreg.pc = DEREG.pc;
 		emreg.pc4 = DEREG.pc4;
 		emreg.inst = DEREG.inst;
@@ -376,7 +397,7 @@ module rv32x5p {
 			if(DEREG.illegal_instruction) {
 				illegal_instruction();
 			}
-			if((DEREG.jump || taken) && !stall_execute) {
+			if(DEREG.jump  && !stall_execute) {
 				stall_ifetch();				
 				stall_decode();
 				ifetch_nop();
@@ -385,9 +406,32 @@ module rv32x5p {
 				decode.finish();
 				ifetch(target_address);
 				memory(emreg);
-			} else if(!taken && (DEREG.alu_sel == ALU) && !stall_execute) {		
-				memory(emreg);		
-			} else if(!taken && (DEREG.alu_sel == MUNIT) && rv32x_munit32.done && !stall_execute) {	
+			} else if((not_taken && DEREG.predict_as_taken) && !stall_execute) {
+				miss_prediction();
+				stall_ifetch();	
+				stall_decode();
+				ifetch_nop();
+				ifetch.finish();
+				decode_nop();
+				decode.finish();
+				ifetch(DEREG.pc4);
+				memory(emreg);
+			} else if((taken && DEREG.predict_as_not_taken) && !stall_execute) {
+				miss_prediction();
+				stall_ifetch();	
+				stall_decode();
+				ifetch_nop();
+				ifetch.finish();
+				decode_nop();
+				decode.finish();
+				ifetch(target_address);
+				memory(emreg);
+			} else if((taken && DEREG.predict_as_taken) || (not_taken && DEREG.predict_as_not_taken)) {
+				correct_prediction();
+				memory(emreg);
+			} else if((DEREG.alu_sel == ALU) && !stall_execute) {		
+				memory(emreg);
+			} else if((DEREG.alu_sel == MUNIT) && rv32x_munit32.done && !stall_execute) {	
 				memory(emreg);		
 			}
 			if((DEREG.jump || taken) && ((target_address[1:0] & ialign) != 2'b00)) {
@@ -401,7 +445,14 @@ module rv32x5p {
 				(DEREG.load && m_misaligned):	load_address_misaligned(alu_q);
 				(DEREG.store && m_misaligned):	store_address_misaligned(alu_q);
 			}
+			any {
+				taken: rv32x_btb.taken();
+				not_taken: rv32x_btb.not_taken();
+			}
 		}
+	}
+	func miss_prediction {
+		rv32x_btb.regist(DEREG.pc, target_address);
 	}
 	func i_misaligned {
 		instruction_address_misaligned(target_address);
