@@ -59,17 +59,16 @@ module rv32x5p {
 		wire predicted_new_pc[32];
 		wire predict_as_taken;
 		wire predict_as_not_taken;
-		inc32 rv32x_inc32_0;
-		inc32 rv32x_inc32_1;
+		inc32 rv32x_inc32;
 
 		rv32x_btb.predict(PC);
 		imem_read(PC, MEM_WORD);
-		pc4 = rv32x_inc32_0.exe(PC);
+		pc4 = rv32x_inc32.exe(PC);
 		if(rv32x_btb.predict_as_taken) {
 			predicted_new_pc = rv32x_btb.predicted_new_pc;
 		}
 		if(rv32x_btb.predict_as_not_taken) {
-			predicted_new_pc = rv32x_inc32_1.exe(rv32x_btb.predicted_new_pc);
+			predicted_new_pc = pc4;
 		}
 
 		predict_as_taken = if(ifetch_nop) 1'b0 else rv32x_btb.predict_as_taken;
