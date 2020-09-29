@@ -73,13 +73,13 @@ module rv32x_integration {
 		core.dmem_valid();
 	}
 	func rv32x_clint.timer_interrupt {
-		core.timer_interrupt_req();
+		core.machine_timer_interrupt_req();
 	}
 	func rv32x_clint.software_interrupt {
-		core.software_interrupt_req();
+		core.machine_software_interrupt_req();
 	}
 	func rv32x_plic.machine_external_interrupt {
-		core.external_interrupt_req();
+		core.machine_external_interrupt_req();
 	}
 	func rv32x_clint.store_access_fault {
 		//rv32x.not_mapped();

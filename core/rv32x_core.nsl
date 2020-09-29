@@ -161,9 +161,9 @@ module rv32x_core {
 		machine_software_interrupt_pending();
 	}
 
-	msip = software_interrupt_req;
-	mtip = timer_interrupt_req;
-	meip = external_interrupt_req;
+	msip = machine_software_interrupt_req;
+	mtip = machine_timer_interrupt_req;
+	meip = machine_external_interrupt_req;
 
 	func reset {
 		wire resetvector[32];
