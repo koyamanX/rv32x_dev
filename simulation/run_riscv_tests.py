@@ -107,6 +107,7 @@ def main():
 		print('\t{}'.format(i))
 	print('-'*100)
 	
+	subprocess.run(['stty', 'echo'])
 	return exit_code
 if __name__ == '__main__':
 	sys.exit(main())
