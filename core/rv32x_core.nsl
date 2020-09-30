@@ -225,6 +225,21 @@ module rv32x_core {
 			(mode >= MACHINE) && cradrs == MCYCLE:			return mcycle[31:0];
 			(mode >= MACHINE) && cradrs == MINSTRETH:		return minstret[63:32];
 			(mode >= MACHINE) && cradrs == MINSTRET:		return minstret[31:0];
+
+			/* Supervisor-mode */
+			(mode >= SUPERVISOR) && cradrs == SSTATUS:		return sstatus;
+			//(mode >= SUPERVISOR) && cradrs == SEDELEG:		return sedeleg;
+			//(mode >= SUPERVISOR) && cradrs == SIDELEG:		return sideleg;
+			//(mode >= SUPERVISOR) && cradrs == SIE:			return sie;
+			(mode >= SUPERVISOR) && cradrs == STVEC:		return stvec;
+			//(mode >= SUPERVISOR) && cradrs == SCOUNTEREN:	return scounteren;
+			(mode >= SUPERVISOR) && cradrs == SSCRATCH:		return sscratch;
+			(mode >= SUPERVISOR) && cradrs == SEPC:			return sepc;
+			(mode >= SUPERVISOR) && cradrs == SCAUSE:		return scause;
+			(mode >= SUPERVISOR) && cradrs == STVAL:		return stval;
+			//(mode >= SUPERVISOR) && cradrs == SIP:			return sip;
+			//(mode >= SUPERVISOR) && cradrs == SATP:			return stap;
+
 			/* User-mode */
 			(mode >= USER) && cradrs == USTATUS:			return ustatus;
 			(mode >= USER) && cradrs == UIE:				return uie;
