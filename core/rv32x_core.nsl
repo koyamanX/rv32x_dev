@@ -31,6 +31,7 @@ module rv32x_core {
 	reg trap_mode[2];
 	proc_name trap(trap_mode, cause, epc, tval);
 	proc_name trap_mret();
+	proc_name trap_sret();
 	proc_name trap_uret();
 	/* Interrupt */
 	func_self interrupt();
@@ -103,12 +104,15 @@ module rv32x_core {
 	mip_t reg mip					= 0;
 	mideleg_t reg mideleg			= 0;
 	medeleg_t reg medeleg			= 0;
-	wire msip;
-	wire mtip;
-	wire meip;
-	wire usip;
-	wire utip;
-	wire ueip;
+
+	sstatus_t reg sstatus			= 0;		
+	sie_t reg sie					= 0;
+	stvec_t reg stvec				= 0;
+	sscratch_t reg sscratch			= 0;
+	sepc_t reg sepc					= 0;
+	scause_t reg scause				= 0;
+	stval_t reg stval 				= 0;
+	sip_t reg sip					= 0;
 
 	ustatus_t reg ustatus			= 0;
 	uie_t reg uie					= 0;
@@ -118,6 +122,13 @@ module rv32x_core {
 	ucause_t reg ucause				= 0;
 	utval_t reg utval 				= 0;
 	uip_t reg uip					= 0;
+
+	wire msip;
+	wire mtip;
+	wire meip;
+	wire usip;
+	wire utip;
+	wire ueip;
 
 	wire sxlen[2];
 	wire uxlen[2];
@@ -555,6 +566,18 @@ module rv32x_core {
 			rv32x.flush_decode();
 		}
 	}
+	func rv32x.sret {
+		if(mode != SUPERVISOR) {
+			illegal_instruction();
+		} else {
+			stval := 0;
+			trap_sret();
+			rv32x.stall_ifetch_req();
+			rv32x.stall_decode_req();
+			rv32x.flush_ifetch();
+			rv32x.flush_decode();
+		}
+	}
 	func rv32x.uret {
 		if(mode != USER) {
 			illegal_instruction();
@@ -577,11 +600,23 @@ module rv32x_core {
 		rv32x.trap({mepc[31:2], mepc[1:0] & ~ialign});
 		finish();
 	}
+	proc trap_sret {
+		mstatus.sie		:= sstatus.spie;
+		sstatus.sie		:= sstatus.spie;
+		mstatus.spie	:= 1;
+		sstatus.spie	:= 1;
+		mode 			:= sstatus.spp;	
+		rv32x.stall_ifetch_req();
+		rv32x.trap({sepc[31:2], sepc[1:0] & ~ialign});
+		finish();
+	}
 	proc trap_uret {
-		ustatus.upie	:= 1;
-		mstatus.upie	:= 1;
-		ustatus.uie		:= ustatus.upie;
 		mstatus.uie		:= ustatus.upie;
+		sstatus.uie		:= ustatus.upie;
+		ustatus.uie		:= ustatus.upie;
+		mstatus.upie	:= 1;
+		sstatus.upie	:= 1;
+		ustatus.upie	:= 1;
 		mode			:= USER;
 		rv32x.stall_ifetch_req();
 		rv32x.trap({uepc[31:2], uepc[1:0] & ~ialign});
@@ -602,12 +637,27 @@ module rv32x_core {
 				mtval			:= tval;
 				tvec 			= mtvec;
 			}
+			trap_mode == SUPERVISOR: {
+				mode			:= SUPERVISOR;
+				mstatus.spp		:= mode;
+				sstatus.spp		:= mode;
+				mstatus.spie 	:= sstatus.sie;
+				sstatus.spie 	:= sstatus.sie;
+				mstatus.sie		:= 0;
+				sstatus.sie		:= 0;
+				scause			:= cause;
+				sepc			:= epc;
+				stval			:= tval;
+				tvec			= stvec;
+			}
 			trap_mode == USER: {
 				mode			:= USER;
 				mstatus.upie 	:= ustatus.uie;
+				sstatus.upie 	:= ustatus.uie;
 				ustatus.upie 	:= ustatus.uie;
-				ustatus.uie		:= 0;
 				mstatus.uie		:= 0;
+				sstatus.uie		:= 0;
+				ustatus.uie		:= 0;
 				ucause			:= cause;
 				mepc			:= epc;
 				utval			:= tval;

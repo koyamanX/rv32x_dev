@@ -130,6 +130,7 @@ struct mstatus_t {
 	sie[1];
 	uie[1];
 };
+#define sstatus_t mstatus_t
 #define ustatus_t mstatus_t
 struct mstatush_t {
 	reserved0[26];
@@ -141,6 +142,7 @@ struct mtvec_t {
 	base[30];
 	mode[2];
 };
+#define stvec_t mtvec_t
 #define utvec_t mtvec_t
 struct mip_t {
 	reserved0[20]; 
@@ -173,7 +175,9 @@ struct mie_t {
 	usie[1];
 };
 
+#define sip_t mip_t
 #define uip_t mip_t
+#define sie_t mie_t
 #define uie_t mie_t
 struct mcounteren_t {
 	hpm31[1];
@@ -215,13 +219,17 @@ struct mcause_t {
 	reserved[21];
 	exception_code[10];
 };
+#define scause_t mcause_t
 #define ucause_t mcause_t
 
 #define mscratch_t csr32_t
+#define sscratch_t csr32_t
 #define uscratch_t mscratch_t
 #define mepc_t csr32_t
+#define sepc_t csr32_t
 #define uepc_t mepc_t
 #define mtval_t csr32_t
+#define stval_t csr32_t
 #define utval_t mtval_t
 #define medeleg_t csr32_t
 #define mideleg_t csr32_t
