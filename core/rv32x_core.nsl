@@ -308,19 +308,12 @@ module rv32x_core {
 				ustatus.uie := mstatus_w.uie;
 				ustatus.upie := mstatus_w.upie;
 			}
-			(mode >= MACHINE) && cwadrs == MSTATUSH:	mstatush := cwdata & 0x00000000;
-			(mode >= MACHINE) && cwadrs == MTVEC: {
-				mtvec_w = cwdata;
-				
-				mtvec.base := mtvec_w.base;
-				if(mtvec_w.mode < 2'b10) {
-					mtvec.mode := mtvec_w.mode;
-				}
+			(mode >= MACHINE) && cwadrs == MEDELEG: {
+				medeleg := cwdata;
 			}
-			(mode >= MACHINE) && cwadrs == MTVAL:		mtval := cwdata;
-			(mode >= MACHINE) && cwadrs == MSCRATCH:	mscratch := cwdata;
-			(mode >= MACHINE) && cwadrs == MEPC:		mepc := {cwdata[31:2], (cwdata[1:0] & ~ialign)};
-			(mode >= MACHINE) && cwadrs == MCAUSE:		mcause := mcause;
+			(mode >= MACHINE) && cwadrs == MIDELEG: {
+				mideleg := cwdata;
+			}
 			(mode >= MACHINE) && cwadrs == MIE: {
 				mie_w = cwdata;
 
@@ -331,6 +324,19 @@ module rv32x_core {
 				uie.utie := mie_w.utie;
 				uie.usie := mie_w.usie;
 			}
+			(mode >= MACHINE) && cwadrs == MTVEC: {
+				mtvec_w = cwdata;
+				
+				mtvec.base := mtvec_w.base;
+				if(mtvec_w.mode < 2'b10) {
+					mtvec.mode := mtvec_w.mode;
+				}
+			}
+			(mode >= MACHINE) && cwadrs == MSTATUSH:	mstatush := cwdata & 0x00000000;
+			(mode >= MACHINE) && cwadrs == MSCRATCH:	mscratch := cwdata;
+			(mode >= MACHINE) && cwadrs == MEPC:		mepc := {cwdata[31:2], (cwdata[1:0] & ~ialign)};
+			(mode >= MACHINE) && cwadrs == MCAUSE:		mcause := mcause;
+			(mode >= MACHINE) && cwadrs == MTVAL:		mtval := cwdata;
 			(mode >= MACHINE) && cwadrs == MIP: {
 				mip_w = cwdata;
 				
@@ -343,16 +349,10 @@ module rv32x_core {
 				uip.ueip := mip_w.ueip;
 				uip.utip := mip_w.utip;
 			}
-			(mode >= MACHINE) && cwadrs == MEDELEG: {
-				medeleg := cwdata;
-			}
-			(mode >= MACHINE) && cwadrs == MIDELEG: {
-				mideleg := cwdata;
-			}
-			(mode >= MACHINE) && cradrs == MCYCLEH:			mcycle	:= {cwdata, mcycle[31:0]};
 			(mode >= MACHINE) && cradrs == MCYCLE:			mcycle	:= {mcycle[63:32], cwdata};
-			(mode >= MACHINE) && cradrs == MINSTRETH:		minstret := {cwdata, minstret[31:0]};
 			(mode >= MACHINE) && cradrs == MINSTRET:		minstret := {minstret[63:32], cwdata};
+			(mode >= MACHINE) && cradrs == MCYCLEH:			mcycle	:= {cwdata, mcycle[31:0]};
+			(mode >= MACHINE) && cradrs == MINSTRETH:		minstret := {cwdata, minstret[31:0]};
 			(mode >= USER) && cwadrs == USTATUS: {
 				mstatus_w = cwdata;
 
