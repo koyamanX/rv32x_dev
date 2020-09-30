@@ -204,23 +204,27 @@ module rv32x_core {
 	func csr_read {
 		any {
 			/* Machine-mode */
-			(mode >= MACHINE) && cradrs == MISA:			return misa;
 			(mode >= MACHINE) && cradrs == MVENDORID:		return mvendorid;
 			(mode >= MACHINE) && cradrs == MARCHID:			return marchid;
 			(mode >= MACHINE) && cradrs == MIMPID:			return mimpid;
 			(mode >= MACHINE) && cradrs == MHARTID:			return mhartid;
-											/* Hardwire SPP, SPIE, UPIE, SIE, UIE, MPRV, MXR, SUM, TVM, TW, TSR, FS, XS, SD to zero */
 			(mode >= MACHINE) && cradrs == MSTATUS:			return (mstatus | ustatus);
-			(mode >= MACHINE) && cradrs == MSTATUSH:		return mstatush;
+			(mode >= MACHINE) && cradrs == MISA:			return misa;
+			(mode >= MACHINE) && cradrs == MEDELEG:			return medeleg;
+			(mode >= MACHINE) && cradrs == MIDELEG:			return mideleg;
+			(mode >= MACHINE) && cradrs == MIE:				return mie | uie;
 			(mode >= MACHINE) && cradrs == MTVEC:			return mtvec;
+			//(mode >= MACHINE) && cradrs == MCOUNTEREN:	return mcounteren;
+			(mode >= MACHINE) && cradrs == MSTATUSH:		return mstatush;
 			(mode >= MACHINE) && cradrs == MSCRATCH:		return mscratch;
 			(mode >= MACHINE) && cradrs == MEPC:			return mepc;
 			(mode >= MACHINE) && cradrs == MCAUSE:			return mcause;
 			(mode >= MACHINE) && cradrs == MTVAL:			return mtval;
-			(mode >= MACHINE) && cradrs == MIE:				return mie | uie;
 			(mode >= MACHINE) && cradrs == MIP:				return mip | 32'({meip, 2'b00, ueip, mtip, 2'b00, utip, msip, 2'b00, usip});
-			(mode >= MACHINE) && cradrs == MEDELEG:			return medeleg;
-			(mode >= MACHINE) && cradrs == MIDELEG:			return mideleg;
+			//(mode >= MACHINE) && cradrs == MTINST:		return mtinst;
+			//(mode >= MACHINE) && cradrs == MTVAL2:		return mtval2;
+			/* Machine Memory Protection */
+			/* Machine Counter/Timers */
 			(mode >= MACHINE) && cradrs == MCYCLEH:			return mcycle[63:32];
 			(mode >= MACHINE) && cradrs == MCYCLE:			return mcycle[31:0];
 			(mode >= MACHINE) && cradrs == MINSTRETH:		return minstret[63:32];
@@ -228,17 +232,17 @@ module rv32x_core {
 
 			/* Supervisor-mode */
 			(mode >= SUPERVISOR) && cradrs == SSTATUS:		return sstatus;
-			//(mode >= SUPERVISOR) && cradrs == SEDELEG:		return sedeleg;
-			//(mode >= SUPERVISOR) && cradrs == SIDELEG:		return sideleg;
-			//(mode >= SUPERVISOR) && cradrs == SIE:			return sie;
+			//(mode >= SUPERVISOR) && cradrs == SEDELEG:	return sedeleg;
+			//(mode >= SUPERVISOR) && cradrs == SIDELEG:	return sideleg;
+			//(mode >= SUPERVISOR) && cradrs == SIE:		return sie;
 			(mode >= SUPERVISOR) && cradrs == STVEC:		return stvec;
 			//(mode >= SUPERVISOR) && cradrs == SCOUNTEREN:	return scounteren;
 			(mode >= SUPERVISOR) && cradrs == SSCRATCH:		return sscratch;
 			(mode >= SUPERVISOR) && cradrs == SEPC:			return sepc;
 			(mode >= SUPERVISOR) && cradrs == SCAUSE:		return scause;
 			(mode >= SUPERVISOR) && cradrs == STVAL:		return stval;
-			//(mode >= SUPERVISOR) && cradrs == SIP:			return sip;
-			//(mode >= SUPERVISOR) && cradrs == SATP:			return stap;
+			//(mode >= SUPERVISOR) && cradrs == SIP:		return sip;
+			//(mode >= SUPERVISOR) && cradrs == SATP:		return stap;
 
 			/* User-mode */
 			(mode >= USER) && cradrs == USTATUS:			return ustatus;
@@ -249,6 +253,10 @@ module rv32x_core {
 			(mode >= USER) && cradrs == UCAUSE:				return ucause;
 			(mode >= USER) && cradrs == UTVAL:				return utval;
 			(mode >= USER) && cradrs == UIP:				return uip;
+			//(mode >= USER) && cradrs == FFLAGS:			return fflags;
+			//(mode >= USER) && cradrs == FRM:				return frm;
+			//(mode >= USER) && cradrs == FCSR:				return fcsr;
+			/* User Counter/Timers */
 			(mode >= USER) && cradrs == CYCLEH:				return mcycle[63:32];
 			(mode >= USER) && cradrs == CYCLE:				return mcycle[31:0];
 			(mode >= USER) && cradrs == INSTRETH:			return minstret[63:32];
