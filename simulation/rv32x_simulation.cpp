@@ -5,7 +5,6 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>
-#include <signal.h>
 #include <dis-asm.h>
 #include <verilated.h>
 #include "verilated_vcd_c.h"
@@ -48,7 +47,7 @@ const char *abi_reg_strs[] = {
 	"t3", "t4", "t5", "t6"
 };
 
-void safe_exit(int signal);
+void sim_exit(int status, void *p);
 
 class processor_t {
 private:
@@ -223,13 +222,13 @@ public:
 				fprintf(stderr, "Instruction Memory violation occuries at address of %08x, byteen %02x\n", core->iaddr, core->ibyteen);
 				fflush(stderr);
 				fflush(stdout);
-				safe_exit(-1);
+				exit(-1);
 			}
 			if(dmem_stat == -1) {
 				fprintf(stderr, "Data memory violation occuries at address of %08x, byteen %02x\n", core->daddr, core->dbyteen);
 				fflush(stderr);
 				fflush(stdout);
-				safe_exit(-1);
+				exit(-1);
 			}
 			eval();
 			dump();
@@ -489,28 +488,30 @@ public:
 	};
 };
 
-
-processor_t *proc0;
-struct termios stmio;
-
+typedef struct {
+	struct termios *tmio;
+	processor_t *procs;
+} env_t;
 
 int main(int argc, char **argv) {
 	int ret = 0;
+	processor_t *proc0;
 	struct termios tmio;
+	struct termios stmio;
+	env_t env;
 
-	Verilated::commandArgs(argc, argv);
-	Verilated::traceEverOn(true);
+	env.procs = proc0;
+	env.tmio = &stmio;
+	on_exit(sim_exit, &env);
+
 	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
-
 	tcgetattr(STDIN_FILENO, &tmio);
 	stmio = tmio;
 	tmio.c_lflag &= ~(ECHO | ICANON);
 	tcsetattr(STDIN_FILENO, TCSANOW, &tmio);
 
-	signal(SIGINT, safe_exit);
-	signal(SIGABRT, safe_exit);
-	signal(SIGSEGV, safe_exit);
-	signal(SIGTERM, safe_exit);
+	Verilated::commandArgs(argc, argv);
+	Verilated::traceEverOn(true);
 
 	proc0 = new processor_t("core\t0");
 	proc0->load(argv[1]);
@@ -526,18 +527,15 @@ int main(int argc, char **argv) {
 		}
 	}
 	proc0->step(); /* flush store instruction */
-	delete proc0;
-	tcsetattr(STDIN_FILENO, TCSANOW, &stmio);
 
 	return (ret == 0x00000001) ? 0 : ret;
 }
 
-void safe_exit(int signal) {
-	tcsetattr(STDIN_FILENO, TCSANOW, &stmio);
-	delete proc0;	
+void sim_exit(int status, void *p) {
+	env_t *env;
 
-	fprintf(stderr, "exit on failure! signal == %x\n", signal);
-
-	exit(signal);
+	env = (env_t *)p;
+	tcsetattr(STDIN_FILENO, TCSANOW, env->tmio);
+	delete env->procs;
 }
 
