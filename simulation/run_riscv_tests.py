@@ -14,7 +14,7 @@ targets = [
 	'rv32um-p-*',
 	'rv32mi-p-*',
 	'rv32ua-p-*',
-
+	'rv32si-p-*',
 ]
 targets_should_be_failed = [
 	'rv32mi-p-breakpoint',
@@ -28,6 +28,12 @@ targets_should_be_failed = [
 	'rv32ua-p-amoswap_w',
 	'rv32ua-p-amoxor_w',
 	'rv32ua-p-lrsc',
+	'rv32si-p-csr',
+	'rv32si-p-dirty',
+	'rv32si-p-ma_fetch',
+	'rv32si-p-sbreak',
+	'rv32si-p-scall',
+	'rv32si-p-wfi',
 ]
 failed=0
 failed_tests = []
@@ -96,11 +102,11 @@ def main():
 		print('```')
 	print('{} tests done, {} passed, {} failed, timeout {}'.format(len(tests_list), passed, failed, timeout))
 	print('-'*100)
-	print('failed tests')
+	print('following tests are failed! ({})'.format(failed))
 	for i in failed_tests:
 		print('\t{}'.format(i))
 	print('-'*100)
-
+	
 	return exit_code
 if __name__ == '__main__':
 	sys.exit(main())
