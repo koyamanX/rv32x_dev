@@ -353,6 +353,16 @@ module rv32x_core {
 			(mode >= MACHINE) && cradrs == MINSTRET:		minstret := {minstret[63:32], cwdata};
 			(mode >= MACHINE) && cradrs == MCYCLEH:			mcycle	:= {cwdata, mcycle[31:0]};
 			(mode >= MACHINE) && cradrs == MINSTRETH:		minstret := {cwdata, minstret[31:0]};
+
+			(mode >= SUPERVISOR) && cwadrs == STVEC: {
+				tvec_w = cwdata;
+				
+				stvec.base := tvec_w.base;
+				if(tvec_w.mode < 2'b10) {
+					stvec.mode := tvec_w.mode;
+				}
+			}
+
 			(mode >= USER) && cwadrs == USTATUS: {
 				status_w = cwdata;
 
