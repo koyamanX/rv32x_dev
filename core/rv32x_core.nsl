@@ -278,35 +278,35 @@ module rv32x_core {
 	}
 
 	func csr_write {
-		mstatus_t wire mstatus_w;
-		mtvec_t  wire mtvec_w;
-		mip_t wire mip_w;
-		mie_t wire mie_w;
+		mstatus_t wire status_w; 
+		mtvec_t  wire tvec_w;
+		mip_t wire ip_w;
+		mie_t wire ie_w;
 
 		any {
 			(mode >= MACHINE) && cwadrs == MSTATUS: {
-				mstatus_w = cwdata;
+				status_w = cwdata;
 				
-				//mstatus.sd := mstatus_w.sd;
-				//mstatus.tsr := mstatus_w.tsr;
-				//mstatus.tw := mstatus_w.tw;
-				//mstatus.tvm := mstatus_w.tvm;
-				//mstatus.mxr := mstatus_w.mxr;
-				//mstatus.sum := mstatus_w.sum;
-				mstatus.mprv := mstatus_w.mprv;
-				//mstatus.xs := mstatus_w.xs;
-				//mstatus.fs := mstatus_w.fs;
-				mstatus.mpp := if(mstatus_w.mpp == USER || mstatus_w.mpp == MACHINE) mstatus_w.mpp else mstatus.mpp;
-				//mstatus.spp := mstatus_w.spp;
-				//mstatus.mpie := mstatus_w.mpie;
-				//mstatus.ube := mstatus_w.ube;
-				//mstatus.spie := mstatus_w.spie;
-				mstatus.mie := mstatus_w.mie;
-				//mstatus.sie := mstatus_w.sie;
-				mstatus.uie := mstatus_w.uie;
-				mstatus.upie := mstatus_w.upie;
-				ustatus.uie := mstatus_w.uie;
-				ustatus.upie := mstatus_w.upie;
+				//mstatus.sd := status_w.sd;
+				//mstatus.tsr := status_w.tsr;
+				//mstatus.tw := status_w.tw;
+				//mstatus.tvm := status_w.tvm;
+				//mstatus.mxr := status_w.mxr;
+				//mstatus.sum := status_w.sum;
+				mstatus.mprv := status_w.mprv;
+				//mstatus.xs := status_w.xs;
+				//mstatus.fs := status_w.fs;
+				mstatus.mpp := if(status_w.mpp == USER || status_w.mpp == MACHINE) status_w.mpp else mstatus.mpp;
+				//mstatus.spp := status_w.spp;
+				//mstatus.mpie := status_w.mpie;
+				//mstatus.ube := status_w.ube;
+				//mstatus.spie := status_w.spie;
+				mstatus.mie := status_w.mie;
+				//mstatus.sie := status_w.sie;
+				mstatus.uie := status_w.uie;
+				mstatus.upie := status_w.upie;
+				ustatus.uie := status_w.uie;
+				ustatus.upie := status_w.upie;
 			}
 			(mode >= MACHINE) && cwadrs == MEDELEG: {
 				medeleg := cwdata;
@@ -315,21 +315,21 @@ module rv32x_core {
 				mideleg := cwdata;
 			}
 			(mode >= MACHINE) && cwadrs == MIE: {
-				mie_w = cwdata;
+				ie_w = cwdata;
 
-				mie.meie := mie_w.meie;
-				mie.mtie := mie_w.mtie;
-				mie.msie := mie_w.msie;
-				uie.ueie := mie_w.ueie;
-				uie.utie := mie_w.utie;
-				uie.usie := mie_w.usie;
+				mie.meie := ie_w.meie;
+				mie.mtie := ie_w.mtie;
+				mie.msie := ie_w.msie;
+				uie.ueie := ie_w.ueie;
+				uie.utie := ie_w.utie;
+				uie.usie := ie_w.usie;
 			}
 			(mode >= MACHINE) && cwadrs == MTVEC: {
-				mtvec_w = cwdata;
+				tvec_w = cwdata;
 				
-				mtvec.base := mtvec_w.base;
-				if(mtvec_w.mode < 2'b10) {
-					mtvec.mode := mtvec_w.mode;
+				mtvec.base := tvec_w.base;
+				if(tvec_w.mode < 2'b10) {
+					mtvec.mode := tvec_w.mode;
 				}
 			}
 			(mode >= MACHINE) && cwadrs == MSTATUSH:	mstatush := cwdata & 0x00000000;
@@ -338,45 +338,45 @@ module rv32x_core {
 			(mode >= MACHINE) && cwadrs == MCAUSE:		mcause := mcause;
 			(mode >= MACHINE) && cwadrs == MTVAL:		mtval := cwdata;
 			(mode >= MACHINE) && cwadrs == MIP: {
-				mip_w = cwdata;
+				ip_w = cwdata;
 				
 				/* mip.meip, mip.mtip, mip.msip is read-only */
 				/* Only interrupt controller can set or reset */
-				mip.usip := mip_w.usip;
-				mip.ueip := mip_w.ueip;
-				mip.utip := mip_w.utip;
-				uip.usip := mip_w.usip;
-				uip.ueip := mip_w.ueip;
-				uip.utip := mip_w.utip;
+				mip.usip := ip_w.usip;
+				mip.ueip := ip_w.ueip;
+				mip.utip := ip_w.utip;
+				uip.usip := ip_w.usip;
+				uip.ueip := ip_w.ueip;
+				uip.utip := ip_w.utip;
 			}
 			(mode >= MACHINE) && cradrs == MCYCLE:			mcycle	:= {mcycle[63:32], cwdata};
 			(mode >= MACHINE) && cradrs == MINSTRET:		minstret := {minstret[63:32], cwdata};
 			(mode >= MACHINE) && cradrs == MCYCLEH:			mcycle	:= {cwdata, mcycle[31:0]};
 			(mode >= MACHINE) && cradrs == MINSTRETH:		minstret := {cwdata, minstret[31:0]};
 			(mode >= USER) && cwadrs == USTATUS: {
-				mstatus_w = cwdata;
+				status_w = cwdata;
 
-				mstatus.uie := mstatus_w.uie;
-				mstatus.upie := mstatus_w.upie;
-				ustatus.uie := mstatus_w.uie;
-				ustatus.upie := mstatus_w.upie;
+				mstatus.uie := status_w.uie;
+				mstatus.upie := status_w.upie;
+				ustatus.uie := status_w.uie;
+				ustatus.upie := status_w.upie;
 			}
 			(mode >= USER) && cwadrs == UIE: {
-				mie_w = cwdata;
+				ie_w = cwdata;
 
-				mie.ueie := mie_w.ueie;
-				mie.utie := mie_w.utie;
-				mie.usie := mie_w.usie;
-				uie.ueie := mie_w.ueie;
-				uie.utie := mie_w.utie;
-				uie.usie := mie_w.usie;
+				mie.ueie := ie_w.ueie;
+				mie.utie := ie_w.utie;
+				mie.usie := ie_w.usie;
+				uie.ueie := ie_w.ueie;
+				uie.utie := ie_w.utie;
+				uie.usie := ie_w.usie;
 			}
 			(mode >= USER) && cwadrs == UTVEC: {
-				mtvec_w = cwdata;
+				tvec_w = cwdata;
 				
-				utvec.base := mtvec_w.base;
-				if(mtvec_w.mode < 2'b10) {
-					utvec.mode := mtvec_w.mode;
+				utvec.base := tvec_w.base;
+				if(tvec_w.mode < 2'b10) {
+					utvec.mode := tvec_w.mode;
 				}
 			}
 			(mode >= USER) && cwadrs == USCRATCH:		uscratch := cwdata;
@@ -384,10 +384,10 @@ module rv32x_core {
 			(mode >= USER) && cwadrs == UCAUSE:			ucause := cwdata;
 			(mode >= USER) && cwadrs == UTVAL:			utval := cwdata;
 			(mode >= USER) && cwadrs == UIP: {
-				mip_w = cwdata;
+				ip_w = cwdata;
 
-				mip.usip := mip_w.usip;
-				uip.usip := mip_w.usip;
+				mip.usip := ip_w.usip;
+				uip.usip := ip_w.usip;
 			}
 			else: csr_write_not_mapped();
 		}
