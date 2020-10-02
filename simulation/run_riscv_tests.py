@@ -102,11 +102,16 @@ def main():
 		print('```')
 	print('{} tests done, {} passed, {} failed, timeout {}'.format(len(tests_list), passed, failed, timeout))
 	print('-'*100)
-	print('following tests are failed! ({})'.format(failed))
-	for i in failed_tests:
+	expected_to_fail_tests = (set(failed_tests) & set(targets_should_be_failed))
+	unexpected_to_fail_tests = (set(failed_tests) - set(targets_should_be_failed))
+	print('following tests are failed! ({}, expected)'.format(len(expected_to_fail_tests)))
+	for i in expected_to_fail_tests:
 		print('\t{}'.format(i))
 	print('-'*100)
-	
+	print('following tests are failed! ({}, unexpected)'.format(len(unexpected_to_fail_tests)))
+	for i in unexpected_to_fail_tests: 
+		print('\t{}'.format(i))
+	print('-'*100)
 	subprocess.run(['stty', 'echo'])
 	return exit_code
 if __name__ == '__main__':
