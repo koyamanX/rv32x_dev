@@ -455,6 +455,7 @@ module rv32x_core {
 				sip.usip := ip_w.usip;
 				uip.usip := ip_w.usip;
 			}
+			(mode >= SUPERVISOR) && cwadrs == SSCRATCH:	sscratch := cwdata;
 
 			(mode >= USER) && cwadrs == USTATUS: {
 				status_w = cwdata;
