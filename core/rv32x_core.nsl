@@ -307,6 +307,7 @@ module rv32x_core {
 		mtvec_t  wire tvec_w;
 		mip_t wire ip_w;
 		mideleg_t wire ideleg_w;
+		medeleg_t wire edeleg_w;
 		mie_t wire ie_w;
 
 		any {
@@ -335,7 +336,10 @@ module rv32x_core {
 				ustatus.upie := status_w.upie;
 			}
 			(mode >= MACHINE) && cwadrs == MEDELEG: {
-				medeleg := cwdata;
+				edeleg_w = cwdata;
+
+				medeleg.environment_call_from_u_mode := edeleg_w.environment_call_from_u_mode;
+				medeleg.environment_call_from_s_mode := edeleg_w.environment_call_from_s_mode;
 			}
 			(mode >= MACHINE) && cwadrs == MIDELEG: {
 				ideleg_w = cwdata;
@@ -633,10 +637,23 @@ module rv32x_core {
 		exception();
 		rv32x.get_pc_execute();
 		rv32x.get_inst_execute();
-		if(mode == MACHINE) {
-			trap(MACHINE, ENVIRONMENT_CALL_FROM_M_MODE, rv32x.epc, 0x00000000);
-		} else if(mode == USER) {
-			trap(MACHINE, ENVIRONMENT_CALL_FROM_U_MODE, rv32x.epc, 0x00000000);
+
+		any {
+			(mode == MACHINE): {
+				trap(MACHINE, ENVIRONMENT_CALL_FROM_M_MODE, rv32x.epc, 0x00000000);
+			}
+			(mode == SUPERVISOR) && (~medeleg.environment_call_from_s_mode): {
+				trap(MACHINE, ENVIRONMENT_CALL_FROM_S_MODE, rv32x.epc, 0x00000000);
+			}
+			(mode == SUPERVISOR) && (medeleg.environment_call_from_s_mode): {
+				trap(SUPERVISOR, ENVIRONMENT_CALL_FROM_S_MODE, rv32x.epc, 0x00000000);
+			}
+			(mode == USER) && (~medeleg.environment_call_from_u_mode): {
+				trap(MACHINE, ENVIRONMENT_CALL_FROM_U_MODE, rv32x.epc, 0x00000000);
+			}
+			(mode == USER) && (~medeleg.environment_call_from_u_mode): {
+				trap(SUPERVISOR, ENVIRONMENT_CALL_FROM_U_MODE, rv32x.epc, 0x00000000);
+			}
 		}
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();

@@ -63,7 +63,7 @@
 #define SUPERVISOR_EXTERNAL_INTERRUPT   0x8000_0009
 #define MACHINE_EXTERNAL_INTERRUPT      0x8000_000b
 
-#define INSTRUCTION_ADDRESS_MISALIGNED 0
+#define INSTRUCTION_ADDRESS_MISALIGNED  0
 #define INSTRUCTION_ACCESS_FAULT        1
 #define ILLEGAL_INSTRUCTION             2
 #define BREAKPOINT                      3
@@ -231,6 +231,24 @@ struct mcause_t {
 #define mtval_t csr32_t
 #define stval_t csr32_t
 #define utval_t mtval_t
-#define medeleg_t csr32_t
+struct medeleg_t {
+	reserved2[16];
+	store_amo_page_fault;
+	reserved1[1];
+	load_page_fault;
+	instruction_page_fault;
+	environment_call_from_m_mode;
+	reserved0[1];
+	environment_call_from_s_mode;
+	environment_call_from_u_mode;
+	store_amo_access_fault;
+	store_amo_address_misaligned;
+	load_access_fault;
+	load_address_misaligned;
+	breakpoint;
+	illegal_instruction;
+	instruction_access_fault;
+	instruction_address_misaligned;
+};
 #define mideleg_t mip_t
 #endif
