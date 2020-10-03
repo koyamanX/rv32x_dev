@@ -770,7 +770,7 @@ module rv32x_core {
 		mstatus.spie	:= 1;
 		sstatus.spie	:= 1;
 		mstatus.mprv 	:= if(mode == MACHINE) 1'b0 else mstatus.mprv;
-		mode 			:= sstatus.spp;	
+		mode 			:= {1'b0, sstatus.spp};	
 		rv32x.stall_ifetch_req();
 		rv32x.trap({sepc[31:2], sepc[1:0] & ~ialign});
 		finish();
