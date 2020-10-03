@@ -804,8 +804,8 @@ module rv32x_core {
 			}
 			trap_mode == SUPERVISOR: {
 				mode			:= SUPERVISOR;
-				mstatus.spp		:= mode;
-				sstatus.spp		:= mode;
+				mstatus.spp		:= mode[0];
+				sstatus.spp		:= mode[0];
 				mstatus.spie 	:= sstatus.sie;
 				sstatus.spie 	:= sstatus.sie;
 				mstatus.sie		:= 0;
