@@ -445,6 +445,16 @@ module rv32x_core {
 				uip.ueip := ip_w.ueip;
 				uip.utip := ip_w.utip;
 			}
+			(mode >= SUPERVISOR) && cwadrs == SIP: {
+				ip_w = cwdata;
+
+				mip.ssip := ip_w.ssip;
+				sip.ssip := ip_w.ssip;
+
+				mip.usip := ip_w.usip;
+				sip.usip := ip_w.usip;
+				uip.usip := ip_w.usip;
+			}
 
 			(mode >= USER) && cwadrs == USTATUS: {
 				status_w = cwdata;
