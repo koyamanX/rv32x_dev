@@ -232,5 +232,5 @@ struct mcause_t {
 #define stval_t csr32_t
 #define utval_t mtval_t
 #define medeleg_t csr32_t
-#define mideleg_t csr32_t
+#define mideleg_t mip_t
 #endif

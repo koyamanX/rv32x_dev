@@ -36,9 +36,13 @@ module rv32x_core {
 	/* Interrupt */
 	func_self interrupt();
 	func_self machine_interrupt_enabled();
+	func_self supervisor_interrupt_enabled();
 	func_self machine_timer_interrupt_pending();
 	func_self machine_software_interrupt_pending();
 	func_self machine_external_interrupt_pending();
+	func_self supervisor_timer_interrupt_pending();
+	func_self supervisor_software_interrupt_pending();
+	func_self supervisor_external_interrupt_pending();
 	/* Exceptions */
 	func_self exception();
 	func_self instruction_address_breakpoint_exception();
@@ -73,6 +77,9 @@ module rv32x_core {
 	func_self machine_timer_interrupt();
 	func_self machine_external_interrupt();
 	func_self machine_software_interrupt();
+	func_self supervisor_timer_interrupt();
+	func_self supervisor_external_interrupt();
+	func_self supervisor_software_interrupt();
 
 	wire cwadrs[32];
 	wire cwdata[32];
@@ -126,6 +133,9 @@ module rv32x_core {
 	wire msip;
 	wire mtip;
 	wire meip;
+	wire ssip;
+	wire stip;
+	wire seip;
 	wire usip;
 	wire utip;
 	wire ueip;
@@ -159,8 +169,11 @@ module rv32x_core {
 		many times. So check if currently handling interrupts(in trap state)
 		or not.
 	*/
-	if(((mode < MACHINE) || (mode == MACHINE) && mstatus.mie) && !trap) {
+	if(((mode < MACHINE) || ((mode == MACHINE) && mstatus.mie)) && !trap) {
 		machine_interrupt_enabled();
+	}
+	if(((mode < SUPERVISOR) || mstatus.sie) && !trap) {
+		supervisor_interrupt_enabled();
 	}
 	if(meip && mie.meie) {
 		machine_external_interrupt_pending();
@@ -171,10 +184,22 @@ module rv32x_core {
 	if(msip && mie.msie) {
 		machine_software_interrupt_pending();
 	}
+	if(seip && mie.seie) {
+		supervisor_external_interrupt_pending();
+	}
+	if(stip && mie.stie) {
+		supervisor_timer_interrupt_pending();
+	}
+	if(ssip && mie.ssie) {
+		supervisor_software_interrupt_pending();
+	}
 
-	msip = machine_software_interrupt_req;
-	mtip = machine_timer_interrupt_req;
-	meip = machine_external_interrupt_req;
+	msip = (machine_software_interrupt_req & ~mideleg.msip);
+	mtip = (machine_timer_interrupt_req & ~mideleg.mtip);
+	meip = (machine_external_interrupt_req & ~mideleg.meip);
+	ssip = ((supervisor_software_interrupt_req | mip.ssip) | (machine_software_interrupt_req & mideleg.msip));
+	stip = ((supervisor_timer_interrupt_req | mip.stip) | (machine_timer_interrupt_req & mideleg.mtip));
+	seip = ((supervisor_external_interrupt_req | mip.seip) | (machine_external_interrupt_req & mideleg.meip));
 
 	func reset {
 		wire resetvector[32];
@@ -208,11 +233,11 @@ module rv32x_core {
 			(mode >= MACHINE) && cradrs == MARCHID:			return marchid;
 			(mode >= MACHINE) && cradrs == MIMPID:			return mimpid;
 			(mode >= MACHINE) && cradrs == MHARTID:			return mhartid;
-			(mode >= MACHINE) && cradrs == MSTATUS:			return (mstatus | ustatus);
+			(mode >= MACHINE) && cradrs == MSTATUS:			return mstatus;
 			(mode >= MACHINE) && cradrs == MISA:			return misa;
 			(mode >= MACHINE) && cradrs == MEDELEG:			return medeleg;
 			(mode >= MACHINE) && cradrs == MIDELEG:			return mideleg;
-			(mode >= MACHINE) && cradrs == MIE:				return mie | uie;
+			(mode >= MACHINE) && cradrs == MIE:				return mie;
 			(mode >= MACHINE) && cradrs == MTVEC:			return mtvec;
 			//(mode >= MACHINE) && cradrs == MCOUNTEREN:	return mcounteren;
 			(mode >= MACHINE) && cradrs == MSTATUSH:		return mstatush;
@@ -220,7 +245,7 @@ module rv32x_core {
 			(mode >= MACHINE) && cradrs == MEPC:			return mepc;
 			(mode >= MACHINE) && cradrs == MCAUSE:			return mcause;
 			(mode >= MACHINE) && cradrs == MTVAL:			return mtval;
-			(mode >= MACHINE) && cradrs == MIP:				return mip | 32'({meip, 2'b00, ueip, mtip, 2'b00, utip, msip, 2'b00, usip});
+			(mode >= MACHINE) && cradrs == MIP:				return mip | 32'({meip, 1'b1, seip, ueip, mtip, 1'b0, stip, utip, msip, 1'b0, ssip, usip});
 			//(mode >= MACHINE) && cradrs == MTINST:		return mtinst;
 			//(mode >= MACHINE) && cradrs == MTVAL2:		return mtval2;
 			/* Machine Memory Protection */
@@ -234,14 +259,14 @@ module rv32x_core {
 			(mode >= SUPERVISOR) && cradrs == SSTATUS:		return sstatus;
 			//(mode >= SUPERVISOR) && cradrs == SEDELEG:	return sedeleg;
 			//(mode >= SUPERVISOR) && cradrs == SIDELEG:	return sideleg;
-			//(mode >= SUPERVISOR) && cradrs == SIE:		return sie;
+			(mode >= SUPERVISOR) && cradrs == SIE:		return sie;
 			(mode >= SUPERVISOR) && cradrs == STVEC:		return stvec;
 			//(mode >= SUPERVISOR) && cradrs == SCOUNTEREN:	return scounteren;
 			(mode >= SUPERVISOR) && cradrs == SSCRATCH:		return sscratch;
 			(mode >= SUPERVISOR) && cradrs == SEPC:			return sepc;
 			(mode >= SUPERVISOR) && cradrs == SCAUSE:		return scause;
 			(mode >= SUPERVISOR) && cradrs == STVAL:		return stval;
-			//(mode >= SUPERVISOR) && cradrs == SIP:		return sip;
+			(mode >= SUPERVISOR) && cradrs == SIP:		return sip;
 			//(mode >= SUPERVISOR) && cradrs == SATP:		return stap;
 
 			/* User-mode */
@@ -297,12 +322,12 @@ module rv32x_core {
 				//mstatus.xs := status_w.xs;
 				//mstatus.fs := status_w.fs;
 				mstatus.mpp := if(status_w.mpp == USER || status_w.mpp == MACHINE) status_w.mpp else mstatus.mpp;
-				//mstatus.spp := status_w.spp;
-				//mstatus.mpie := status_w.mpie;
+				mstatus.spp := status_w.spp;
+				mstatus.mpie := status_w.mpie;
 				//mstatus.ube := status_w.ube;
-				//mstatus.spie := status_w.spie;
+				mstatus.spie := status_w.spie;
 				mstatus.mie := status_w.mie;
-				//mstatus.sie := status_w.sie;
+				mstatus.sie := status_w.sie;
 				mstatus.uie := status_w.uie;
 				mstatus.upie := status_w.upie;
 				ustatus.uie := status_w.uie;
@@ -317,9 +342,26 @@ module rv32x_core {
 			(mode >= MACHINE) && cwadrs == MIE: {
 				ie_w = cwdata;
 
+				/* Machine mode */
 				mie.meie := ie_w.meie;
 				mie.mtie := ie_w.mtie;
 				mie.msie := ie_w.msie;
+
+				/* Supervisor mode */
+				mie.seie := ie_w.seie;
+				mie.stie := ie_w.stie;
+				mie.ssie := ie_w.ssie;
+				sie.seie := ie_w.seie;
+				sie.stie := ie_w.stie;
+				sie.ssie := ie_w.ssie;
+
+				/* User mode */
+				mie.ueie := ie_w.ueie;
+				mie.utie := ie_w.utie;
+				mie.usie := ie_w.usie;
+				sie.ueie := ie_w.ueie;
+				sie.utie := ie_w.utie;
+				sie.usie := ie_w.usie;
 				uie.ueie := ie_w.ueie;
 				uie.utie := ie_w.utie;
 				uie.usie := ie_w.usie;
@@ -342,9 +384,21 @@ module rv32x_core {
 				
 				/* mip.meip, mip.mtip, mip.msip is read-only */
 				/* Only interrupt controller can set or reset */
+				/* Supervisor mode */
+				mip.ssip := ip_w.ssip;
+				mip.seip := ip_w.seip;
+				mip.stip := ip_w.stip;
+				sip.ssip := ip_w.ssip;
+				sip.seip := ip_w.seip;
+				sip.stip := ip_w.stip;
+
+				/* User mode */
 				mip.usip := ip_w.usip;
 				mip.ueip := ip_w.ueip;
 				mip.utip := ip_w.utip;
+				sip.usip := ip_w.usip;
+				sip.ueip := ip_w.ueip;
+				sip.utip := ip_w.utip;
 				uip.usip := ip_w.usip;
 				uip.ueip := ip_w.ueip;
 				uip.utip := ip_w.utip;
@@ -361,6 +415,26 @@ module rv32x_core {
 				if(tvec_w.mode < 2'b10) {
 					stvec.mode := tvec_w.mode;
 				}
+			}
+			(mode >= SUPERVISOR) && cwadrs == SIE: {
+				ie_w = cwdata;
+				
+				mie.seie := ie_w.seie;
+				mie.stie := ie_w.stie;
+				mie.ssie := ie_w.ssie;
+				sie.seie := ie_w.seie;
+				sie.stie := ie_w.stie;
+				sie.ssie := ie_w.ssie;
+
+				mip.usip := ip_w.usip;
+				mip.ueip := ip_w.ueip;
+				mip.utip := ip_w.utip;
+				sip.usip := ip_w.usip;
+				sip.ueip := ip_w.ueip;
+				sip.utip := ip_w.utip;
+				uip.usip := ip_w.usip;
+				uip.ueip := ip_w.ueip;
+				uip.utip := ip_w.utip;
 			}
 
 			(mode >= USER) && cwadrs == USTATUS: {
@@ -431,9 +505,12 @@ module rv32x_core {
 	}
 	alt {
 		/* Interrupt has higher priorities than exceptions */
-		machine_interrupt_enabled && machine_external_interrupt_pending:	machine_external_interrupt();
-		machine_interrupt_enabled && machine_software_interrupt_pending:	machine_software_interrupt();
-		machine_interrupt_enabled && machine_timer_interrupt_pending:		machine_timer_interrupt();
+		machine_interrupt_enabled && machine_external_interrupt_pending:		machine_external_interrupt();
+		machine_interrupt_enabled && machine_software_interrupt_pending:		machine_software_interrupt();
+		machine_interrupt_enabled && machine_timer_interrupt_pending:			machine_timer_interrupt();
+		supervisor_interrupt_enabled && supervisor_external_interrupt_pending:	supervisor_external_interrupt();
+		supervisor_interrupt_enabled && supervisor_software_interrupt_pending:	supervisor_software_interrupt();
+		supervisor_interrupt_enabled && supervisor_timer_interrupt_pending:		supervisor_timer_interrupt();
 		/* Process exception in preceeding instruction in pipeline */	
 		/* Memory stage */
 		/* memory address is sent out to bus in memory stage process load_store_amo_address_breakpoint at memory stage */
@@ -474,6 +551,18 @@ module rv32x_core {
 	func machine_timer_interrupt {
 		interrupt();
 		trap(MACHINE, MACHINE_TIMER_INTERRUPT, rv32x.epc, 0x00000000);
+	}
+	func supervisor_external_interrupt {
+		interrupt();
+		trap(SUPERVISOR, SUPERVISOR_EXTERNAL_INTERRUPT, rv32x.epc, 0x00000000);
+	}
+	func supervisor_software_interrupt {
+		interrupt();
+		trap(SUPERVISOR, SUPERVISOR_SOFTWARE_INTERRUPT, rv32x.epc, 0x00000000);
+	}
+	func supervisor_timer_interrupt {
+		interrupt();
+		trap(SUPERVISOR, SUPERVISOR_TIMER_INTERRUPT, rv32x.epc, 0x00000000);
 	}
 	func load_store_amo_address_breakpoint_exception {
 		exception();
@@ -606,7 +695,7 @@ module rv32x_core {
 		}
 	}
 	func rv32x.sret {
-		if(mode != SUPERVISOR) {
+		if((mode != SUPERVISOR) || mstatus.tsr) {
 			illegal_instruction();
 		} else {
 			stval := 0;
@@ -644,6 +733,7 @@ module rv32x_core {
 		sstatus.sie		:= sstatus.spie;
 		mstatus.spie	:= 1;
 		sstatus.spie	:= 1;
+		mstatus.mprv 	:= if(mode == MACHINE) 1'b0 else mstatus.mprv;
 		mode 			:= sstatus.spp;	
 		rv32x.stall_ifetch_req();
 		rv32x.trap({sepc[31:2], sepc[1:0] & ~ialign});
