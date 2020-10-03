@@ -306,6 +306,7 @@ module rv32x_core {
 		mstatus_t wire status_w; 
 		mtvec_t  wire tvec_w;
 		mip_t wire ip_w;
+		mideleg_t wire ideleg_w;
 		mie_t wire ie_w;
 
 		any {
@@ -337,7 +338,11 @@ module rv32x_core {
 				medeleg := cwdata;
 			}
 			(mode >= MACHINE) && cwadrs == MIDELEG: {
-				mideleg := cwdata;
+				ideleg_w = cwdata;
+
+				mideleg.meip := ideleg_w.meip;
+				mideleg.mtip := ideleg_w.mtip;
+				mideleg.msip := ideleg_w.msip;
 			}
 			(mode >= MACHINE) && cwadrs == MIE: {
 				ie_w = cwdata;
