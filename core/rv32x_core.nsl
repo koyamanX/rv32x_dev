@@ -314,26 +314,30 @@ module rv32x_core {
 			(mode >= MACHINE) && cwadrs == MSTATUS: {
 				status_w = cwdata;
 				
-				//mstatus.sd := status_w.sd;
-				//mstatus.tsr := status_w.tsr;
-				//mstatus.tw := status_w.tw;
-				//mstatus.tvm := status_w.tvm;
-				//mstatus.mxr := status_w.mxr;
-				//mstatus.sum := status_w.sum;
-				mstatus.mprv := status_w.mprv;
-				//mstatus.xs := status_w.xs;
-				//mstatus.fs := status_w.fs;
-				mstatus.mpp := if(status_w.mpp == USER || status_w.mpp == MACHINE) status_w.mpp else mstatus.mpp;
-				mstatus.spp := status_w.spp;
-				mstatus.mpie := status_w.mpie;
-				//mstatus.ube := status_w.ube;
-				mstatus.spie := status_w.spie;
-				mstatus.mie := status_w.mie;
-				mstatus.sie := status_w.sie;
-				mstatus.uie := status_w.uie;
-				mstatus.upie := status_w.upie;
-				ustatus.uie := status_w.uie;
-				ustatus.upie := status_w.upie;
+				//mstatus.sd	:= status_w.sd;
+				//mstatus.tsr	:= status_w.tsr;
+				//mstatus.tw	:= status_w.tw;
+				//mstatus.tvm	:= status_w.tvm;
+				//mstatus.mxr	:= status_w.mxr;
+				//mstatus.sum	:= status_w.sum;
+				mstatus.mprv 	:= status_w.mprv;
+				//mstatus.xs	:= status_w.xs;
+				//mstatus.fs	:= status_w.fs;
+				mstatus.mpp		:= if(status_w.mpp != HYPERVISOR) status_w.mpp else mstatus.mpp;
+				mstatus.spp		:= status_w.spp;
+				sstatus.spp		:= status_w.spp;
+				mstatus.mpie 	:= status_w.mpie;
+				//mstatus.ube 	:= status_w.ube;
+				mstatus.spie	:= status_w.spie;
+				sstatus.spie	:= status_w.spie;
+				mstatus.mie		:= status_w.mie;
+				mstatus.sie		:= status_w.sie;
+				sstatus.sie		:= status_w.sie;
+				mstatus.uie		:= status_w.uie;
+				mstatus.upie	:= status_w.upie;
+				ustatus.uie		:= status_w.uie;
+				ustatus.upie	:= status_w.upie;
+
 			}
 			(mode >= MACHINE) && cwadrs == MEDELEG: {
 				edeleg_w = cwdata;
@@ -417,6 +421,17 @@ module rv32x_core {
 			(mode >= MACHINE) && cradrs == MCYCLEH:			mcycle	:= {cwdata, mcycle[31:0]};
 			(mode >= MACHINE) && cradrs == MINSTRETH:		minstret := {cwdata, minstret[31:0]};
 
+			(mode >= SUPERVISOR) && cwadrs == SSTATUS: {
+				status_w = cwdata;
+
+				mstatus.sie		:= status_w.sie;
+				mstatus.spie	:= status_w.spie;
+				mstatus.spp		:= status_w.spp;
+
+				sstatus.sie		:= status_w.sie;
+				sstatus.spie	:= status_w.spie;
+				sstatus.spp		:= status_w.spp;
+			}
 			(mode >= SUPERVISOR) && cwadrs == STVEC: {
 				tvec_w = cwdata;
 				
