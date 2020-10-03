@@ -457,6 +457,7 @@ module rv32x_core {
 			}
 			(mode >= SUPERVISOR) && cwadrs == SSCRATCH:	sscratch := cwdata;
 			(mode >= SUPERVISOR) && cwadrs == SEPC:		sepc := {cwdata[31:2], (cwdata[1:0] & ~ialign)};
+			(mode >= SUPERVISOR) && cwadrs == SCAUSE:	scause := scause;
 
 			(mode >= USER) && cwadrs == USTATUS: {
 				status_w = cwdata;
