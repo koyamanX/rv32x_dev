@@ -368,6 +368,8 @@ module rv32x_core {
 
 				mstatus.uie := status_w.uie;
 				mstatus.upie := status_w.upie;
+				sstatus.uie := status_w.uie;
+				sstatus.upie := status_w.upie;
 				ustatus.uie := status_w.uie;
 				ustatus.upie := status_w.upie;
 			}
@@ -377,6 +379,9 @@ module rv32x_core {
 				mie.ueie := ie_w.ueie;
 				mie.utie := ie_w.utie;
 				mie.usie := ie_w.usie;
+				sie.ueie := ie_w.ueie;
+				sie.utie := ie_w.utie;
+				sie.usie := ie_w.usie;
 				uie.ueie := ie_w.ueie;
 				uie.utie := ie_w.utie;
 				uie.usie := ie_w.usie;
@@ -397,6 +402,7 @@ module rv32x_core {
 				ip_w = cwdata;
 
 				mip.usip := ip_w.usip;
+				sip.usip := ip_w.usip;
 				uip.usip := ip_w.usip;
 			}
 			else: csr_write_not_mapped();
