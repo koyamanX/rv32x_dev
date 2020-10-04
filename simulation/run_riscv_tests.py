@@ -27,12 +27,8 @@ targets_should_be_failed = [
 	'rv32ua-p-amoswap_w',
 	'rv32ua-p-amoxor_w',
 	'rv32ua-p-lrsc',
-	'rv32si-p-csr',
 	'rv32si-p-dirty',
 	'rv32si-p-ma_fetch',
-	'rv32si-p-sbreak',
-	'rv32si-p-scall',
-	'rv32si-p-wfi',
 ]
 targets_to_exclude = [
 	'rv32mi-p-breakpoint',
