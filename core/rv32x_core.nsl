@@ -347,6 +347,7 @@ module rv32x_core {
 				medeleg.environment_call_from_u_mode := edeleg_w.environment_call_from_u_mode;
 				medeleg.environment_call_from_s_mode := edeleg_w.environment_call_from_s_mode;
 				medeleg.breakpoint := edeleg_w.breakpoint;
+				medeleg.instruction_address_misaligned := edeleg_w.instruction_address_misaligned;
 			}
 			(mode >= MACHINE) && cwadrs == MIDELEG: {
 				ideleg_w = cwdata;
@@ -747,9 +748,12 @@ module rv32x_core {
 #endif
 	}
 	func instruction_address_misaligned_exception {
+		any {
+			~medeleg.instruction_address_misaligned: trap(MACHINE, INSTRUCTION_ADDRESS_MISALIGNED, rv32x.epc, rv32x.misaligned_target_address);
+			medeleg.instruction_address_misaligned: trap(SUPERVISOR, INSTRUCTION_ADDRESS_MISALIGNED, rv32x.epc, rv32x.misaligned_target_address);
+		}
 		exception();
 		rv32x.get_pc_execute();	
-		trap(MACHINE, INSTRUCTION_ADDRESS_MISALIGNED, rv32x.epc, rv32x.misaligned_target_address);
 		rv32x.stall_ifetch_req();
 		rv32x.flush_ifetch();
 		rv32x.stall_decode_req();
