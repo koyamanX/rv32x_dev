@@ -251,5 +251,12 @@ struct medeleg_t {
 	instruction_address_misaligned;
 };
 #define mideleg_t mip_t
-#define satp_t csr32_t
+struct satp_t {
+	mode[1];
+	asid[9];
+	ppn[22];
+};
+
+#define SATP_32_MODE_BARE 1'b0
+#define SATP_32_MODE_SV32 1'b1
 #endif
