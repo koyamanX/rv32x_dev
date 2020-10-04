@@ -780,7 +780,7 @@ module rv32x_core {
 		}
 	}
 	func rv32x.sret {
-		if((mode != SUPERVISOR) || mstatus.tsr) {
+		if((mode == SUPERVISOR) && mstatus.tsr) {
 			illegal_instruction();
 		} else {
 			stval := 0;
