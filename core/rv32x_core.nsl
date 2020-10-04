@@ -346,6 +346,7 @@ module rv32x_core {
 
 				medeleg.environment_call_from_u_mode := edeleg_w.environment_call_from_u_mode;
 				medeleg.environment_call_from_s_mode := edeleg_w.environment_call_from_s_mode;
+				medeleg.breakpoint := edeleg_w.breakpoint;
 			}
 			(mode >= MACHINE) && cwadrs == MIDELEG: {
 				ideleg_w = cwdata;
@@ -724,10 +725,17 @@ module rv32x_core {
 #endif
 	}
 	func environment_break_exception {
+		any {
+			~medeleg.breakpoint: {
+				trap(MACHINE, BREAKPOINT, rv32x.epc, rv32x.epc);
+			}
+			medeleg.breakpoint: {
+				trap(SUPERVISOR, BREAKPOINT, rv32x.epc, rv32x.epc);
+			}
+		}
 		exception();
 		rv32x.get_pc_execute();
 		rv32x.get_inst_execute();
-		trap(MACHINE, BREAKPOINT, rv32x.epc, rv32x.epc);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
 		rv32x.stall_execute_req();
