@@ -251,4 +251,5 @@ struct medeleg_t {
 	instruction_address_misaligned;
 };
 #define mideleg_t mip_t
+#define satp_t csr32_t
 #endif

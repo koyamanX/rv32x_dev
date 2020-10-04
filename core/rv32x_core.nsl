@@ -120,6 +120,7 @@ module rv32x_core {
 	scause_t reg scause				= 0;
 	stval_t reg stval 				= 0;
 	sip_t reg sip					= 0;
+	satp_t reg satp					= 0;
 
 	ustatus_t reg ustatus			= 0;
 	uie_t reg uie					= 0;
@@ -197,9 +198,9 @@ module rv32x_core {
 	msip = (machine_software_interrupt_req & ~mideleg.msip);
 	mtip = (machine_timer_interrupt_req & ~mideleg.mtip);
 	meip = (machine_external_interrupt_req & ~mideleg.meip);
-	ssip = ((supervisor_software_interrupt_req | mip.ssip) | (machine_software_interrupt_req & mideleg.msip));
-	stip = ((supervisor_timer_interrupt_req | mip.stip) | (machine_timer_interrupt_req & mideleg.mtip));
-	seip = ((supervisor_external_interrupt_req | mip.seip) | (machine_external_interrupt_req & mideleg.meip));
+	ssip = ((supervisor_software_interrupt_req | mip.ssip));
+	stip = ((supervisor_timer_interrupt_req | mip.stip));
+	seip = ((supervisor_external_interrupt_req | mip.seip));
 
 	func reset {
 		wire resetvector[32];
@@ -267,7 +268,8 @@ module rv32x_core {
 			(mode >= SUPERVISOR) && cradrs == SCAUSE:		return scause;
 			(mode >= SUPERVISOR) && cradrs == STVAL:		return stval;
 			(mode >= SUPERVISOR) && cradrs == SIP:			return sip;
-			//(mode >= SUPERVISOR) && cradrs == SATP:		return stap;
+			(mode >= SUPERVISOR) && cradrs == SATP
+				&& !((mode == SUPERVISOR) && mstatus.tvm):	return satp;
 
 			/* User-mode */
 			(mode >= USER) && cradrs == USTATUS:			return ustatus;
@@ -315,9 +317,9 @@ module rv32x_core {
 				status_w = cwdata;
 				
 				//mstatus.sd	:= status_w.sd;
-				//mstatus.tsr	:= status_w.tsr;
-				//mstatus.tw	:= status_w.tw;
-				//mstatus.tvm	:= status_w.tvm;
+				mstatus.tsr		:= status_w.tsr;
+				mstatus.tw		:= status_w.tw;
+				mstatus.tvm		:= status_w.tvm;
 				//mstatus.mxr	:= status_w.mxr;
 				//mstatus.sum	:= status_w.sum;
 				mstatus.mprv 	:= status_w.mprv;
@@ -348,9 +350,9 @@ module rv32x_core {
 			(mode >= MACHINE) && cwadrs == MIDELEG: {
 				ideleg_w = cwdata;
 
-				mideleg.meip := ideleg_w.meip;
-				mideleg.mtip := ideleg_w.mtip;
-				mideleg.msip := ideleg_w.msip;
+				mideleg.seip := ideleg_w.seip;
+				mideleg.stip := ideleg_w.stip;
+				mideleg.ssip := ideleg_w.ssip;
 			}
 			(mode >= MACHINE) && cwadrs == MIE: {
 				ie_w = cwdata;
@@ -470,6 +472,8 @@ module rv32x_core {
 				sip.usip := ip_w.usip;
 				uip.usip := ip_w.usip;
 			}
+			(mode >= SUPERVISOR) && cwadrs == SATP
+				&& !((mode == SUPERVISOR) && (mstatus.tvm)):	satp := cwdata;
 			(mode >= SUPERVISOR) && cwadrs == SSCRATCH:	sscratch := cwdata;
 			(mode >= SUPERVISOR) && cwadrs == SEPC:		sepc := {cwdata[31:2], (cwdata[1:0] & ~ialign)};
 			(mode >= SUPERVISOR) && cwadrs == SCAUSE:	scause := scause;
@@ -526,6 +530,13 @@ module rv32x_core {
 	func rv32x.ecall {
 		environment_call();
 	}
+	func rv32x.wfi {
+		any {
+			/* no bounded time limit, so always generates illegal instruction exception on less priv */
+			(mstatus.tw && mode == USER): 		illegal_instruction();
+			(mstatus.tw && mode == SUPERVISOR): illegal_instruction();
+		}
+	}
 	func rv32x.ebreak {
 		environment_break();
 	}
@@ -546,9 +557,18 @@ module rv32x_core {
 		machine_interrupt_enabled && machine_external_interrupt_pending:		machine_external_interrupt();
 		machine_interrupt_enabled && machine_software_interrupt_pending:		machine_software_interrupt();
 		machine_interrupt_enabled && machine_timer_interrupt_pending:			machine_timer_interrupt();
-		supervisor_interrupt_enabled && supervisor_external_interrupt_pending:	supervisor_external_interrupt();
-		supervisor_interrupt_enabled && supervisor_software_interrupt_pending:	supervisor_software_interrupt();
-		supervisor_interrupt_enabled && supervisor_timer_interrupt_pending:		supervisor_timer_interrupt();
+		machine_interrupt_enabled 
+					&& supervisor_external_interrupt_pending && ~mideleg.seip:	supervisor_external_interrupt();
+		machine_interrupt_enabled 
+					&& supervisor_software_interrupt_pending && ~mideleg.ssip:	supervisor_software_interrupt();
+		machine_interrupt_enabled 
+					&& supervisor_timer_interrupt_pending && ~mideleg.stip:		supervisor_timer_interrupt();
+		supervisor_interrupt_enabled 
+					&& supervisor_external_interrupt_pending && mideleg.seip:	supervisor_external_interrupt();
+		supervisor_interrupt_enabled 
+					&& supervisor_software_interrupt_pending && mideleg.ssip:	supervisor_software_interrupt();
+		supervisor_interrupt_enabled 
+					&& supervisor_timer_interrupt_pending && mideleg.stip:		supervisor_timer_interrupt();
 		/* Process exception in preceeding instruction in pipeline */	
 		/* Memory stage */
 		/* memory address is sent out to bus in memory stage process load_store_amo_address_breakpoint at memory stage */
@@ -592,15 +612,24 @@ module rv32x_core {
 	}
 	func supervisor_external_interrupt {
 		interrupt();
-		trap(SUPERVISOR, SUPERVISOR_EXTERNAL_INTERRUPT, rv32x.epc, 0x00000000);
+		any {
+			~mideleg.seip: trap(MACHINE, SUPERVISOR_EXTERNAL_INTERRUPT, rv32x.epc, 0x00000000);
+			mideleg.seip: trap(SUPERVISOR, SUPERVISOR_EXTERNAL_INTERRUPT, rv32x.epc, 0x00000000);
+		}
 	}
 	func supervisor_software_interrupt {
 		interrupt();
-		trap(SUPERVISOR, SUPERVISOR_SOFTWARE_INTERRUPT, rv32x.epc, 0x00000000);
+		any {
+			~mideleg.ssip: trap(MACHINE, SUPERVISOR_SOFTWARE_INTERRUPT, rv32x.epc, 0x00000000);
+			mideleg.ssip: trap(SUPERVISOR, SUPERVISOR_SOFTWARE_INTERRUPT, rv32x.epc, 0x00000000);
+		}
 	}
 	func supervisor_timer_interrupt {
 		interrupt();
-		trap(SUPERVISOR, SUPERVISOR_TIMER_INTERRUPT, rv32x.epc, 0x00000000);
+		any {
+			~mideleg.stip: trap(MACHINE, SUPERVISOR_TIMER_INTERRUPT, rv32x.epc, 0x00000000);
+			mideleg.stip: trap(SUPERVISOR, SUPERVISOR_TIMER_INTERRUPT, rv32x.epc, 0x00000000);
+		}
 	}
 	func load_store_amo_address_breakpoint_exception {
 		exception();
@@ -732,6 +761,11 @@ module rv32x_core {
 	}
 	func instruction_access_fault_exception {
 		exception();
+	}
+	func rv32x.sfence_vma_illegal_instruction_check {
+		if(((mode == SUPERVISOR) && mstatus.tvm)) {
+			illegal_instruction();
+		}
 	}
 	func rv32x.mret {
 		if(mode != MACHINE) {
@@ -873,6 +907,9 @@ module rv32x_core {
 		}
 	}
 	func rv32x.fence {
+		rv32x.dmem_valid();
+	}
+	func rv32x.sfence_vma {
 		rv32x.dmem_valid();
 	}
 	func ic.invalidate_done {

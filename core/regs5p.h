@@ -45,11 +45,13 @@ struct dereg_t {
 	uimm;
 	fencei;
 	fence;
+	sfence_vma;
 	ecall;
 	ebreak;
 	mret;
 	sret;
 	uret;
+	wfi;
 	wb;
 	illegal_instruction;
 	predict_as_taken;
@@ -71,6 +73,7 @@ struct emreg_t {
 	alu_q[32];
 	fencei;
 	fence;
+	sfence_vma;
 	wb;
 };
 struct mwreg_t {

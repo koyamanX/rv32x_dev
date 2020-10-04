@@ -41,10 +41,12 @@ declare rv32x5p {
 
 	func_out fencei();							/* Indicating fence.i is issued */
 	func_out fence();							/* Indicating fence is issued */
+	func_out sfence_vma();						/* Indicating sfence_vma is issued */
 	func_out ecall();							/* Indicating ecall is issued */
 	func_out ebreak();							/* Indicating ebreak is issued */
 	func_out mret();							/* Indicating mret is issued */
 	func_out sret();							/* Indicating sret is issued */
+	func_out sfence_vma_illegal_instruction_check();
 	func_out uret();							/* Indicating uret is issued */
 	func_out wfi();								/* indicating Wait-For-Interrupt is issued */
 	output einst[32];

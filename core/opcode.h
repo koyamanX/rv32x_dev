@@ -84,6 +84,9 @@
 #define MRET		12'b001100000010
 #define WFI			12'b000100000101
 
+/* funct7 field */
+#define SFENCE_VMA	7'b0001001
+
 /* byteena */
 #define MEM_WORD        3'b010
 #define MEM_HALFWORD    3'b001
