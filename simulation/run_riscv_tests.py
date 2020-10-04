@@ -57,6 +57,7 @@ def run_tests(tests_list, tests_assertion):
 	global passed, failed, timeout
 	for t, a in zip(tests_list, tests_assertion):
 		if(t in targets_to_exclude):
+			print('{:20}\tskipped'.format(t))
 			continue
 		try:
 			subprocess.run([simulator, riscv_tests_directory+t, '--print-inst-trace', '--print-exception', '--print-disasm'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=8)
