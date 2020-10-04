@@ -66,7 +66,7 @@ def run_tests(tests_list, tests_assertion):
 				failed_tests.append(t)
 				failed+=1
 			else:
-				print('{:20}\t{:20}  and it\'s FAILED\tOK'.format(t, a))
+				print('{:20}\t{:20}  and it\'s FAILED\t'.format(t, a))
 				failed_tests.append(t)
 				failed+=1
 			continue
@@ -104,6 +104,7 @@ def main():
 
 	if md_opt == 1:
 		print('```')
+		return exit_code
 	print('{} tests done, {} passed, {} failed, timeout {}'.format(len(tests_list), passed, failed, timeout))
 	print('-'*100)
 	expected_to_fail_tests = (set(failed_tests) & set(targets_should_be_failed))
