@@ -709,7 +709,7 @@ module rv32x_core {
 			(mode == USER) && (~medeleg.environment_call_from_u_mode): {
 				trap(MACHINE, ENVIRONMENT_CALL_FROM_U_MODE, rv32x.epc, 0x00000000);
 			}
-			(mode == USER) && (~medeleg.environment_call_from_u_mode): {
+			(mode == USER) && (medeleg.environment_call_from_u_mode): {
 				trap(SUPERVISOR, ENVIRONMENT_CALL_FROM_U_MODE, rv32x.epc, 0x00000000);
 			}
 		}
