@@ -17,7 +17,6 @@ targets = [
 	'rv32si-p-*',
 ]
 targets_should_be_failed = [
-	'rv32mi-p-breakpoint',
 	'rv32ua-p-amoadd_w',
 	'rv32ua-p-amoand_w',
 	'rv32ua-p-amomaxu_w',
@@ -34,6 +33,9 @@ targets_should_be_failed = [
 	'rv32si-p-sbreak',
 	'rv32si-p-scall',
 	'rv32si-p-wfi',
+]
+targets_to_exclude = [
+	'rv32mi-p-breakpoint',
 ]
 failed=0
 failed_tests = []
@@ -54,6 +56,8 @@ def gen_tests_assertion(tests_list):
 def run_tests(tests_list, tests_assertion):
 	global passed, failed, timeout
 	for t, a in zip(tests_list, tests_assertion):
+		if(t in targets_to_exclude):
+			continue
 		try:
 			subprocess.run([simulator, riscv_tests_directory+t, '--print-inst-trace', '--print-exception', '--print-disasm'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=8)
 		except subprocess.CalledProcessError as err:
