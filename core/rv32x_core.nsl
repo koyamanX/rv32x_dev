@@ -259,14 +259,14 @@ module rv32x_core {
 			(mode >= SUPERVISOR) && cradrs == SSTATUS:		return sstatus;
 			//(mode >= SUPERVISOR) && cradrs == SEDELEG:	return sedeleg;
 			//(mode >= SUPERVISOR) && cradrs == SIDELEG:	return sideleg;
-			(mode >= SUPERVISOR) && cradrs == SIE:		return sie;
+			(mode >= SUPERVISOR) && cradrs == SIE:			return sie;
 			(mode >= SUPERVISOR) && cradrs == STVEC:		return stvec;
 			//(mode >= SUPERVISOR) && cradrs == SCOUNTEREN:	return scounteren;
 			(mode >= SUPERVISOR) && cradrs == SSCRATCH:		return sscratch;
 			(mode >= SUPERVISOR) && cradrs == SEPC:			return sepc;
 			(mode >= SUPERVISOR) && cradrs == SCAUSE:		return scause;
 			(mode >= SUPERVISOR) && cradrs == STVAL:		return stval;
-			(mode >= SUPERVISOR) && cradrs == SIP:		return sip;
+			(mode >= SUPERVISOR) && cradrs == SIP:			return sip;
 			//(mode >= SUPERVISOR) && cradrs == SATP:		return stap;
 
 			/* User-mode */
@@ -416,10 +416,10 @@ module rv32x_core {
 				uip.ueip := ip_w.ueip;
 				uip.utip := ip_w.utip;
 			}
-			(mode >= MACHINE) && cradrs == MCYCLE:			mcycle	:= {mcycle[63:32], cwdata};
-			(mode >= MACHINE) && cradrs == MINSTRET:		minstret := {minstret[63:32], cwdata};
-			(mode >= MACHINE) && cradrs == MCYCLEH:			mcycle	:= {cwdata, mcycle[31:0]};
-			(mode >= MACHINE) && cradrs == MINSTRETH:		minstret := {cwdata, minstret[31:0]};
+			(mode >= MACHINE) && cwadrs == MCYCLE:			mcycle	:= {mcycle[63:32], cwdata};
+			(mode >= MACHINE) && cwadrs == MINSTRET:		minstret := {minstret[63:32], cwdata};
+			(mode >= MACHINE) && cwadrs == MCYCLEH:			mcycle	:= {cwdata, mcycle[31:0]};
+			(mode >= MACHINE) && cwadrs == MINSTRETH:		minstret := {cwdata, minstret[31:0]};
 
 			(mode >= SUPERVISOR) && cwadrs == SSTATUS: {
 				status_w = cwdata;
