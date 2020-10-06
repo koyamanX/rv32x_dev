@@ -37,12 +37,3 @@ WORKDIR ${HOME}
 RUN rm -rf ${HOME}/riscv-gnu-toolchain/build ${HOME}/riscv-gnu-toolchain/riscv-binutils/build 
 # RUN rm -rf ${HOME}/riscv-gnu-toolchain
 WORKDIR ${HOME}
-RUN git clone --recursive https://github.com/riscv/riscv-isa-sim.git
-RUN mkdir riscv-isa-sim/build
-WORKDIR ${HOME}/riscv-isa-sim/build
-RUN ../configure --prefix=/opt/riscv --with-isa=RV32IMAC --with-priv=M --enable-commitlog=yes
-RUN make -j $(nproc)
-RUN make install -j $(nproc)
-WORKDIR ${HOME}
-
-WORKDIR ${HOME}
