@@ -266,10 +266,10 @@ public:
 					switch(cause) {
 						case INSTRUCTION_ACCESS_FAULT: 
 						case INSTRUCTION_PAGE_FAULT: 
+						case ILLEGAL_INSTRUCTION:
 							got_exception = 0;
 							break;
 						case INSTRUCTION_ADDRESS_MISALIGNED: 
-						case ILLEGAL_INSTRUCTION:
 						case BREAKPOINT: 
 						case ENVIRONMENT_CALL_FROM_U_MODE: 
 						case ENVIRONMENT_CALL_FROM_S_MODE: 
