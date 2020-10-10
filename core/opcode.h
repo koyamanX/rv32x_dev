@@ -102,5 +102,7 @@
 #define XLEN 32
 #define ILEN 32
 #define IALIGN 32
+#define ASIDLEN 0
+#define ASIDMAX 9
 
 #endif

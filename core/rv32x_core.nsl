@@ -311,6 +311,7 @@ module rv32x_core {
 		mideleg_t wire ideleg_w;
 		medeleg_t wire edeleg_w;
 		mie_t wire ie_w;
+		satp_t wire satp_w;
 
 		any {
 			(mode >= MACHINE) && cwadrs == MSTATUS: {
@@ -475,7 +476,12 @@ module rv32x_core {
 				uip.usip := ip_w.usip;
 			}
 			(mode >= SUPERVISOR) && cwadrs == SATP
-				&& !((mode == SUPERVISOR) && (mstatus.tvm)):	satp := cwdata;
+				&& !((mode == SUPERVISOR) && (mstatus.tvm)): {
+					satp_w = cwdata;
+
+					satp.mode := satp_w.mode;
+					satp.ppn := satp_w.ppn;
+				}
 			(mode >= SUPERVISOR) && cwadrs == SSCRATCH:	sscratch := cwdata;
 			(mode >= SUPERVISOR) && cwadrs == SEPC:		sepc := {cwdata[31:2], (cwdata[1:0] & ~ialign)};
 			(mode >= SUPERVISOR) && cwadrs == SCAUSE:	scause := scause;
