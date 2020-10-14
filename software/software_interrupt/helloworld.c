@@ -25,7 +25,7 @@ static inline void mie_w(unsigned int x) {
 }
 volatile int x = 0; 
 int main(void) {
-	*((volatile unsigned int *) 0x20000000) = 0x1;
+	*((volatile unsigned int *) 0x02000000) = 0x1;
 	mie_w(0x8);
 	mstatus_w(0x8);
 
@@ -40,7 +40,7 @@ int main(void) {
 	return 1;
 }
 __attribute__ ((interrupt ("machine"))) void software_handler(void) {
-	*((volatile unsigned int *) 0x20000000) = 0x0;
+	*((volatile unsigned int *) 0x02000000) = 0x0;
 	x++;
 
 	return ;

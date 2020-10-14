@@ -25,7 +25,7 @@ static inline void mie_w(unsigned int x) {
 }
 volatile int x = 0; 
 int main(void) {
-	*((volatile unsigned int *) 0x20004000) = 0xffff;
+	*((volatile unsigned int *) 0x02004000) = 0xffff;
 	mie_w(0x80);
 	mstatus_w(0x8);
 
@@ -51,13 +51,13 @@ __attribute__ ((interrupt ("machine"))) void timer_handler(void) {
 	timer_t mtime;
 	timer_t mtimecmp;
 
-	mtime.parcel.hi = *((volatile unsigned int *)0x20008ffc);
-	mtime.parcel.lo = *((volatile unsigned int *)0x20008ff8);
-	mtimecmp.parcel.hi = *((volatile unsigned int *)0x20004004);
-	mtimecmp.parcel.lo = *((volatile unsigned int *)0x20004000);
+	mtime.parcel.hi = *((volatile unsigned int *)0x02008ffc);
+	mtime.parcel.lo = *((volatile unsigned int *)0x02008ff8);
+	mtimecmp.parcel.hi = *((volatile unsigned int *)0x02004004);
+	mtimecmp.parcel.lo = *((volatile unsigned int *)0x02004000);
 	mtimecmp.val = mtime.val + 0xffff;
-	*((volatile unsigned int *)0x20004004) = mtimecmp.parcel.hi;
-	*((volatile unsigned int *)0x20004000) = mtimecmp.parcel.lo;
+	*((volatile unsigned int *)0x02004004) = mtimecmp.parcel.hi;
+	*((volatile unsigned int *)0x02004000) = mtimecmp.parcel.lo;
 
 	x++;
 

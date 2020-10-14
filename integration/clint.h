@@ -14,7 +14,7 @@ declare clint {
 	func_out load_access_fault();
 }
 
-#define CLINT_BASE_ADDR 			0x2000_0000
+#define CLINT_BASE_ADDR 			0x0200_0000
 #define CLINT_MSIP_ADDR_OFFSET 		0x0000
 #define CLINT_MSIP_SIZE				0x0004
 #define CLINT_MTIMECMP_ADDR_OFFSET	0x4000
