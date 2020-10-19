@@ -20,16 +20,15 @@
 #define UART_TX_CLAIM			2
 
 
-__attribute__ ((interrupt ("machine"))) void machine_software_interrupt_handler(void) {
+__attribute__ ((interrupt ("machine"), weak)) void machine_software_interrupt_handler(void) {
 	return ;
 }
-__attribute__ ((interrupt ("machine"))) void machine_timer_interrupt_handler(void) {
+__attribute__ ((interrupt ("machine"), weak)) void machine_timer_interrupt_handler(void) {
 	return ;
 }
 
-extern void uart_rx_interrupt_handler(void);
-extern void uart_tx_interrupt_handler(void);
-__attribute__ ((interrupt ("machine"))) void machine_external_interrupt_handler(void) {
+#include "uart.h"
+__attribute__ ((interrupt ("machine"), weak)) void machine_external_interrupt_handler(void) {
 	unsigned int claim;
 	claim = *PLIC_CLAIM_REGISTER;
 	
