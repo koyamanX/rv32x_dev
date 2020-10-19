@@ -257,13 +257,13 @@ struct rv32_satp_t {
 	ppn[22];
 };
 #define satp_t rv32_satp_t
-struct sv32_vma_t {
+struct sv32_va_t {
 	vpn1[10];
 	vpn0[10];
 	page_offset[12];
 };
-struct sv32_pma_t {
-	ppn1[10];
+struct sv32_pa_t {
+	ppn1[12];
 	ppn0[10];
 	page_offset[12];
 };
