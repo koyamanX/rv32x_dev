@@ -96,7 +96,7 @@ def main():
 	if md_opt == 1:
 		print('```')
 	run_tests(tests_list, tests_assertion)
-	exit_code = failed
+	exit_code = 0 if(len(targets_should_be_failed) == failed) else failed
 
 	if md_opt == 1:
 		print('```')
