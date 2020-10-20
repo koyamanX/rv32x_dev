@@ -105,5 +105,6 @@
 #define IALIGN 32
 #define ASIDLEN 0
 #define ASIDMAX 9
+#define LEVELS 2
 
 #endif
