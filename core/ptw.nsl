@@ -1,0 +1,55 @@
+#include "ptw.h"
+#include "csr.h"
+#include "opcode.h"
+
+module ptw {
+	proc_name idle();
+	reg levels[2];
+	reg va[32];
+	reg root_page_table[34];
+	reg pte[32];
+	proc_name page_table_walk(levels, va, root_page_table);
+	proc_name protection_check(levels, va, root_page_table, pte);
+
+	func reset {
+		idle();
+	}
+	proc idle {
+		wire satp_mode;
+		wire satp_asid[9];
+		wire satp_ppn[22];
+
+		.{satp_mode, satp_asid, satp_ppn} = satp;
+		if(walk) {
+			page_table_walk(LEVELS-1, virtual_address, {satp_ppn, 0x000});
+		}
+	}
+	proc page_table_walk {
+		sv32_va_t wire sv32_va;
+		wire vpn[10];
+
+		sv32_va = va;
+
+		any {
+			levels == 1: vpn = sv32_va.vpn1;
+			levels == 0: vpn = sv32_va.vpn0;
+		}
+		mem_read(root_page_table + vpn);
+		if(mem_valid) {
+			protection_check(levels, virtual_address, {satp_ppn, 0x000}, mem_rdata);
+		}
+	}
+	proc protection_check {
+		sv32_pte_t wire sv32_pte;
+		
+		sv32_pte = pte;
+		if(levels == 0 && ~sv32_pte.x && ~sv32_pte.w && ~sv32_pte.r) {
+			page_fault();
+		} else if((levels == 0) || (sv32_pte.x || sv32_pte.w || sv32_pte.r)) {
+			pte_valid(pte);
+			idle();
+		} else {
+			page_table_walk(levels-1, va, {sv32_pte.ppn1, sv32_pte.ppn0, 0x000});
+		}
+	}
+}
