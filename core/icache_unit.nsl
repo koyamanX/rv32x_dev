@@ -11,7 +11,7 @@ module icache_unit {
 	wire cache_block[128];
 	wire cache_word[32];
 	wire invalidate_index[8];
-	reg reg_adrs[32];
+	reg allocate_adrs[32];
 	reg invalidate_cnt[9] = 0;
 	reg cdata[128];
 	reg cvalid;
@@ -24,14 +24,16 @@ module icache_unit {
 
 	func_self hit();
 	func_self miss();
-	func_self refill();
+	wire refill_tag[20];
+	wire refill_index[8];
+	func_self refill(refill_tag, refill_index);
 	proc_name idle();
 	/* registering output of mem block is required to infer bram */
-	proc_name compare_tag(reg_adrs, cdata, ctag, cvalid, cindex);
-	proc_name allocate(reg_adrs); 
+	proc_name compare_tag(allocate_adrs, cdata, ctag, cvalid, cindex);
+	proc_name allocate(allocate_adrs); 
 	proc_name invalidate_cache();
 
-	.{tag, index, blockoffset, byteoffset} = reg_adrs;
+	.{tag, index, blockoffset, byteoffset} = allocate_adrs;
 	.{t, i, l, y} = adrs;
 
 
@@ -55,7 +57,7 @@ module icache_unit {
 		if(hit) {
 			idle();
 		} else if(miss) {
-			allocate(reg_adrs);
+			allocate(allocate_adrs);
 		}
 	}
 	func hit {
@@ -72,17 +74,23 @@ module icache_unit {
 		}
 	}
 	proc allocate {
-		mem_read({tag, index, 4'b0000});
+		wire allocate_tag[20];
+		wire allocate_index[8];
+		wire allocate_blockoffset[2];
+		wire allocate_byteoffset[2];
+		.{allocate_tag, allocate_index, allocate_blockoffset, allocate_byteoffset} = allocate_adrs;
+
+		mem_read({allocate_tag, allocate_index, 4'b0000});
 		if(mem_valid) {
-			refill();
+			refill(allocate_tag, allocate_index);
 			/* use new address to enable cancellation of read operation */
 			compare_tag(adrs, cache_data[i], cache_tag[i], cache_valid[i], i);
 		}
 	}
 	func refill {
-		cache_data[index] := mem_rdata;
-		cache_tag[index] := tag;
-		cache_valid[index] := VALID;
+		cache_data[refill_index] := mem_rdata;
+		cache_tag[refill_index] := refill_tag;
+		cache_valid[refill_index] := VALID;
 	}
 	proc invalidate_cache seq {
 		for(invalidate_cnt := 0; invalidate_cnt < 256; invalidate_cnt++) {
