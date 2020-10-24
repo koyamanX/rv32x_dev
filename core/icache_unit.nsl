@@ -22,8 +22,8 @@ module icache_unit {
 	mem cache_valid[256] = {0};
 	mem cache_tag[256][20];
 
-	func_self hit();
-	func_self miss();
+	func_self cache_hit();
+	func_self cache_miss();
 	wire refill_tag[20];
 	wire refill_index[8];
 	func_self refill(refill_tag, refill_index);
@@ -49,14 +49,14 @@ module icache_unit {
 	proc compare_tag {
 		/* checking (index == i) is required, to support cancellation of read operation in this stage */
 		if(cache_valid_entry && (cache_tag_entry == cache_tag_accessing) && (cache_index_accessing == index)) {
-			hit();
+			cache_hit();
 			idle();
 		} else {
-			miss();
+			cache_miss();
 			allocate(adrs);
 		}
 	}
-	func hit {
+	func cache_hit {
 		cache_block = cache_data_entry;
 		any {
 			blockoffset == 2'b00: cache_word = cache_block[31:0];
