@@ -84,15 +84,14 @@ module icache_unit {
 		cache_tag[index] := tag;
 		cache_valid[index] := VALID;
 	}
-	proc invalidate_cache {
-		invalidate_index = invalidate_cnt[7:0];
-		if(invalidate_cnt == 256) {
-			invalidate_cnt := 0;
+	proc invalidate_cache seq {
+		for(invalidate_cnt := 0; invalidate_cnt < 256; invalidate_cnt++) {
+			invalidate_index = invalidate_cnt[7:0];
+			cache_valid[invalidate_index] := INVALID;
+		}
+		{
 			invalidate_done();
 			idle();
-		} else {
-			cache_valid[invalidate_index] := INVALID;
-			invalidate_cnt++;
 		}
 	}
 }
