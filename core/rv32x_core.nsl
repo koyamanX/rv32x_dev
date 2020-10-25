@@ -963,7 +963,7 @@ module rv32x_core {
 	}
 	func rv32x.dmem_read {
 
-		check_daddr_range(rv32x.daddr);
+		check_dmem_pma(rv32x.daddr);
 		any {
 			cacheable && !not_mapped:					dc.read(rv32x.daddr, rv32x.dbyteen);
 			!cacheable && !not_mapped:					noncacheable_read(rv32x.daddr, rv32x.dbyteen);	
@@ -996,7 +996,7 @@ module rv32x_core {
 		}
 	}
 	func rv32x.dmem_write {
-		check_daddr_range(rv32x.daddr);
+		check_dmem_pma(rv32x.daddr);
 		any {
 			cacheable && !not_mapped:					dc.write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
 			!cacheable && !not_mapped:					noncacheable_write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);

@@ -55,7 +55,7 @@ module rv32x_integration {
 			else: dmem_write(core.daddr, core.dbyteen, core.wdata);
 		}
 	}
-	func core.check_daddr_range {
+	func core.check_dmem_pma {
 		/* all location are mapped & cacheable for simulation purpose */
 		any {
 			CLINT_BASE <= core.cdaddr && core.cdaddr < CLINT_BASE + CLINT_LENGTH: ;	
