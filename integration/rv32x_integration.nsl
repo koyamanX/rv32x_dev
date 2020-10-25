@@ -58,9 +58,9 @@ module rv32x_integration {
 	func core.check_dmem_pma {
 		/* all location are mapped & cacheable for simulation purpose */
 		any {
-			CLINT_BASE <= core.cdaddr && core.cdaddr < CLINT_BASE + CLINT_LENGTH: ;	
-			AHB_LITE_IO_BASE <= core.cdaddr && core.cdaddr < AHB_LITE_IO_BASE + AHB_LITE_IO_LENGTH: ;
-			PLIC_BASE <= core.cdaddr && core.cdaddr < PLIC_BASE + PLIC_LENGTH: ;
+			CLINT_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < CLINT_BASE + CLINT_LENGTH: ;	
+			AHB_LITE_IO_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < AHB_LITE_IO_BASE + AHB_LITE_IO_LENGTH: ;
+			PLIC_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < PLIC_BASE + PLIC_LENGTH: ;
 			else: ;/*core.cacheable(); */
 		}
 	}

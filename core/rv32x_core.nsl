@@ -965,9 +965,9 @@ module rv32x_core {
 
 		check_dmem_pma(rv32x.daddr);
 		any {
-			cacheable && !not_mapped:					dc.read(rv32x.daddr, rv32x.dbyteen);
-			!cacheable && !not_mapped:					noncacheable_read(rv32x.daddr, rv32x.dbyteen);	
-			not_mapped:									load_access_fault(); 
+			dmem_cacheable && !dmem_not_mapped:		dc.read(rv32x.daddr, rv32x.dbyteen);
+			!dmem_cacheable && !dmem_not_mapped:	noncacheable_read(rv32x.daddr, rv32x.dbyteen);	
+			dmem_not_mapped:						load_access_fault(); 
 		}
 	}
 	func noncacheable_read {
@@ -998,9 +998,9 @@ module rv32x_core {
 	func rv32x.dmem_write {
 		check_dmem_pma(rv32x.daddr);
 		any {
-			cacheable && !not_mapped:					dc.write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
-			!cacheable && !not_mapped:					noncacheable_write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
-			not_mapped:									store_amo_access_fault();
+			dmem_cacheable && !dmem_not_mapped:		dc.write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
+			!dmem_cacheable && !dmem_not_mapped:	noncacheable_write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
+			dmem_not_mapped:						store_amo_access_fault();
 		}
 #ifdef DEBUG
 		if(rv32x.daddr == 0x80001000) {
