@@ -7,3 +7,6 @@
 [submodule "docs/riscv-plic-spec"]
 	path = docs/riscv-plic-spec
 	url = https://github.com/riscv/riscv-plic-spec
+[submodule "docs/rv32x_dev.wiki"]
+	path = docs/rv32x_dev.wiki
+	url = git@github.com:/koyamanX/rv32x_dev.wiki.git
