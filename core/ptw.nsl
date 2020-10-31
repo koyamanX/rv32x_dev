@@ -9,7 +9,7 @@ module ptw {
 	reg root_page_table[34];
 	reg pte[32];
 	proc_name page_table_walk(levels, va, root_page_table);
-	proc_name protection_check(levels, va, root_page_table, pte);
+	proc_name pte_check(levels, va, root_page_table, pte);
 
 	func reset {
 		idle();
@@ -36,10 +36,10 @@ module ptw {
 		}
 		mem_read(root_page_table + vpn);
 		if(mem_valid) {
-			protection_check(levels, virtual_address, {satp_ppn, 0x000}, mem_rdata);
+			pte_check(levels, virtual_address, {satp_ppn, 0x000}, mem_rdata);
 		}
 	}
-	proc protection_check {
+	proc pte_check {
 		sv32_pte_t wire sv32_pte;
 		
 		sv32_pte = pte;
