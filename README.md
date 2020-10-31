@@ -1,11 +1,12 @@
 ## RISC-V (RV32IMAC) Implementation in NSL
-- This repository contains implementation of RV32IMAC(currently supporting RV32IM,Zicsr,Zifencei with User-Mode and Machine-Mode except for PMP, PMA, HPM).  
+- This repository contains implementation of RV32IMAC(currently supporting RV32IM,Zicsr,Zifencei, some delegation to S-Mode with User-Mode and Supervisor-Mode, Machine-Mode except for PMP, HPM, SV32).  
 - This implementation is fully synthisable and also able to convert to software simulator(by verilator).  
 - Written in [NSL](http://www.overtone.co.jp/products/and-the-nsl/) 
 ### NSL 
 - NSLCORE is compiler tool for NSL.
 - NSLCORE can convert NSL code into either Verilog HDL, VHDL, SystemC.
 - You can download Trial version of Windows binary of NSLCORE from [NSLCORE Overtone(en)](http://www.overtone.co.jp/en/support/downloads/) or [NSLCORE Overtone(ja)](http://www.overtone.co.jp/support/downloads/). (registration is required, limitation of non-comercial use and code size for trial version (2000 lines?) )
+- Currently over 2000 lines(must remove empty lines after preprocessing)
 - You can also download [LiveCygwin](http://www.ip-arch.jp/#LiveCygwin) which provides minimum? environment of Cygwin without installing. 
 - LiveCygwin includes verilator, gtkwave, iverilog, vim, NSLCORE and some implementation examples in NSL.
 - If you need Linux version of NSL compiler, please consult Overtone.
@@ -15,7 +16,7 @@
 
 ### Prerequisites
 - Installation of NSL core (SET Environment variable NSLCORE(path to nsl2vl) and specifiy in run.sh to pass it to container) 
-- Installation of Docker  ()
+- Installation of Docker  (used for bulid with tools inside docker image, if you have installed gcc, binutils, libbfd, libopcodes, liberty, libz, libdl for riscv32 with IM, ilp32, softfloat then you can invoke make directly in your host system)
 - Installation of X11 (if you want to debug with GTKWave)  
 - Quartus or other synthesis tools (if you want to implement this system on FPGA)
 
@@ -25,7 +26,7 @@
 - Writting to tohost(0x80001000) will cause simulator to finish its simulation with written value as exit code.  
 in 'logs' directory, we can find instruction execution trace. If tests failed, then 'failed' directory will be created and failed test and its vcd will copied into it for debugging.  
 - Test will result in passed, failed or timeout. Timeout means simulator has potential bugs which result in infinite loop.  
-- Reset vector is 0x00000000. Bootrom is placed on address location of 0x00000000 to 0x00000400.
+- Reset vector is 0x00000000. Bootrom is placed on address location of 0x00000000 to 0x00001000.
 - Bootrom contains code to jump to 0x80000000 which test codes are placed.
 ```
 $ ./build.sh # Build docker image (need for first time)
@@ -38,21 +39,43 @@ $ ./run.sh 'make -C run_riscv_tests'
 
 ### Exceptions supported
 - illegal_instruction_exception
-- environment_call_from_m_mode
 - instruction_address_misaligned
+- environment_call_from_m_mode
+- environment_call_from_s_mode
+- environment_call_from_u_mode
+- environment_call
 - load_address_misaligned
 - store_amo_address_misalgined
-- breakpoint
 - reset
 
 #### Not-fully implemented
 - load_access_fault
 - store_amo_access_fault
+- instruction_access_fault
+
+#### Not implemented
+- instruction_address_breakpoint
+- instruction_page_fault
+- store_amo_page_fault
 
 ### Interrupts support
 - Machine mode timer interrupt (via CLINT)
 - Machine mode software interrupt (via CLINT)
-- Machine mode external interrupt (no PLIC, only one source for now)
+- Machine mode external interrupt (via PLIC (32 sources))
+- Supervisor mode timer interrupt (via CLINT) or via {m,s}ip.stip
+- Supervisor mode software interrupt (via CLINT) or via {m,s}ip.ssip
+- Supervisor mode external interrupt (via PLIC (32 sources)) or via {m,s}ip.seip
+
+### delegation support (delegation to S-Mode)
+#### Exceptions delegation
+- environment_call_from_s_mode
+- environment_call_from_u_mode
+- breakpoint
+- instruction_address_misaligned
+#### Interrupts delegation
+- machine mode external interrupt
+- machine mode software interrupt
+- machine mode timer interrupt
 
 ### Executing arbitary executable file
 - You can simply give executable file to its first arguments.
@@ -60,19 +83,20 @@ $ ./run.sh 'make -C run_riscv_tests'
 - If writting or reading locations not allocated explicitly in executable file 
 will cause simulator to finish its execution with error message.
 
+### rv32x_simulation options
+
 ``` 
 $ cd simulation
 $ ./rv32x_simulation $NAME_OF_EXECUTABLE
 ```
 
 ### TODO 
-- Implement PLIC
-- Implement PMP, PMA
+- Implement PMP, PMA for Instruction address
 - Implement HPM
 - Implement N-Extension
+- Implement SV32
+- Implement AMO
 - Improve Fmax for FPGA implementation
-
-#### low priority TODO
 - Attach GDB RSP server
 - Develop SoC for FPGA
 - Implement Compress and Atomic
@@ -80,7 +104,7 @@ $ ./rv32x_simulation $NAME_OF_EXECUTABLE
 
 ### Implementing on FPGA (sid)
 The core can be implemented on FPGA.
-However, not well tested. 
+However, not well-tested. 
 SoC is currently under developing for FPGA.
 - UART 				(Implemented)
 - VGA Controller	(Implemented)
@@ -104,5 +128,4 @@ W: means writable through data address space.
 X: means executable through instruction address space.  
 A: means atomic operation is allowed through data address space.
 
-- Other region in executable file is also created automatically, as Cacheable region.
 - MMIO DEVICES includes UART TXD, RXD.
