@@ -93,7 +93,7 @@ For simulation purpose, address map below is mapped.
 |--|--|--|--|
 |BOOTROM|0x0000\_0000 - 0x0000\_1000|Cacheable|X|
 |PLIC|0x0c00\_0000 - 0x1000\_0000|Non-cacheable|RW|
-|CLINT|0x2000\_0000 - 0x2000\_c000|Non-cacheable|RW|
+|CLINT|0x0200\_0000 - 0x0200\_c000|Non-cacheable|RW|
 |MMIO DEVICES|0x4000\_0000 - 0x4001\_0000|Non-cacheable|RW|
 |RAM0|0x8000\_0000 - 0x8400\_8000|Cacheable|RWX|
 
