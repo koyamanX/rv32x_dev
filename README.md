@@ -95,13 +95,14 @@ For simulation purpose, address map below is mapped.
 |PLIC|0x0c00\_0000 - 0x1000\_0000|Non-cacheable|RW|
 |CLINT|0x0200\_0000 - 0x0200\_c000|Non-cacheable|RW|
 |MMIO DEVICES|0x4000\_0000 - 0x4001\_0000|Non-cacheable|RW|
-|RAM0|0x8000\_0000 - 0x8400\_8000|Cacheable|RWX|
+|RAM0|0x8000\_0000 - 0x8400\_8000|Cacheable|RWXA|
 
 
 
 R: means readable through data address space.  
 W: means writable through data address space.  
 X: means executable through instruction address space.  
+A: means atomic operation is allowed through data address space.
 
 - Other region in executable file is also created automatically, as Cacheable region.
 - MMIO DEVICES includes UART TXD, RXD.
