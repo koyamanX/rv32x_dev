@@ -4,157 +4,306 @@
 #define MEM_BYTE        3'b000
 
 module dcache_unit {
+	reg cache_data_entry0[128];
+	reg cache_data_entry1[128];
+	reg cache_tag_entry0[20];
+	reg cache_tag_entry1[20];
+	reg cache_valid_entry0;
+	reg cache_valid_entry1;
+	reg cache_dirty_entry0;
+	reg cache_dirty_entry1;
+	reg cache_lru_entry;
+	reg cache_adrs[32];
+	reg cache_byteen[3];
+	reg cache_wdata[32];
+	reg cache_op;
+
+	reg cache_writeback_entry[128];
+	reg flushing = 0;
+
+	proc_name idle();
+	proc_name compare_tag(cache_data_entry0, cache_tag_entry0, cache_valid_entry0, cache_dirty_entry0,
+							cache_data_entry1, cache_tag_entry1, cache_valid_entry1, cache_dirty_entry1,
+							cache_lru_entry, cache_adrs, cache_byteen, cache_wdata, cache_op);
+	proc_name flush_cache();
+	proc_name allocate(cache_adrs);
+	proc_name writeback(cache_writeback_entry, cache_lru_entry, cache_adrs, flushing);
+
+	wire cache_hit_data[128];
+	wire cache_hit_lru;
+	func_self cache_hit(cache_hit_data, cache_hit_lru);
+	func_self cache_miss();
+	wire cache_refill_data[128];
+	func_self refill(cache_refill_data);
+
+	mem cache_data_way0[256][128];
+	mem cache_data_way1[256][128];
+	mem cache_tag_way0[256][20] = {0};
+	mem cache_tag_way1[256][20] = {0};
+	mem cache_valid_way0[256] = {0};
+	mem cache_valid_way1[256] = {0};
+	mem cache_dirty_way0[256] = {0};
+	mem cache_dirty_way1[256] = {0};
+	mem cache_lru[256] = {0};
+
 	wire tag[20];
 	wire index[8];
 	wire blockoffset[2];
 	wire byteoffset[2];
-	wire cache_block[128];
-	wire cache_word[32];
-	wire byteen_mask[32];
-	wire wb_data[128];
-	wire wb_mask[128];
-	wire flush_index[8];
-	reg reg_adrs[32];
-	reg reg_byteen[3];
-	reg reg_data[32];
-	reg flush_cnt[9] = 0;
-	reg cdata[128];
-	reg cvalid;
-	reg cdirty;
-	reg ctag[20];
-	reg cindex[8];
-	wire t[20], i[8], l[2], y[2];
-	mem cache_data[256][128];
-	mem cache_valid[256] = {0};
-	mem cache_tag[256][20];
-	mem cache_dirty[256] = {0};
 
-	func_self hit();
-	func_self miss();
-	func_self refill();
-	func_self dirty();
-	func_self clean();
-	proc_name idle();
-	/* registering output of mem block is required to infer bram */
-	proc_name compare_tag(reg_adrs, reg_byteen, reg_data, cdata, ctag, cvalid, cdirty, cindex);
-	proc_name writeback(reg_adrs, reg_byteen, reg_data);
-	proc_name allocate(reg_adrs, reg_byteen, reg_data); 
-	proc_name flush_cache();
-
-	.{tag, index, blockoffset, byteoffset} = reg_adrs;
-	.{t, i, l, y} = adrs;
+	. {tag, index, blockoffset, byteoffset} = cache_adrs;
 
 	func reset {
 		idle();
 	}
-
 	proc idle {
-		if(flush) {
+		wire i[8];
+
+		i = adrs[11:4];
+		if(cache_flush) {
 			flush_cache();
 		} else if(read || write) {
-			compare_tag(adrs, byteen, wdata, cache_data[i], cache_tag[i], cache_valid[i], cache_dirty[i], i);
+			compare_tag(cache_data_way0[i], cache_tag_way0[i], cache_valid_way0[i], cache_dirty_way0[i],
+						cache_data_way1[i], cache_tag_way1[i], cache_valid_way1[i], cache_dirty_way1[i],
+						cache_lru[i], adrs, byteen, wdata, write);
 		}
 	}
 	proc compare_tag {
-		/* checking (index == i) is required, to support cancellation of read operation in any stage */
-		if(cvalid && (ctag == tag) && (cindex == i)) {
-			hit();
-		} else {
-			miss();
-		}
-		if(cdirty == DIRTY) {
-			dirty();
-		} else {
-			clean();
-		}
-		if(hit) {
-			idle();
-		} else if(miss && clean) {
-			allocate(reg_adrs, reg_byteen, reg_data);
-		} else if(miss && dirty) {
-			writeback(reg_adrs, reg_byteen, reg_data);
+		any {
+			(cache_valid_entry0 && (cache_tag_entry0 == tag)): {
+				idle();
+				cache_hit(cache_data_entry0, 0);
+			}
+			(cache_valid_entry1 && (cache_tag_entry1 == tag)): {
+				idle();
+				cache_hit(cache_data_entry1, 1);
+			}
+			else: {
+				any {
+					(cache_lru_entry == 1'b0) && (cache_dirty_entry0 == CLEAN): {
+						allocate(cache_adrs);	
+					}
+					(cache_lru_entry == 1'b0) && (cache_dirty_entry0 == DIRTY): {
+						writeback(cache_data_entry0, cache_lru_entry, {cache_tag_entry0, index, 4'b0000}, 0);
+					}
+					(cache_lru_entry == 1'b1) && (cache_dirty_entry1 == CLEAN): {
+						allocate(cache_adrs);	
+					}
+					(cache_lru_entry == 1'b1) && (cache_dirty_entry1 == DIRTY): {
+						writeback(cache_data_entry1, cache_lru_entry, {cache_tag_entry1, index, 4'b0000}, 0);
+					}
+				}
+				cache_miss();
+			}
 		}
 	}
-	func hit {
-		cache_block = cdata;
-		any {
-			reg_byteen == MEM_WORD: {byteen_mask = 0xffff_ffff; wb_data = 4{reg_data};}
-			reg_byteen == MEM_HALFWORD: {byteen_mask = 0x0000_ffff; wb_data = 8{reg_data[15:0]};}
-			reg_byteen == MEM_BYTE: {byteen_mask = 0x0000_00ff; wb_data = 16{reg_data[7:0]};}
-		}
-		any {
-			read: {
-				any {
-					l == 2'b00: cache_word = cache_block[31:0];
-					l == 2'b01: cache_word = cache_block[63:32];
-					l == 2'b10: cache_word = cache_block[95:64];
-					l == 2'b11: cache_word = cache_block[127:96];
-				}
-				rdata = (cache_word >> 5'({y, 3'b000})) & byteen_mask;
-				valid();
-			}
-			write: {
-				any {
-					l == 2'b00: {
-						wb_mask = {0x0000_0000, 0x0000_0000, 0x0000_0000, 32'((byteen_mask << 5'({y, 3'b000}))[31:0])};
-					}
-					l == 2'b01: {
-						wb_mask = {0x0000_0000, 0x0000_0000, 32'((byteen_mask << 5'({y, 3'b000}))[31:0]), 0x0000_0000};
-					}
-					l == 2'b10: {
-						wb_mask = {0x0000_0000, 32'((byteen_mask << 5'({y, 3'b000}))[31:0]), 0x0000_0000, 0x0000_0000};
-					}
-					l == 2'b11: {
-						wb_mask = {32'((byteen_mask << 5'({y, 3'b000}))[31:0]), 0x0000_0000, 0x0000_0000, 0x0000_0000};
-					}
-				}
+	func cache_hit {
+		variable new_cache_data_entry[128];
+		variable cache_word_write[32];
+		wire cache_word[32];
 
-				cache_data[index] := (cache_block & ~wb_mask) | (wb_data & wb_mask);
-				cache_tag[index] := tag;
-				cache_valid[index] := VALID;
-				cache_dirty[index] := DIRTY;
+		any {
+			(blockoffset == 2'b00): {
+				cache_word = cache_hit_data[31:0];
+			}
+			(blockoffset == 2'b01): {
+				cache_word = cache_hit_data[63:32];
+			}
+			(blockoffset == 2'b10): {
+				cache_word = cache_hit_data[95:64];
+			}
+			(blockoffset == 2'b11): {
+				cache_word = cache_hit_data[127:96];
+			}
+		}
+		any {
+			cache_op == CACHE_READ: {
+				any {
+					(cache_byteen == MEM_WORD): {
+						rdata = cache_word;
+					}
+					(cache_byteen == MEM_HALFWORD) && (byteoffset == 2'b00): {
+						rdata = {0x0000, cache_word[15:0]};
+					}
+					(cache_byteen == MEM_HALFWORD) && (byteoffset == 2'b10): {
+						rdata = {0x0000, cache_word[31:16]};
+					}
+					(cache_byteen == MEM_BYTE) && (byteoffset == 2'b00): {
+						rdata = {0x000000, cache_word[7:0]};
+					}
+					(cache_byteen == MEM_BYTE) && (byteoffset == 2'b01): {
+						rdata = {0x000000, cache_word[15:8]};
+					}
+					(cache_byteen == MEM_BYTE) && (byteoffset == 2'b10): {
+						rdata = {0x000000, cache_word[23:16]};
+					}
+					(cache_byteen == MEM_BYTE) && (byteoffset == 2'b11): {
+						rdata = {0x000000, cache_word[31:24]};
+					}
+				}
+				valid();
+			}
+			cache_op == CACHE_WRITE: {
+				any {
+					(cache_byteen == MEM_WORD): {
+						cache_word_write[31:0] = cache_wdata[31:0];
+					}
+					(cache_byteen == MEM_HALFWORD) && (byteoffset == 2'b00): {
+						cache_word_write[31:16] = cache_word[31:16];
+						cache_word_write[15:0] = cache_wdata[15:0];
+					}
+					(cache_byteen == MEM_HALFWORD) && (byteoffset == 2'b10): {
+						cache_word_write[31:16] = cache_wdata[15:0];
+						cache_word_write[15:0] = cache_word[15:0];
+					}
+					(cache_byteen == MEM_BYTE) && (byteoffset == 2'b00): {
+						cache_word_write[31:24] = cache_word[31:24];
+						cache_word_write[23:16] = cache_word[23:16];
+						cache_word_write[15:8] = cache_word[15:8];
+						cache_word_write[7:0] = cache_wdata[7:0];
+					}
+					(cache_byteen == MEM_BYTE) && (byteoffset == 2'b01): {
+						cache_word_write[31:24] = cache_word[31:24];
+						cache_word_write[23:16] = cache_word[23:16];
+						cache_word_write[15:8] = cache_wdata[7:0];
+						cache_word_write[7:0] = cache_word[7:0];
+					}
+					(cache_byteen == MEM_BYTE) && (byteoffset == 2'b10): {
+						cache_word_write[31:24] = cache_word[31:24];
+						cache_word_write[23:16] = cache_wdata[7:0];
+						cache_word_write[15:8] = cache_word[15:8];
+						cache_word_write[7:0] = cache_word[7:0];
+					}
+					(cache_byteen == MEM_BYTE) && (byteoffset == 2'b11): {
+						cache_word_write[31:24] = cache_wdata[7:0];
+						cache_word_write[23:16] = cache_word[23:16];
+						cache_word_write[15:8] = cache_word[15:8];
+						cache_word_write[7:0] = cache_word[7:0];
+					}
+				}
+				any {
+					(blockoffset == 2'b00): {
+						new_cache_data_entry[127:96] = cache_hit_data[127:96];
+						new_cache_data_entry[95:64] = cache_hit_data[95:64];
+						new_cache_data_entry[63:32] = cache_hit_data[63:32];
+						new_cache_data_entry[31:0] = cache_word_write;
+					}
+					(blockoffset == 2'b01): {
+						new_cache_data_entry[127:96] = cache_hit_data[127:96];
+						new_cache_data_entry[95:64] = cache_hit_data[95:64];
+						new_cache_data_entry[63:32] = cache_word_write;
+						new_cache_data_entry[31:0] = cache_hit_data[31:0];
+					}
+					(blockoffset == 2'b10): {
+						new_cache_data_entry[127:96] = cache_hit_data[127:96];
+						new_cache_data_entry[95:64] = cache_word_write;
+						new_cache_data_entry[63:32] = cache_hit_data[63:32];
+						new_cache_data_entry[31:0] = cache_hit_data[31:0];
+					}
+					(blockoffset == 2'b11): {
+						new_cache_data_entry[127:96] = cache_word_write;
+						new_cache_data_entry[95:64] = cache_hit_data[95:64];
+						new_cache_data_entry[63:32] = cache_hit_data[63:32];
+						new_cache_data_entry[31:0] = cache_hit_data[31:0];
+					}
+				}
+				any {
+					(cache_hit_lru == 1'b0): {
+						cache_data_way0[index] := new_cache_data_entry;
+						cache_valid_way0[index] := VALID;
+						cache_dirty_way0[index] := DIRTY;
+					}
+					(cache_hit_lru == 1'b1): {
+						cache_data_way1[index] := new_cache_data_entry;
+						cache_valid_way1[index] := VALID;
+						cache_dirty_way1[index] := DIRTY;
+					}
+				}
 				valid();
 			}
 		}
+		cache_lru[index] := ~cache_hit_lru;
 	}
 	proc writeback {
-		mem_write({tag, index, 4'b0000}, cdata);
-		cache_valid[index] := INVALID;
-		cache_dirty[index] := CLEAN;
+		mem_write({tag, index, 4'b0000}, cache_writeback_entry);
 		if(mem_valid) {
-			allocate(reg_adrs, reg_byteen, reg_data);
+			if(flushing) {
+				flush_cache();
+			} else {
+				allocate(adrs);
+			}
+		}
+		any {
+			cache_lru_entry == 1'b0: {
+				cache_valid_way0[index] := VALID;
+				cache_valid_way0[index] := CLEAN;
+			}
+			cache_lru_entry == 1'b1: {
+				cache_valid_way1[index] := VALID;
+				cache_valid_way1[index] := CLEAN;
+			}
 		}
 	}
 	proc allocate {
+		wire refilled_cache_block[128];
+
 		mem_read({tag, index, 4'b0000});
 		if(mem_valid) {
-			refill();
-			compare_tag(adrs, byteen, wdata, cache_data[i], cache_tag[i], cache_valid[i], cache_dirty[i], i);
-		}
-	}
-	func refill {
-		cache_data[index] := mem_rdata;
-		cache_tag[index] := tag;
-		cache_valid[index] := VALID;
-		cache_dirty[index] := CLEAN;
-	}
-	proc flush_cache {
-		flush_index = flush_cnt[7:0];
-		if(flush_cnt == 256) {
-			flush_cnt := 0;
-			flush_done();
-			idle();
-		} else {
-			if(cache_dirty[flush_index] == DIRTY) {
-				mem_write({cache_tag[flush_index], flush_index, 4'b0000}, cache_data[flush_index]);
-				if(mem_valid) {
-					cache_valid[flush_index] := INVALID;
-					cache_dirty[flush_index] := CLEAN;
-					flush_cnt++;
+			refill(mem_rdata);
+			refilled_cache_block = mem_rdata;
+			any {
+				cache_lru_entry == 1'b0: {
+					compare_tag(refilled_cache_block, tag, VALID, CLEAN,
+								cache_data_entry1, cache_tag_entry1, cache_valid_entry1, cache_dirty_entry1,
+								cache_lru_entry, cache_adrs, cache_byteen, cache_wdata, cache_op);
 				}
-			} else {
-				flush_cnt++;
+				cache_lru_entry == 1'b1: {
+					compare_tag(cache_data_entry0, cache_tag_entry0, cache_valid_entry0, cache_dirty_entry0,
+								refilled_cache_block, tag, VALID, CLEAN,
+								cache_lru_entry, cache_adrs, cache_byteen, cache_wdata, cache_op);
+				}
 			}
 		}
 	}
+	func refill {
+		any {
+			cache_lru_entry == 1'b0: {
+				cache_data_way0[index] := cache_refill_data;
+				cache_tag_way0[index] := tag;
+				cache_valid_way0[index] := VALID;
+				cache_dirty_way0[index] := CLEAN;
+			}
+			cache_lru_entry == 1'b1: {
+				cache_data_way1[index] := cache_refill_data;
+				cache_tag_way1[index] := tag;
+				cache_valid_way1[index] := VALID;
+				cache_dirty_way1[index] := CLEAN;
+			}
+		}
+	}
+	proc flush_cache {
+		reg cache_flush_cnt[10] = 0;
+		wire cache_flush_index[8];
+		wire cache_flush_way;
+
+		if(cache_flush_cnt == 512) {
+			cache_flush_cnt := 0;
+			flushing := 0;
+			cache_flush_done();
+			idle();
+		} else {
+			cache_flush_index = cache_flush_cnt[7:0];
+			cache_flush_way = cache_flush_cnt[8];
+			any {
+				((cache_flush_way == 1'b0) && (cache_dirty_way0[cache_flush_index] == DIRTY)): {
+					writeback(cache_data_way0[cache_flush_index], cache_flush_way, {cache_tag_way0[cache_flush_index], cache_flush_index, 4'b0000}, 1);
+				}
+				((cache_flush_way == 1'b1) && (cache_dirty_way1[cache_flush_index] == DIRTY)): {
+					writeback(cache_data_way1[cache_flush_index], cache_flush_way, {cache_tag_way1[cache_flush_index], cache_flush_index, 4'b0000}, 1);
+				}
+			}
+			cache_flush_cnt++;
+		}
+	}
 }
+

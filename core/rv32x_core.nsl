@@ -15,7 +15,7 @@ module rv32x_core {
 	icache_unit ic;
 	dcache_unit dc;
 	reg ic_invalidate_done = 0;
-	reg dc_flush_done = 0;
+	reg dc_cache_flush_done = 0;
 	reg mode[2];							/* Current execution mode */
 	
 	wire ncadrs[32];
@@ -915,12 +915,12 @@ module rv32x_core {
 		if(!ic_invalidate_done) {
 			ic.invalidate();
 		}
-		if(!dc_flush_done) {
-			dc.flush();
+		if(!dc_cache_flush_done) {
+			dc.cache_flush();
 		}
-		if(dc_flush_done && ic_invalidate_done) {
+		if(dc_cache_flush_done && ic_invalidate_done) {
 			ic_invalidate_done := 0;
-			dc_flush_done := 0;
+			dc_cache_flush_done := 0;
 			rv32x.dmem_valid();
 		}
 	}
@@ -933,8 +933,8 @@ module rv32x_core {
 	func ic.invalidate_done {
 		ic_invalidate_done := 1;
 	}
-	func dc.flush_done {
-		dc_flush_done := 1;
+	func dc.cache_flush_done {
+		dc_cache_flush_done := 1;
 	}
 	func ic.mem_read {
 		reg ic_read_cnt[3] = 0;

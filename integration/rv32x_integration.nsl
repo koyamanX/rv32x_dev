@@ -61,7 +61,7 @@ module rv32x_integration {
 			CLINT_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < CLINT_BASE + CLINT_LENGTH: ;	
 			AHB_LITE_IO_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < AHB_LITE_IO_BASE + AHB_LITE_IO_LENGTH: ;
 			PLIC_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < PLIC_BASE + PLIC_LENGTH: ;
-			else: ;/*core.cacheable(); */
+			else: core.dmem_cacheable();/*core.dmem_cacheable(); */
 		}
 	}
 	func rv32x_plic.valid {

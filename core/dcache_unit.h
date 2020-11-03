@@ -6,6 +6,9 @@
 #define VALID 1'b1
 #define INVALID 1'b0
 
+#define CACHE_WRITE	1'b1
+#define CACHE_READ	1'b0
+
 declare dcache_unit {
 	/* CPU <-> Cache Unit */
 	input adrs[32];
@@ -13,14 +16,12 @@ declare dcache_unit {
 	input wdata[32];
 	input byteen[3];
 	func_in reset();
-	/* if need to cancel operation, then deassert these signals before valid */
-	/* cache will be updated */
-	func_in read(adrs, byteen);				/* must be asserted until valid */
-	func_in write(adrs, byteen, wdata);		/* must be asserted until valid */
-	func_out valid;	/* hit */
+	func_in read(adrs, byteen);				/* must be asserted until valid arrives */
+	func_in write(adrs, byteen, wdata);		/* must be asserted until valid arrives */
+	func_out valid;							/* hit */
 
-	func_in flush;
-	func_out flush_done;
+	func_in cache_flush;
+	func_out cache_flush_done;
 
 	/* Cache Unit <-> Memory Interface */
 	output mem_adrs[32];
