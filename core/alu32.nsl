@@ -12,9 +12,15 @@ module alu32 {
 
 	func exe {
 		any {
-			fn[2:0] == ALU_ADD && ~fn[3]: result = adder.exe(a, b); 
-			fn[2:0] == ALU_ADD && fn[3]: result = sub.exe({1'b0, a}, {1'b0, b}); 
-			fn[2:0] == ALU_SLL: result = shifter.exe(a, b[4:0], SHIFTER_SL, fn[3]); 
+			fn[2:0] == ALU_ADD && ~fn[3]: {
+				result = adder.exe(a, b); 
+			}
+			fn[2:0] == ALU_ADD && fn[3]: {
+				result = sub.exe({1'b0, a}, {1'b0, b}); 
+			}
+			fn[2:0] == ALU_SLL: {
+				result = shifter.exe(a, b[4:0], SHIFTER_SL, fn[3]); 
+			}
 			fn[2:0] == ALU_SLT: {
 				sub.exe(33#(a), 33#(b));
 				result = 32'(sub.cout);
@@ -23,10 +29,18 @@ module alu32 {
 				sub.exe({1'b0, a}, {1'b0, b});
 				result = 32'(sub.cout);
 			}
-			fn[2:0] == ALU_XOR: result = a ^ b;
-			fn[2:0] == ALU_SRL: result = shifter.exe(a, b[4:0], SHIFTER_SR, fn[3]); 
-			fn[2:0] == ALU_OR: result = a | b;
-			fn[2:0] == ALU_AND: result = a & b;
+			fn[2:0] == ALU_XOR: {
+				result = a ^ b;
+			}
+			fn[2:0] == ALU_SRL: {
+				result = shifter.exe(a, b[4:0], SHIFTER_SR, fn[3]); 
+			}
+			fn[2:0] == ALU_OR: {
+				result = a | b;
+			}
+			fn[2:0] == ALU_AND: {
+				result = a & b;
+			}
 		}
 		z = (sub.q == 0x00000000);
 		return result;
