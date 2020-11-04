@@ -553,9 +553,6 @@ module rv32x_core {
 	func rv32x.illegal_instruction_execute_stage {
 		illegal_instruction_execute_stage();
 	}
-	func rv32x.illegal_instruction_memory_stage {
-		illegal_instruction_memory_stage();
-	}
 	func rv32x.instruction_address_misaligned {
 		instruction_address_misaligned();
 	}

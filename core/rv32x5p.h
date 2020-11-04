@@ -52,7 +52,6 @@ declare rv32x5p {
 	func_in get_inst_execute() : einst;
 	func_in get_inst_memory() : einst;
 	func_out illegal_instruction_execute_stage();
-	func_out illegal_instruction_memory_stage();
 
 	output misaligned_target_address[32];
 	func_out instruction_address_misaligned(misaligned_target_address);
