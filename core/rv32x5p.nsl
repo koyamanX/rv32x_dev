@@ -405,7 +405,7 @@ module rv32x5p {
 				csrrc();
 			}
 			if(DEREG.illegal_instruction) {
-				illegal_instruction();
+				illegal_instruction_execute_stage();
 			}
 			if(DEREG.jump  && !stall_execute) {
 				stall_ifetch();				

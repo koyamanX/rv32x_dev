@@ -48,7 +48,7 @@ module rv32x_core {
 	func_self instruction_address_breakpoint_exception();
 	func_self instruction_page_fault_exception();
 	func_self instruction_access_fault_exception();
-	func_self illegal_instruction_exception();
+	func_self illegal_instruction_execute_stage_exception();
 	func_self instruction_address_misaligned_exception();
 	func_self environment_call_exception();
 	func_self environment_break_exception();
@@ -63,7 +63,7 @@ module rv32x_core {
 	func_self instruction_address_breakpoint();
 	func_self instruction_page_fault();
 	func_self instruction_access_fault();
-	func_self illegal_instruction();
+	func_self illegal_instruction_execute_stage();
 	func_self instruction_address_misaligned();
 	func_self environment_call();
 	func_self environment_break();
@@ -223,7 +223,7 @@ module rv32x_core {
 	/* CSR accesses */
 	func rv32x.csr_read {
 		if(csr_read_not_mapped) {
-			illegal_instruction();
+			illegal_instruction_execute_stage();
 		}
 		return csr_read(rv32x.cradrs);
 	}
@@ -300,7 +300,7 @@ module rv32x_core {
 			csr_write(rv32x.cwadrs, rv32x.cwdata);
 		}
 		if(csr_write_not_mapped) {
-			illegal_instruction();
+			illegal_instruction_execute_stage();
 		}
 	}
 
@@ -541,15 +541,15 @@ module rv32x_core {
 	func rv32x.wfi {
 		any {
 			/* no bounded time limit, so always generates illegal instruction exception on less priv */
-			(mstatus.tw && mode == USER): 		illegal_instruction();
-			(mstatus.tw && mode == SUPERVISOR): illegal_instruction();
+			(mstatus.tw && mode == USER): 		illegal_instruction_execute_stage();
+			(mstatus.tw && mode == SUPERVISOR): illegal_instruction_execute_stage();
 		}
 	}
 	func rv32x.ebreak {
 		environment_break();
 	}
-	func rv32x.illegal_instruction {
-		illegal_instruction();
+	func rv32x.illegal_instruction_execute_stage {
+		illegal_instruction_execute_stage();
 	}
 	func rv32x.instruction_address_misaligned {
 		instruction_address_misaligned();
@@ -589,7 +589,7 @@ module rv32x_core {
 		load_access_fault:											load_access_fault_exception();
 		/* Execute stage */
 		instruction_address_misaligned:								instruction_address_misaligned_exception();	
-		illegal_instruction:										illegal_instruction_exception();
+		illegal_instruction_execute_stage:							illegal_instruction_execute_stage_exception();
 		environment_call:											environment_call_exception();	
 		environment_break:											environment_break_exception();	
 		/* Ifetch stage */
@@ -684,7 +684,7 @@ module rv32x_core {
 	func load_access_fault_exception {
 		exception();
 	}
-	func illegal_instruction_exception {
+	func illegal_instruction_execute_stage_exception {
 		exception();
 		rv32x.get_pc_execute();
 		rv32x.get_inst_execute();
@@ -782,12 +782,12 @@ module rv32x_core {
 	}
 	func rv32x.sfence_vma_illegal_instruction_check {
 		if(((mode == SUPERVISOR) && mstatus.tvm)) {
-			illegal_instruction();
+			illegal_instruction_execute_stage();
 		}
 	}
 	func rv32x.mret {
 		if(mode != MACHINE) {
-			illegal_instruction();
+			illegal_instruction_execute_stage();
 		} else {
 			mtval := 0;
 			trap_mret();
@@ -799,7 +799,7 @@ module rv32x_core {
 	}
 	func rv32x.sret {
 		if((mode == SUPERVISOR) && mstatus.tsr) {
-			illegal_instruction();
+			illegal_instruction_execute_stage();
 		} else {
 			stval := 0;
 			trap_sret();
@@ -811,7 +811,7 @@ module rv32x_core {
 	}
 	func rv32x.uret {
 		if(mode != USER) {
-			illegal_instruction();
+			illegal_instruction_execute_stage();
 		} else {
 			utval := 0;
 			trap_uret();
