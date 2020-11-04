@@ -46,13 +46,13 @@ declare rv32x5p {
 	func_out ebreak();							/* Indicating ebreak is issued */
 	func_out mret();							/* Indicating mret is issued */
 	func_out sret();							/* Indicating sret is issued */
-	func_out sfence_vma_illegal_instruction_check();
 	func_out uret();							/* Indicating uret is issued */
 	func_out wfi();								/* indicating Wait-For-Interrupt is issued */
 	output einst[32];
 	func_in get_inst_execute() : einst;
 	func_in get_inst_memory() : einst;
 	func_out illegal_instruction_execute_stage();
+	func_out illegal_instruction_memory_stage();
 
 	output misaligned_target_address[32];
 	func_out instruction_address_misaligned(misaligned_target_address);

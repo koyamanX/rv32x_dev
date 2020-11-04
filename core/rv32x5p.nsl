@@ -386,9 +386,6 @@ module rv32x5p {
 			if(DEREG.sret) {
 				sret();
 			}
-			if(DEREG.sfence_vma) {
-				sfence_vma_illegal_instruction_check();
-			}
 			if(DEREG.uret) {
 				uret();
 			}

@@ -49,6 +49,7 @@ module rv32x_core {
 	func_self instruction_page_fault_exception();
 	func_self instruction_access_fault_exception();
 	func_self illegal_instruction_execute_stage_exception();
+	func_self illegal_instruction_memory_stage_exception();
 	func_self instruction_address_misaligned_exception();
 	func_self environment_call_exception();
 	func_self environment_break_exception();
@@ -64,6 +65,7 @@ module rv32x_core {
 	func_self instruction_page_fault();
 	func_self instruction_access_fault();
 	func_self illegal_instruction_execute_stage();
+	func_self illegal_instruction_memory_stage();
 	func_self instruction_address_misaligned();
 	func_self environment_call();
 	func_self environment_break();
@@ -551,6 +553,9 @@ module rv32x_core {
 	func rv32x.illegal_instruction_execute_stage {
 		illegal_instruction_execute_stage();
 	}
+	func rv32x.illegal_instruction_memory_stage {
+		illegal_instruction_memory_stage();
+	}
 	func rv32x.instruction_address_misaligned {
 		instruction_address_misaligned();
 	}
@@ -580,6 +585,7 @@ module rv32x_core {
 		/* Process exception in preceeding instruction in pipeline */	
 		/* Memory stage */
 		/* memory address is sent out to bus in memory stage process load_store_amo_address_breakpoint at memory stage */
+		illegal_instruction_memory_stage:							illegal_instruction_memory_stage_exception();
 		load_store_amo_address_breakpoint:							load_store_amo_address_breakpoint_exception();
 		store_amo_address_misaligned:								store_amo_address_misaligned_exception();
 		load_address_misaligned:									load_address_misaligned_exception();
@@ -699,6 +705,23 @@ module rv32x_core {
 		debug_einst := rv32x.einst;
 #endif
 	}
+	func illegal_instruction_memory_stage_exception {
+		exception();
+		rv32x.get_pc_memory();
+		rv32x.get_inst_memory();
+		trap(MACHINE, ILLEGAL_INSTRUCTION, rv32x.epc, rv32x.einst);
+		rv32x.stall_ifetch_req();
+		rv32x.stall_decode_req();
+		rv32x.stall_execute_req();
+		rv32x.stall_memory_req();
+		rv32x.flush_ifetch();
+		rv32x.flush_decode();
+		rv32x.flush_execute();
+		rv32x.flush_memory();
+#ifdef DEBUG
+		debug_einst := rv32x.einst;
+#endif
+	}
 	func environment_call_exception {
 		exception();
 		rv32x.get_pc_execute();
@@ -779,11 +802,6 @@ module rv32x_core {
 	}
 	func instruction_access_fault_exception {
 		exception();
-	}
-	func rv32x.sfence_vma_illegal_instruction_check {
-		if(((mode == SUPERVISOR) && mstatus.tvm)) {
-			illegal_instruction_execute_stage();
-		}
 	}
 	func rv32x.mret {
 		if(mode != MACHINE) {
@@ -928,7 +946,11 @@ module rv32x_core {
 		rv32x.dmem_valid();
 	}
 	func rv32x.sfence_vma {
-		rv32x.dmem_valid();
+		if(((mode == SUPERVISOR) && mstatus.tvm)) {
+			illegal_instruction_memory_stage();
+		} else {
+			rv32x.dmem_valid();
+		}
 	}
 	func ic.invalidate_done {
 		ic_invalidate_done := 1;
