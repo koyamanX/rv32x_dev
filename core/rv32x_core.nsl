@@ -225,7 +225,7 @@ module rv32x_core {
 	/* CSR accesses */
 	func rv32x.csr_read {
 		if(csr_read_not_mapped) {
-			illegal_instruction_execute_stage();
+			illegal_instruction_memory_stage();
 		}
 		return csr_read(rv32x.cradrs);
 	}
@@ -302,7 +302,7 @@ module rv32x_core {
 			csr_write(rv32x.cwadrs, rv32x.cwdata);
 		}
 		if(csr_write_not_mapped) {
-			illegal_instruction_execute_stage();
+			illegal_instruction_memory_stage();
 		}
 	}
 

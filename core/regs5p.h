@@ -75,6 +75,10 @@ struct emreg_t {
 	fence;
 	sfence_vma;
 	wb;
+	uimm;
+	csrrw;
+	csrrs;
+	csrrc;
 };
 struct mwreg_t {
 	pc[32];

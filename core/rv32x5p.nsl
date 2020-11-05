@@ -27,8 +27,10 @@ module rv32x5p {
 	func_self stall_execute();
 	func_self stall_memory();
 	func_self load_interlock();					/* stall pipeline until load finishes */
-	func_self load_hazzard_a();
-	func_self load_hazzard_b();
+	func_self memory_load_hazzard_a();
+	func_self memory_load_hazzard_b();
+	func_self csr_load_hazzard_a();
+	func_self csr_load_hazzard_b();
 	func_self ifetch_nop();						/* insert nop instruction in ifetch */
 	func_self decode_nop();						/* insert nop instruction in decode */
 	func_self execute_nop();					/* insert nop instruction in execute */
@@ -279,39 +281,57 @@ module rv32x5p {
 		stall_decode();
 		stall_execute();
 	}
-	func load_hazzard_a {
-		if(!load_hazzard_b) {
+	func memory_load_hazzard_a {
+		if(!memory_load_hazzard_b) {
 			DEREG.alu_b := execute_alu_b;	
 			DEREG.alu_b_forward_en := 0;
 		}
 		load_interlock();
 	}
-	func load_hazzard_b {
-		if(!load_hazzard_a) {
+	func memory_load_hazzard_b {
+		if(!memory_load_hazzard_a) {
+			DEREG.alu_a := execute_alu_a;	
+			DEREG.alu_a_forward_en := 0;
+		}
+		load_interlock();
+	}
+	func csr_load_hazzard_a {
+		if(!csr_load_hazzard_b) {
+			DEREG.alu_b := execute_alu_b;	
+			DEREG.alu_b_forward_en := 0;
+		}
+		load_interlock();
+	}
+	func csr_load_hazzard_b {
+		if(!csr_load_hazzard_a) {
 			DEREG.alu_a := execute_alu_a;	
 			DEREG.alu_a_forward_en := 0;
 		}
 		load_interlock();
 	}
 	/* Forwarding Unit */
-	if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && !EMREG.load) {
+	if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && EMREG.load && memory) {
+		memory_load_hazzard_a();
+	} else if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && (EMREG.csrrc || EMREG.csrrs || EMREG.csrrw) && memory) {
+		csr_load_hazzard_a();
+	} else if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && !EMREG.load && memory) {
 		execute_alu_a = EMREG.alu_q;
-	} else if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && EMREG.load && memory) {
-		load_hazzard_a();
-	} else if((DEREG.rs1 == MWREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && MWREG.load) {
+	} else if((DEREG.rs1 == MWREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && MWREG.load && writeback) {
 		execute_alu_a = MWREG.wb_value;
-	} else if((DEREG.rs1 == MWREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && !MWREG.load) {
+	} else if((DEREG.rs1 == MWREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && !MWREG.load && writeback) {
 		execute_alu_a = MWREG.alu_q;
 	} else {
 		execute_alu_a = DEREG.alu_a;
 	}
-	if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && !EMREG.load) {
+	if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && EMREG.load && memory) {
+		memory_load_hazzard_b();
+	} else if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && (EMREG.csrrc || EMREG.csrrs || EMREG.csrrw) && memory) {
+		csr_load_hazzard_b();
+	} else if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && !EMREG.load && memory) {
 		execute_alu_b = EMREG.alu_q;
-	} else if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && EMREG.load && memory) {
-		load_hazzard_b();
-	} else if((DEREG.rs2 == MWREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && MWREG.load) {
+	} else if((DEREG.rs2 == MWREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && MWREG.load && writeback) {
 		execute_alu_b = MWREG.wb_value;
-	} else if((DEREG.rs2 == MWREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && !MWREG.load) {
+	} else if((DEREG.rs2 == MWREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && !MWREG.load && writeback) {
 		execute_alu_b = MWREG.alu_q;
 	} else {
 		execute_alu_b = DEREG.alu_b;
@@ -322,9 +342,6 @@ module rv32x5p {
 		func_self taken;
 		wire not_taken;
 		func_self condcheck;
-		func_self csrrw;
-		func_self csrrs;
-		func_self csrrc;
 		func_self i_misaligned;
 		func_self m_misaligned;
 		func_self miss_prediction;
@@ -348,11 +365,15 @@ module rv32x5p {
 		emreg.rs2_data = if(DEREG.store) if((DEREG.rs2 == MWREG.rd) && (DEREG.rs2 != 5'b00000)) MWREG.wb_value else DEREG.rs2_data else execute_alu_b;	
 		emreg.load = if(execute_nop) 1'b0 else DEREG.load;
 		emreg.store = if(execute_nop) 1'b0 else DEREG.store;
-		emreg.alu_q = if(DEREG.jump) DEREG.pc4 else if(DEREG.csrrw || DEREG.csrrc || DEREG.csrrs) crdata else alu_q;		/* address for link register */
+		emreg.alu_q = if(DEREG.jump) DEREG.pc4 else alu_q;	/* address for link register */
 		emreg.fencei = if(execute_nop) 1'b0 else DEREG.fencei;
 		emreg.fence = if(execute_nop) 1'b0 else DEREG.fence;
 		emreg.sfence_vma = if(execute_nop) 1'b0 else DEREG.sfence_vma;
 		emreg.wb = if(execute_nop || i_misaligned) 1'b0 else DEREG.wb;
+		emreg.csrrw = if(execute_nop) 1'b0 else DEREG.csrrw;
+		emreg.csrrs = if(execute_nop) 1'b0 else DEREG.csrrs;
+		emreg.csrrc = if(execute_nop) 1'b0 else DEREG.csrrc;
+		emreg.uimm = if(execute_nop) 1'b0 else DEREG.uimm;
 		target_address = if(DEREG.branch) DEREG.nextpc else alu_q;
 
 		if(!load_interlock) {
@@ -391,15 +412,6 @@ module rv32x5p {
 			}
 			if(DEREG.wfi) {
 				wfi();
-			}
-			if(DEREG.csrrw) {
-				csrrw();
-			}
-			if(DEREG.csrrs) {
-				csrrs();
-			}
-			if(DEREG.csrrc) {
-				csrrc();
 			}
 			if(DEREG.illegal_instruction) {
 				illegal_instruction_execute_stage();
@@ -481,44 +493,7 @@ module rv32x5p {
 			(DEREG.bgeu & ~lt): taken();
 		}
 	} 
-	func csrrw {
-		csr_wb_data = if(DEREG.uimm) 32'(DEREG.rs1) else execute_alu_a;
-		if(DEREG.uimm) {
-			csr_write_uimm();
-		}
-		if(DEREG.rd != 5'b00000) {
-			csr_read(DEREG.funct12);
-		}
-		csr_write(DEREG.funct12, csr_wb_data);
-	}
-	func csrrs {
-		csr_wb_data = if(DEREG.uimm) 32'(DEREG.rs1) else execute_alu_a;
-		csr_read(DEREG.funct12);
-		if(DEREG.uimm) {
-			csr_write_uimm();
-		}
-		if(DEREG.rs1 != 5'b00000) {
-			if((csr_wb_data != 0x00000000)) {
-				csr_write(DEREG.funct12, (csr_wb_data | 32'(crdata)));
-			} else {
-				csr_write(DEREG.funct12, 32'(crdata));
-			}
-		}
-	}
-	func csrrc {
-		csr_wb_data = if(DEREG.uimm) 32'(DEREG.rs1) else execute_alu_a;
-		csr_read(DEREG.funct12);
-		if(DEREG.uimm) {
-			csr_write_uimm();
-		}
-		if(DEREG.rs1 != 5'b00000) {
-			if((csr_wb_data != 0x00000000)) {
-				csr_write(DEREG.funct12, (~csr_wb_data & 32'(crdata)));
-			} else {
-				csr_write(DEREG.funct12, 32'(crdata));
-			}
-		}
-	}
+
 	func flush_execute {
 		execute.finish();
 		execute_nop();
@@ -534,6 +509,9 @@ module rv32x5p {
 		wire mem_byteen[3];
 		wire loaded_value[32]; 
 		func_self ext : loaded_value;
+		func_self csrrw;
+		func_self csrrs;
+		func_self csrrc;
 
 		mwreg.pc = EMREG.pc;
 		mwreg.pc4 = EMREG.pc4;
@@ -546,8 +524,8 @@ module rv32x5p {
 		mwreg.rs2_data = EMREG.rs2_data;
 		mwreg.load = EMREG.load;
 		mwreg.store = EMREG.store;
-		mwreg.alu_q = EMREG.alu_q;
-		mwreg.wb_value = if(EMREG.load) loaded_value else EMREG.alu_q;
+		mwreg.alu_q = if(EMREG.csrrw || EMREG.csrrc || EMREG.csrrs) crdata else EMREG.alu_q;
+		mwreg.wb_value = if(EMREG.load) loaded_value else if(EMREG.csrrw || EMREG.csrrc || EMREG.csrrs) crdata else EMREG.alu_q;
 		mwreg.wb = if(memory_nop) 1'b0 else EMREG.wb;
 
 		mem_byteen = {1'b0, EMREG.funct3[1:0]};
@@ -564,6 +542,9 @@ module rv32x5p {
 		any {
 			EMREG.store:    dmem_write(mem_adrs, mem_byteen, mem_data);
 			EMREG.load:     dmem_read(mem_adrs, mem_byteen);
+			EMREG.csrrw:	csrrw();
+			EMREG.csrrs:	csrrs();
+			EMREG.csrrc:	csrrc();
 			EMREG.fencei: 	{fencei(); ifetch.finish(); decode.finish(); execute.finish(); rv32x_btb.flush();}
 			EMREG.sfence_vma: 	{sfence_vma(); ifetch.finish(); decode.finish(); execute.finish(); rv32x_btb.flush();}
 			EMREG.fence: 	fence();
@@ -589,6 +570,44 @@ module rv32x5p {
 			stall_ifetch();		
 			stall_decode();
 			stall_execute();
+		}
+	}
+	func csrrw {
+		csr_wb_data = if(EMREG.uimm) 32'(EMREG.rs1) else EMREG.rs1_data;
+		if(EMREG.uimm) {
+			csr_write_uimm();
+		}
+		if(EMREG.rd != 5'b00000) {
+			csr_read(EMREG.funct12);
+		}
+		csr_write(EMREG.funct12, csr_wb_data);
+	}
+	func csrrs {
+		csr_wb_data = if(EMREG.uimm) 32'(EMREG.rs1) else EMREG.rs1_data;
+		csr_read(EMREG.funct12);
+		if(EMREG.uimm) {
+			csr_write_uimm();
+		}
+		if(EMREG.rs1 != 5'b00000) {
+			if((csr_wb_data != 0x00000000)) {
+				csr_write(EMREG.funct12, (csr_wb_data | 32'(crdata)));
+			} else {
+				csr_write(EMREG.funct12, 32'(crdata));
+			}
+		}
+	}
+	func csrrc {
+		csr_wb_data = if(EMREG.uimm) 32'(EMREG.rs1) else EMREG.rs1_data;
+		csr_read(EMREG.funct12);
+		if(EMREG.uimm) {
+			csr_write_uimm();
+		}
+		if(EMREG.rs1 != 5'b00000) {
+			if((csr_wb_data != 0x00000000)) {
+				csr_write(EMREG.funct12, (~csr_wb_data & 32'(crdata)));
+			} else {
+				csr_write(EMREG.funct12, 32'(crdata));
+			}
 		}
 	}
 	/* OPTIMIZE: do ext in writeback stage? */
