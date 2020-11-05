@@ -1,4 +1,7 @@
 #include "dcache_unit.h"
+#include "opcode.h"
+#include "csr.h"
+
 #define MEM_WORD        3'b010
 #define MEM_HALFWORD    3'b001
 #define MEM_BYTE        3'b000

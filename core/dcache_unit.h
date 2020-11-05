@@ -1,6 +1,5 @@
 #ifndef DCACHE_UNIT_H
 #define DCACHE_UNIT_H
-#include "opcode.h"
 
 #define CLEAN 1'b0
 #define DIRTY 1'b1
