@@ -225,7 +225,7 @@ module dcache_unit {
 		cache_lru[index] := ~cache_hit_lru;
 	}
 	proc writeback {
-		mem_write({tag, index, 4'b0000}, cache_writeback_entry);
+		mem_write({tag, index, 4'b0000}, MEM_QUADWORD, cache_writeback_entry);
 		if(mem_valid) {
 			if(flushing) {
 				flush_cache();
@@ -247,7 +247,7 @@ module dcache_unit {
 	proc allocate {
 		wire refilled_cache_block[128];
 
-		mem_read({tag, index, 4'b0000});
+		mem_read({tag, index, 4'b0000}, MEM_QUADWORD);
 		if(mem_valid) {
 			refill(mem_rdata);
 			refilled_cache_block = mem_rdata;

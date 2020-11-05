@@ -91,6 +91,7 @@
 #define MEM_WORD        3'b010
 #define MEM_HALFWORD    3'b001
 #define MEM_BYTE        3'b000
+#define MEM_QUADWORD	3'b111
 
 #define LB              3'b000
 #define LH              3'b001

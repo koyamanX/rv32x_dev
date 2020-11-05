@@ -1,5 +1,6 @@
 #ifndef DCACHE_UNIT_H
 #define DCACHE_UNIT_H
+#include "opcode.h"
 
 #define CLEAN 1'b0
 #define DIRTY 1'b1
@@ -27,8 +28,9 @@ declare dcache_unit {
 	output mem_adrs[32];
 	input mem_rdata[128];
 	output mem_wdata[128];
-	func_out mem_read(mem_adrs);
-	func_out mem_write(mem_adrs, mem_wdata);
+	output mem_size[3];
+	func_out mem_read(mem_adrs, mem_size);
+	func_out mem_write(mem_adrs, mem_size, mem_wdata);
 	func_in mem_valid;
 }
 
