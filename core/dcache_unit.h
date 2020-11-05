@@ -39,6 +39,12 @@ declare dcache_unit {
 	func_out mem_read(mem_adrs, mem_size);
 	func_out mem_write(mem_adrs, mem_size, mem_wdata);
 	func_in mem_valid;
+
+	input satp_mode;
+	input satp_asid[9];
+	input satp_ppn[22];
+	input mstatus_mprv;
+	input mstatus_mxr;
 }
 
 #endif

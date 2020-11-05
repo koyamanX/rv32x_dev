@@ -198,6 +198,12 @@ module rv32x_core {
 	stip = ((supervisor_timer_interrupt_req | mip.stip));
 	seip = ((supervisor_external_interrupt_req | mip.seip));
 
+	dc.satp_mode	= satp.mode;
+	dc.satp_asid	= satp.asid;
+	dc.satp_ppn		= satp.ppn;
+	dc.mstatus_mprv	= mstatus.mprv;
+	dc.mstatus_mxr	= mstatus.mxr;
+
 	func reset {
 		wire resetvector[32];
 
