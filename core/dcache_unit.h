@@ -24,6 +24,13 @@ declare dcache_unit {
 	func_in cache_flush;
 	func_out cache_flush_done;
 
+	output pma_adrs[32];
+	func_out pma_check(pma_adrs);
+	func_in pma_empty();
+	func_in pma_cacheable();
+	func_out store_amo_access_fault();
+	func_out load_access_fault();
+
 	/* Cache Unit <-> Memory Interface */
 	output mem_adrs[32];
 	input mem_rdata[128];

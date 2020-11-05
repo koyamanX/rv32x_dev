@@ -18,6 +18,11 @@ module dcache_unit {
 	reg cache_wdata[32];
 	reg cache_op;
 
+	reg noncacheable_memop_adrs[32];
+	reg noncacheable_memop_byteen[3];
+	reg noncacheable_memop_wdata[32];
+	reg noncacheable_memop_op;
+
 	reg cache_writeback_entry[128];
 	reg flushing = 0;
 
@@ -28,6 +33,7 @@ module dcache_unit {
 	proc_name flush_cache();
 	proc_name allocate(cache_adrs);
 	proc_name writeback(cache_writeback_entry, cache_lru_entry, cache_adrs, flushing);
+	proc_name noncacheable_memop(noncacheable_memop_adrs, noncacheable_memop_byteen, noncacheable_memop_wdata, noncacheable_memop_op);
 
 	wire cache_hit_data[128];
 	wire cache_hit_lru;
@@ -63,9 +69,31 @@ module dcache_unit {
 		if(cache_flush) {
 			flush_cache();
 		} else if(read || write) {
-			compare_tag(cache_data_way0[i], cache_tag_way0[i], cache_valid_way0[i], cache_dirty_way0[i],
-						cache_data_way1[i], cache_tag_way1[i], cache_valid_way1[i], cache_dirty_way1[i],
-						cache_lru[i], adrs, byteen, wdata, write);
+			pma_check(adrs);
+			if(pma_cacheable && !pma_empty) {
+				compare_tag(cache_data_way0[i], cache_tag_way0[i], cache_valid_way0[i], cache_dirty_way0[i],
+							cache_data_way1[i], cache_tag_way1[i], cache_valid_way1[i], cache_dirty_way1[i],
+							cache_lru[i], adrs, byteen, wdata, write);
+			} else if(!pma_cacheable && !pma_empty) {
+				noncacheable_memop(adrs, byteen, wdata, write);
+			} else if(pma_empty) {
+				any {
+					read: load_access_fault();
+					write: store_amo_access_fault();
+				}
+			}
+		}
+	}
+	proc noncacheable_memop {
+		any {
+			noncacheable_memop_op == CACHE_READ: mem_read(noncacheable_memop_adrs, noncacheable_memop_byteen);
+			noncacheable_memop_op == CACHE_WRITE: mem_write(noncacheable_memop_adrs, noncacheable_memop_byteen, 128'(noncacheable_memop_wdata));
+		}
+
+		if(mem_valid) {
+			rdata = mem_rdata[31:0];
+			valid();
+			idle();
 		}
 	}
 	proc compare_tag {

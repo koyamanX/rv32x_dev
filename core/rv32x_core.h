@@ -15,9 +15,9 @@ declare rv32x_core {
 	func_out dmem_read(daddr, dbyteen);  /* When data is ready on 'rdata', dmem_valid is asserted */
 	func_out dmem_write(daddr, dbyteen, wdata); /* When data is written, dmem_valid is asserted */
 	output dmem_pma_addr[32];
-	func_out check_dmem_pma(dmem_pma_addr);
+	func_out pma_check_dmem(dmem_pma_addr);
 	func_in dmem_cacheable();
-	func_in dmem_not_mapped();
+	func_in dmem_empty();
 	func_in machine_timer_interrupt_req();
 	func_in machine_software_interrupt_req();
 	func_in machine_external_interrupt_req();

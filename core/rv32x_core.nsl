@@ -18,12 +18,6 @@ module rv32x_core {
 	reg dc_cache_flush_done = 0;
 	reg mode[2];							/* Current execution mode */
 	
-	wire ncadrs[32];
-	wire ncbyteen[3];
-	wire ncdata[32];
-	func_self noncacheable_read(ncadrs, ncbyteen);
-	func_self noncacheable_write(ncadrs, ncbyteen, ncdata);
-	
 	/* Trap */
 	reg cause[32];
 	reg epc[32];
@@ -981,27 +975,28 @@ module rv32x_core {
 		rv32x.imem_valid();
 	}
 	func rv32x.dmem_read {
-
-		check_dmem_pma(rv32x.daddr);
-		any {
-			dmem_cacheable && !dmem_not_mapped:		dc.read(rv32x.daddr, rv32x.dbyteen);
-			!dmem_cacheable && !dmem_not_mapped:	noncacheable_read(rv32x.daddr, rv32x.dbyteen);	
-			dmem_not_mapped:						load_access_fault(); 
-		}
+		dc.read(rv32x.daddr, rv32x.dbyteen);
 	}
-	func noncacheable_read {
-		dmem_read(ncadrs, ncbyteen);
-		if(dmem_valid) {
-			rv32x.rdata = rdata;
-			rv32x.dmem_valid();
-		}
+	func dc.pma_check {
+		pma_check_dmem(dc.pma_adrs);
+	}
+	func dc.store_amo_access_fault {
+		store_amo_access_fault();
+	}
+	func dc.load_access_fault {
+		load_access_fault();
+	}
+	func dmem_cacheable {
+		dc.pma_cacheable();
+	}
+	func dmem_empty {
+		dc.pma_empty();
 	}
 	func dc.mem_read {
 		reg dc_read_cnt[3] = 0;
 		mem dc_read_data[4][32];
 
 		if(dc.mem_size == MEM_QUADWORD) {
-
 			dmem_read({dc.mem_adrs[31:4], 4'({dc_read_cnt, 2'b00})}, MEM_WORD);
 			if(dc_read_cnt == 4) {
 				if(dmem_valid) {
@@ -1015,26 +1010,21 @@ module rv32x_core {
 					dc_read_data[dc_read_cnt] := rdata;
 				}
 			}
+		} else {
+			dmem_read(dc.mem_adrs, dc.mem_size);
+			if(dmem_valid) {
+				dc.mem_rdata = 128'(rdata);
+				dc.mem_valid();
+			}
 		}
 	}
 	func rv32x.dmem_write {
-		check_dmem_pma(rv32x.daddr);
-		any {
-			dmem_cacheable && !dmem_not_mapped:		dc.write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
-			!dmem_cacheable && !dmem_not_mapped:	noncacheable_write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
-			dmem_not_mapped:						store_amo_access_fault();
-		}
+		dc.write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
 #ifdef DEBUG
 		if(rv32x.daddr == 0x80001000) {
 			sim_done(rv32x.wdata);
 		}
 #endif
-	}
-	func noncacheable_write {
-		dmem_write(ncadrs, ncbyteen, ncdata);
-		if(dmem_valid) {
-			rv32x.dmem_valid();
-		}
 	}
 	func dc.mem_write {
 		reg dc_write_cnt[3] = 0;
@@ -1061,6 +1051,11 @@ module rv32x_core {
 						dc_write_cnt++;
 					}
 				}
+			}
+		} else {
+			dmem_write(dc.mem_adrs, dc.mem_size, dc.mem_wdata[31:0]);
+			if(dmem_valid) {
+				dc.mem_valid();
 			}
 		}
 	}
