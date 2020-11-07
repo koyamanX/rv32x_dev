@@ -21,6 +21,22 @@ declare icache_unit {
 	func_in invalidate;
 	func_out invalidate_done;
 
+	input satp_mode;
+	input satp_asid[9];
+	input satp_ppn[22];
+
+	func_in tlb_flush();
+	func_out tlb_flush_done();
+
+	func_out instruction_access_fault();
+	func_out instruction_page_fault();
+
+	output satp[32];
+	output vadrs[32];
+	output pte[32];
+	func_out walk(satp, vadrs);
+	func_in pte_valid();
+
 	/* Cache Unit <-> Memory Interface */
 	output mem_adrs[32];
 	input mem_rdata[128];

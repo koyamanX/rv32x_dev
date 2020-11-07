@@ -35,7 +35,6 @@ module icache_unit {
 
 	.{tag, index, blockoffset, byteoffset} = adrs;
 
-
 	func reset {
 		idle();
 	}
