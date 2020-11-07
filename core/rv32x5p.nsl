@@ -267,7 +267,7 @@ module rv32x5p {
 			rv32x_inst_dec.funct12 == SRET:			{system_sret();}
 			rv32x_inst_dec.funct12 == URET:			{system_uret();}
 			rv32x_inst_dec.funct12 == WFI:			{system_wfi(); /* check if illegal */} 
-			rv32x_inst_dec.funct7  == SFENCE_VMA:	{system_sfence_vma(); /* check if illegal */}
+			rv32x_inst_dec.funct7  == SFENCE_VMA:	{system_sfence_vma();}
 			else: decode_illegal_instruction();
 		}
 
@@ -546,7 +546,7 @@ module rv32x5p {
 			EMREG.csrrs:	csrrs();
 			EMREG.csrrc:	csrrc();
 			EMREG.fencei: 	{fencei(); ifetch.finish(); decode.finish(); execute.finish(); rv32x_btb.flush();}
-			EMREG.sfence_vma: 	{sfence_vma(); ifetch.finish(); decode.finish(); execute.finish(); rv32x_btb.flush();}
+			EMREG.sfence_vma: 	{sfence_vma(EMREG.rs1_data, EMREG.rs2_data[8:0]); ifetch.finish(); decode.finish(); execute.finish(); rv32x_btb.flush();}
 			EMREG.fence: 	fence();
 		}
 		if(!EMREG.store && !EMREG.load && !EMREG.fencei && !EMREG.fence && !EMREG.sfence_vma && !stall_memory) {

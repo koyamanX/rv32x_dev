@@ -41,7 +41,9 @@ declare rv32x5p {
 
 	func_out fencei();							/* Indicating fence.i is issued */
 	func_out fence();							/* Indicating fence is issued */
-	func_out sfence_vma();						/* Indicating sfence_vma is issued */
+	output asid[9];
+	output vaddr[32];
+	func_out sfence_vma(vaddr, asid);			/* Indicating sfence_vma is issued */
 	func_out ecall();							/* Indicating ecall is issued */
 	func_out ebreak();							/* Indicating ebreak is issued */
 	func_out mret();							/* Indicating mret is issued */
