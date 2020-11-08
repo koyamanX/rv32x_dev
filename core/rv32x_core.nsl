@@ -6,6 +6,7 @@
 #include "csr_map.h"
 #include "icache_unit.h"
 #include "dcache_unit.h"
+#include "ptw.h"
 
 #define INIT_MTVEC {30'b00000_00000_00000_00000_00000_00000, MTVEC_MODE_DIRECT}
 #define MISA_EXTENSIONS MISA_EXTENSIONS_I|MISA_EXTENSIONS_M|MISA_EXTENSIONS_U
@@ -14,7 +15,9 @@ module rv32x_core {
 	rv32x5p rv32x;							/* 5-stage pipelined processor(single issue, in-order) */
 	icache_unit ic;
 	dcache_unit dc;
+	ptw iwalker;
 	reg ic_invalidate_done = 0;
+	reg ic_tlb_flush_done = 0;
 	reg dc_cache_flush_done = 0;
 	reg mode[2];							/* Current execution mode */
 	
@@ -204,6 +207,10 @@ module rv32x_core {
 	dc.mstatus_mprv	= mstatus.mprv;
 	dc.mstatus_mxr	= mstatus.mxr;
 
+	ic.satp_mode = satp.mode;
+	ic.satp_asid = satp.asid;
+	ic.satp_ppn = satp.ppn;
+
 	func reset {
 		wire resetvector[32];
 
@@ -218,6 +225,7 @@ module rv32x_core {
 		mtvec 						:= INIT_MTVEC;
 
 		ic.reset();
+		iwalker.reset();
 		dc.reset();
 		resetvector = {mtvec.base, 2'b00};	/* Shynchronous execption(RESET) */
 		rv32x.reset(resetvector);
@@ -796,6 +804,10 @@ module rv32x_core {
 	}
 	func instruction_page_fault_exception {
 		exception();
+		rv32x.get_pc_ifetch();	
+		rv32x.stall_ifetch_req();
+		rv32x.flush_ifetch();
+		trap(MACHINE, INSTRUCTION_PAGE_FAULT, rv32x.epc, rv32x.epc);
 	}
 	func instruction_access_fault_exception {
 		exception();
@@ -946,8 +958,28 @@ module rv32x_core {
 		if(((mode == SUPERVISOR) && mstatus.tvm)) {
 			illegal_instruction_memory_stage();
 		} else {
-			rv32x.dmem_valid();
+			if(ic_tlb_flush_done && ic_invalidate_done && dc_cache_flush_done) {
+				ic_tlb_flush_done := 0;
+				ic_invalidate_done := 0;
+				dc_cache_flush_done := 0;
+				rv32x.dmem_valid();
+			}
+			if(!ic_tlb_flush_done) {
+				ic.tlb_flush();
+			}
+			if(!ic_invalidate_done) {
+				ic.invalidate();
+			}
+			if(!dc_cache_flush_done) {
+				dc.cache_flush();
+			}
 		}
+	}
+	func ic.instruction_page_fault {
+		instruction_page_fault();
+	}
+	func ic.tlb_flush_done {
+		ic_tlb_flush_done := 1;
 	}
 	func ic.invalidate_done {
 		ic_invalidate_done := 1;
@@ -971,6 +1003,23 @@ module rv32x_core {
 				ic_read_cnt++;
 				ic_read_data[ic_read_cnt] := inst;
 			}
+		}
+	}
+	func ic.walk {
+		iwalker.walk(ic.satp, ic.vadrs);
+	}
+	func iwalker.pte_valid {
+		ic.pte = iwalker.pte;
+		ic.pte_valid();
+	}
+	func iwalker.page_fault {
+		ic.page_fault();
+	}
+	func iwalker.mem_read {
+		imem_read(iwalker.mem_adrs, MEM_WORD);
+		if(imem_valid) {
+			iwalker.mem_rdata = inst;
+			iwalker.mem_valid();
 		}
 	}
 	func rv32x.imem_read {
