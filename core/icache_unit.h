@@ -33,16 +33,16 @@ declare icache_unit {
 
 	output satp[32];
 	output vadrs[32];
-	output pte[32];
+	input pte[32];
 	func_out walk(satp, vadrs);
 	func_in pte_valid();
+	func_in page_fault();
 
 	/* Cache Unit <-> Memory Interface */
 	output mem_adrs[32];
 	input mem_rdata[128];
 	func_out mem_read(mem_adrs);
 	func_in mem_valid;
-	func_in mem_error;	/* just invalidate the line */
 }
 
 #endif
