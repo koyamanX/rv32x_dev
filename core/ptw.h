@@ -4,7 +4,7 @@ declare ptw {
 	func_in reset();
 	input satp[32];
 	input vadrs[32];
-	func_in walk(vadrs);
+	func_in walk(satp, vadrs);
 	func_out page_fault();
 	output pte[32];
 	func_out pte_valid(pte);
