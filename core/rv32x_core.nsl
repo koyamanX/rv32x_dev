@@ -203,10 +203,12 @@ module rv32x_core {
 	dc.satp_mode	= satp.mode;
 	dc.satp_asid	= satp.asid;
 	dc.satp_ppn		= satp.ppn;
-	dc.mstatus_mprv	= mstatus.mprv;
 	dc.mstatus_mxr	= mstatus.mxr;
 	dc.sstatus_sum	= sstatus.sum;
 	dc.priv_mode	= if(mstatus.mprv) mstatus.mpp else mode;
+
+	ic.sstatus_sum	= sstatus.sum;
+	ic.priv_mode	= mode;
 
 	ic.satp_mode = satp.mode;
 	ic.satp_asid = satp.asid;

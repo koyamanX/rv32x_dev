@@ -1,5 +1,6 @@
 #include "icache_unit.h"
 #include "csr.h"
+#include "priv.h"
 #define MEM_WORD        3'b010
 #define MEM_HALFWORD    3'b001
 #define MEM_BYTE        3'b000
@@ -65,7 +66,7 @@ module icache_unit {
 			access_tlb(adrs);
 			if(tlb_hit) {
 				sv32_pte = tlb_hit_data;
-				if(sv32_pte.x && !sv32_pte.u) {
+				if(sv32_pte.x && ((sv32_pte.u && (priv_mode != SUPERVISOR)) || !sv32_pte.u)) {
 					/* map 32 bits virtual address to 32 bits physical address on sv32, not 34 bit physical address for now */
 					compare_tag(cache_data[index], cache_tag[index], cache_valid[index], ({sv32_pte.ppn1, sv32_pte.ppn0})[19:0], index);
 				} else {

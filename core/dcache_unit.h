@@ -27,7 +27,6 @@ declare dcache_unit {
 	input satp_asid[9];
 	input satp_ppn[22];
 	input mstatus_mxr;
-	input mstatus_mprv;
 	input priv_mode[2];
 	input sstatus_sum;
 
