@@ -35,7 +35,9 @@ declare dcache_unit {
 	func_in tlb_flush();
 	func_out tlb_flush_done();
 
+	func_out store_amo_page_fault();
 	func_out store_amo_access_fault();
+	func_out load_page_fault();
 	func_out load_access_fault();
 
 	/* Cache Unit <-> uTLB interfaces */
@@ -43,7 +45,7 @@ declare dcache_unit {
 	func_in read_tlb(tlb_adrs);
 	output pte[32];
 	func_out pte_valid();
-	func_out tlb_read_page_fault();	
+	func_out read_tlb_page_fault();	
 
 	/* Cache Unit <-> Memory Interface */
 	output pma_adrs[32];

@@ -1,6 +1,7 @@
 #include "dcache_unit.h"
 #include "opcode.h"
 #include "csr.h"
+#include "ptw.h"
 
 #define MEM_WORD        3'b010
 #define MEM_HALFWORD    3'b001
@@ -29,6 +30,9 @@ module dcache_unit {
 	reg cache_writeback_entry[128];
 	reg flushing = 0;
 
+	reg ptw_vadrs[32];	/* virtual address used for page_table_walk */
+	ptw walker;
+
 	proc_name idle();
 	proc_name compare_tag(cache_data_entry0, cache_tag_entry0, cache_valid_entry0, cache_dirty_entry0,
 							cache_data_entry1, cache_tag_entry1, cache_valid_entry1, cache_dirty_entry1,
@@ -38,6 +42,7 @@ module dcache_unit {
 	proc_name writeback(cache_writeback_entry, cache_lru_entry, cache_adrs, flushing);
 	proc_name noncacheable_memop(noncacheable_memop_adrs, noncacheable_memop_byteen, noncacheable_memop_wdata, noncacheable_memop_op);
 	proc_name flush_tlb();
+	proc_name page_table_walk(ptw_vadrs);
 
 	wire cache_hit_data[128];
 	wire cache_hit_lru;
@@ -45,6 +50,12 @@ module dcache_unit {
 	func_self cache_miss();
 	wire cache_refill_data[128];
 	func_self refill(cache_refill_data);
+
+	wire va[32];
+	func_self access_tlb(va);
+	wire tlb_hit_data[32];
+	func_self tlb_hit(tlb_hit_data);
+	func_self tlb_miss();
 
 	mem cache_data_way0[256][128];
 	mem cache_data_way1[256][128];
@@ -72,6 +83,7 @@ module dcache_unit {
 	tlb_random_replace_pos++;
 
 	func reset {
+		walker.reset();
 		idle();
 	}
 	proc idle {
@@ -101,6 +113,14 @@ module dcache_unit {
 					store_amo_access_fault();
 				}
 			}
+		} else if(read_tlb) {
+			access_tlb(tlb_adrs);
+			if(tlb_hit) {
+				pte = tlb_hit_data;
+				pte_valid();
+			} else if(tlb_miss) {
+				page_table_walk(tlb_adrs);
+			}
 		}
 	}
 	proc flush_tlb {
@@ -109,6 +129,43 @@ module dcache_unit {
 		}
 		tlb_flush_done();
 		idle();
+	}
+	func access_tlb {
+		generate(i_ = 0; i_ < 32; i_++) {
+			if(tlb_valid[i_] && (tlb_tag[i_] == va[31:12])) {
+				tlb_hit(tlb_data[i_]);
+			}
+		}
+		if(!tlb_hit) {
+			tlb_miss();
+		}
+	}
+	proc page_table_walk {
+		walker.walk({satp_mode, satp_asid, satp_ppn}, ptw_vadrs);
+		if(walker.pte_valid) {
+			tlb_data[tlb_random_replace_pos] := walker.pte;
+			tlb_tag[tlb_random_replace_pos] := ptw_vadrs[31:12];
+			tlb_valid[tlb_random_replace_pos] := VALID;
+			idle();
+		} else if(walker.page_fault) {
+			idle();
+		}
+	}
+	func walker.page_fault {
+		alt {
+			read:		load_page_fault();
+			write:		store_amo_page_fault();
+			read_tlb:	read_tlb_page_fault();
+		}
+	}
+	func walker.mem_read {
+		mem_read(walker.mem_adrs, MEM_WORD);
+		// pma
+
+		if(mem_valid) {
+			walker.mem_rdata = mem_rdata[31:0];
+			walker.mem_valid();
+		}
 	}
 	proc noncacheable_memop {
 		any {
