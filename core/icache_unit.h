@@ -45,6 +45,7 @@ declare icache_unit {
 	input pte[32];
 	func_in pte_valid();
 	func_in page_fault();
+	func_in access_fault();
 
 	/* Cache Unit <-> Memory Interface */
 	output mem_adrs[32];

@@ -105,6 +105,8 @@ module icache_unit {
 		} else if(page_fault) {
 			instruction_page_fault();
 			idle();
+		} else if(access_fault) {
+			instruction_access_fault();
 		}
 	}
 	proc compare_tag {

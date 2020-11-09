@@ -809,6 +809,10 @@ module rv32x_core {
 	}
 	func instruction_access_fault_exception {
 		exception();
+		rv32x.get_pc_ifetch();	
+		rv32x.stall_ifetch_req();
+		rv32x.flush_ifetch();
+		trap(MACHINE, INSTRUCTION_ACCESS_FAULT, rv32x.epc, rv32x.iaddr);
 	}
 	func rv32x.mret {
 		if(mode != MACHINE) {
@@ -980,6 +984,9 @@ module rv32x_core {
 	func ic.instruction_page_fault {
 		instruction_page_fault();
 	}
+	func ic.instruction_access_fault {
+		instruction_access_fault();
+	}
 	func ic.tlb_flush_done {
 		ic_tlb_flush_done := 1;
 	}
@@ -1019,6 +1026,9 @@ module rv32x_core {
 	}
 	func dc.read_tlb_page_fault {
 		ic.page_fault();
+	}
+	func dc.read_tlb_access_fault {
+		ic.access_fault();
 	}
 	func rv32x.imem_read {
 		ic.read(rv32x.iaddr);

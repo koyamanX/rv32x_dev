@@ -7,6 +7,10 @@
 #define MEM_HALFWORD    3'b001
 #define MEM_BYTE        3'b000
 
+#define PTW_FETCH		2'b00
+#define PTW_LOAD		2'b01
+#define PTW_STORE		2'b10
+
 module dcache_unit {
 	reg cache_data_entry0[128];
 	reg cache_data_entry1[128];
@@ -30,6 +34,7 @@ module dcache_unit {
 	reg cache_writeback_entry[128];
 	reg flushing = 0;
 
+	reg ptw_op[2];
 	reg ptw_vadrs[32];	/* virtual address used for page_table_walk */
 	ptw walker;
 
@@ -42,7 +47,7 @@ module dcache_unit {
 	proc_name writeback(cache_writeback_entry, cache_lru_entry, cache_adrs, flushing);
 	proc_name noncacheable_memop(noncacheable_memop_adrs, noncacheable_memop_byteen, noncacheable_memop_wdata, noncacheable_memop_op);
 	proc_name flush_tlb();
-	proc_name page_table_walk(ptw_vadrs);
+	proc_name page_table_walk(ptw_vadrs, ptw_op);
 
 	wire cache_hit_data[128];
 	wire cache_hit_lru;
@@ -119,7 +124,7 @@ module dcache_unit {
 				pte = tlb_hit_data;
 				pte_valid();
 			} else if(tlb_miss) {
-				page_table_walk(tlb_adrs);
+				page_table_walk(tlb_adrs, PTW_FETCH);
 			}
 		}
 	}
@@ -152,15 +157,24 @@ module dcache_unit {
 		}
 	}
 	func walker.page_fault {
-		alt {
-			read:		load_page_fault();
-			write:		store_amo_page_fault();
-			read_tlb:	read_tlb_page_fault();
+		any {
+			ptw_op == PTW_LOAD:		load_page_fault();
+			ptw_op == PTW_STORE:		store_amo_page_fault();
+			ptw_op == PTW_FETCH:	read_tlb_page_fault();
 		}
 	}
 	func walker.mem_read {
-		mem_read(walker.mem_adrs, MEM_WORD);
-		// pma
+		pma_check(walker.mem_adrs);
+		any {
+			!pma_empty && pma_cacheable:	mem_read(walker.mem_adrs, MEM_WORD);
+			else: {
+				any {
+					ptw_op == PTW_LOAD:		load_access_fault();
+					ptw_op == PTW_STORE:	store_amo_access_fault();
+					ptw_op == PTW_FETCH:	read_tlb_access_fault();
+				}
+			}
+		}
 
 		if(mem_valid) {
 			walker.mem_rdata = mem_rdata[31:0];

@@ -46,6 +46,7 @@ declare dcache_unit {
 	output pte[32];
 	func_out pte_valid();
 	func_out read_tlb_page_fault();	
+	func_out read_tlb_access_fault();	
 
 	/* Cache Unit <-> Memory Interface */
 	output pma_adrs[32];
