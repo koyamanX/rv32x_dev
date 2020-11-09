@@ -73,16 +73,21 @@ module dcache_unit {
 			flush_cache();
 		} else if(read || write) {
 			pma_check(adrs);
-			if(pma_cacheable && !pma_empty) {
-				compare_tag(cache_data_way0[i], cache_tag_way0[i], cache_valid_way0[i], cache_dirty_way0[i],
-							cache_data_way1[i], cache_tag_way1[i], cache_valid_way1[i], cache_dirty_way1[i],
-							cache_lru[i], adrs, byteen, wdata, write);
-			} else if(!pma_cacheable && !pma_empty) {
-				noncacheable_memop(adrs, byteen, wdata, write);
-			} else if(pma_empty) {
-				any {
-					read: load_access_fault();
-					write: store_amo_access_fault();
+
+			any {
+				(pma_cacheable && !pma_empty): {
+					compare_tag(cache_data_way0[i], cache_tag_way0[i], cache_valid_way0[i], cache_dirty_way0[i],
+								cache_data_way1[i], cache_tag_way1[i], cache_valid_way1[i], cache_dirty_way1[i],
+								cache_lru[i], adrs, byteen, wdata, write);
+				}
+				(!pma_cacheable && !pma_empty): {
+					noncacheable_memop(adrs, byteen, wdata, write);
+				}
+				(pma_empty && (read && !write)): {
+					load_access_fault();
+				}
+				(pma_empty && (!read && write)): {
+					store_amo_access_fault();
 				}
 			}
 		}
