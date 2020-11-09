@@ -42,6 +42,11 @@ module ptw {
 				page_fault();
 				idle();
 			}
+			(!sv32_pte.r && sv32_pte.w): {
+				/* reserved for future use */
+				page_fault();
+				idle();
+			}
 			((levels == 0) || (sv32_pte.x || sv32_pte.w || sv32_pte.r)): {
 				pte_valid(page_table_entry);
 				idle();
