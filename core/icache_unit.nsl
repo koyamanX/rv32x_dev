@@ -5,50 +5,48 @@
 #define MEM_BYTE        3'b000
 
 module icache_unit {
-	wire tag[20];
-	wire index[8];
-	wire blockoffset[2];
-	wire byteoffset[2];
-	wire cache_block[128];
-	wire cache_word[32];
-	wire invalidate_index[8];
-	reg allocate_adrs[32];
-	reg invalidate_cnt[9] = 0;
+	proc_name idle();
+	/* registering output of mem block is required to infer bram */
 	reg cache_data_entry[128];
-	reg cache_valid_entry;
 	reg cache_tag_entry[20];
+	reg cache_valid_entry;
+	reg cache_tag_accessing[20];	/* physical tag, if no paging, then virtual tag == physical tag */
 	reg cache_index_accessing[8];
-	reg cache_tag_accessing[20];
+	proc_name compare_tag(cache_data_entry, cache_tag_entry, cache_valid_entry, cache_tag_accessing, cache_index_accessing);
+	reg allocate_adrs[32];
+	proc_name allocate(allocate_adrs); 
+	reg ptw_vadrs[32];	/* virtual address used for page_table_walk */
+	proc_name page_table_walk(ptw_vadrs);
+	proc_name flush_tlb();
+	proc_name invalidate_cache();
 
 	mem cache_data[256][128];
 	mem cache_valid[256] = {0};
 	mem cache_tag[256][20] = {0};
-
-	mem tlb_data[4][32];
-	mem tlb_valid[4] = {0};
-	mem tlb_tag[4][20] = {0};
-	reg tlb_random_replace_pos[2] = 0;
 
 	func_self cache_hit();
 	func_self cache_miss();
 	wire refill_tag[20];
 	wire refill_index[8];
 	func_self refill(refill_tag, refill_index);
-	proc_name idle();
-	/* registering output of mem block is required to infer bram */
-	proc_name compare_tag(cache_data_entry, cache_tag_entry, cache_valid_entry, cache_tag_accessing, cache_index_accessing);
-	proc_name allocate(allocate_adrs); 
-	proc_name invalidate_cache();
-	proc_name flush_tlb();
-	reg ptw_vadrs[32];
-	proc_name page_table_walk(ptw_vadrs);
+
+	mem tlb_data[4][32];
+	mem tlb_valid[4] = {0};
+	mem tlb_tag[4][20] = {0};
+	reg tlb_random_replace_pos[2] = 0;
+
 	wire va[32];
 	func_self access_tlb(va);
 	wire tlb_hit_data[32];
 	func_self tlb_hit(tlb_hit_data);
 	func_self tlb_miss();
 
-	integer i_;
+	wire tag[20];
+	wire index[8];
+	wire blockoffset[2];
+	wire byteoffset[2];
+
+	integer i_;	/* only used by `generate` construct and re-used in this module */
 
 	.{tag, index, blockoffset, byteoffset} = adrs;
 	tlb_random_replace_pos++;
@@ -63,22 +61,21 @@ module icache_unit {
 			invalidate_cache();
 		} else if(tlb_flush) {
 			flush_tlb();
-		} else if(read) {
-			if(satp_mode) {
-				access_tlb(adrs);
-				if(tlb_hit) {
-					sv32_pte = tlb_hit_data;
-					if(sv32_pte.x && !sv32_pte.u) {
-						compare_tag(cache_data[index], cache_tag[index], cache_valid[index], ({sv32_pte.ppn1, sv32_pte.ppn0})[19:0], index);
-					} else {
-						instruction_page_fault();
-					}
-				} else if(tlb_miss) {
-					page_table_walk(adrs);
+		} else if(read && satp_mode) {
+			access_tlb(adrs);
+			if(tlb_hit) {
+				sv32_pte = tlb_hit_data;
+				if(sv32_pte.x && !sv32_pte.u) {
+					/* map 32 bits virtual address to 32 bits physical address on sv32, not 34 bit physical address for now */
+					compare_tag(cache_data[index], cache_tag[index], cache_valid[index], ({sv32_pte.ppn1, sv32_pte.ppn0})[19:0], index);
+				} else {
+					instruction_page_fault();
 				}
-			} else {
-				compare_tag(cache_data[index], cache_tag[index], cache_valid[index], tag, index);
+			} else if(tlb_miss) {
+				page_table_walk(adrs);
 			}
+		} else if(read && !satp_mode) {
+			compare_tag(cache_data[index], cache_tag[index], cache_valid[index], tag, index);
 		}
 	}
 	proc flush_tlb {
@@ -111,16 +108,27 @@ module icache_unit {
 		}
 	}
 	proc compare_tag {
-		/* checking (index == i) is required, to support cancellation of read operation in this stage */
+		/* checking (cache_index_accessing == index) is required, to support cancellation of read operation in this stage 
+			if not above equation holds, then read is cancelled implicitly by changing `adrs` during `read` (in the case of
+			branch, jump and trap), so restart from idle();
+		*/
 		if(cache_valid_entry && (cache_tag_entry == cache_tag_accessing) && (cache_index_accessing == index)) {
 			cache_hit();
 			idle();
+		} else if(cache_index_accessing != index) {
+			idle();
 		} else {
 			cache_miss();
+			/* use physical tag and page_offset(untranslated part of adrs(lower 12 bits))
+				to form address for allocate cache block 
+				again, if sv32 is not enabled, physical tag maps to virtual tag */
 			allocate({cache_tag_accessing, adrs[11:0]});
 		}
 	}
 	func cache_hit {
+		wire cache_block[128];
+		wire cache_word[32];
+
 		cache_block = cache_data_entry;
 		any {
 			blockoffset == 2'b00: cache_word = cache_block[31:0];
@@ -140,6 +148,7 @@ module icache_unit {
 		wire allocate_byteoffset[2];
 		.{allocate_tag, allocate_index, allocate_blockoffset, allocate_byteoffset} = allocate_adrs;
 
+		/* mem_read with physical address */
 		mem_read({allocate_tag, allocate_index, 4'b0000});
 		if(mem_valid) {
 			refill(allocate_tag, allocate_index);
@@ -152,6 +161,10 @@ module icache_unit {
 		cache_valid[refill_index] := VALID;
 	}
 	proc invalidate_cache seq {
+		reg invalidate_cnt[9] = 0;
+		wire invalidate_index[8];
+
+		/* no dirty cache entry, just invaldate all entry */
 		for(invalidate_cnt := 0; invalidate_cnt < 256; invalidate_cnt++) {
 			invalidate_index = invalidate_cnt[7:0];
 			cache_valid[invalidate_index] := INVALID;
