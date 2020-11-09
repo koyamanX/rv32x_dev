@@ -37,6 +37,7 @@ module dcache_unit {
 	proc_name allocate(cache_adrs);
 	proc_name writeback(cache_writeback_entry, cache_lru_entry, cache_adrs, flushing);
 	proc_name noncacheable_memop(noncacheable_memop_adrs, noncacheable_memop_byteen, noncacheable_memop_wdata, noncacheable_memop_op);
+	proc_name flush_tlb();
 
 	wire cache_hit_data[128];
 	wire cache_hit_lru;
@@ -55,12 +56,20 @@ module dcache_unit {
 	mem cache_dirty_way1[256] = {0};
 	mem cache_lru[256] = {0};
 
+	mem tlb_data[32][32];
+	mem tlb_valid[32] = {0};
+	mem tlb_tag[32][20] = {0};
+	reg tlb_random_replace_pos[5] = 0;
+
 	wire tag[20];
 	wire index[8];
 	wire blockoffset[2];
 	wire byteoffset[2];
 
+	integer i_;	/* only used by `generate` construct and re-used in this module */
+
 	. {tag, index, blockoffset, byteoffset} = cache_adrs;
+	tlb_random_replace_pos++;
 
 	func reset {
 		idle();
@@ -71,6 +80,8 @@ module dcache_unit {
 		i = adrs[11:4];
 		if(cache_flush) {
 			flush_cache();
+		} else if(tlb_flush) {
+			flush_tlb();
 		} else if(read || write) {
 			pma_check(adrs);
 
@@ -91,6 +102,13 @@ module dcache_unit {
 				}
 			}
 		}
+	}
+	proc flush_tlb {
+		generate(i_ = 0; i_ < 32; i_++) {
+			tlb_valid[i_] := INVALID;
+		}
+		tlb_flush_done();
+		idle();
 	}
 	proc noncacheable_memop {
 		any {

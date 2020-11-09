@@ -19,6 +19,7 @@ module rv32x_core {
 	reg ic_invalidate_done = 0;
 	reg ic_tlb_flush_done = 0;
 	reg dc_cache_flush_done = 0;
+	reg dc_tlb_flush_done = 0;
 	reg mode[2];							/* Current execution mode */
 	
 	/* Trap */
@@ -958,10 +959,11 @@ module rv32x_core {
 		if(((mode == SUPERVISOR) && mstatus.tvm)) {
 			illegal_instruction_memory_stage();
 		} else {
-			if(ic_tlb_flush_done && ic_invalidate_done && dc_cache_flush_done) {
+			if(ic_tlb_flush_done && ic_invalidate_done && dc_cache_flush_done && dc_tlb_flush_done) {
 				ic_tlb_flush_done := 0;
 				ic_invalidate_done := 0;
 				dc_cache_flush_done := 0;
+				dc_tlb_flush_done := 0;
 				rv32x.dmem_valid();
 			}
 			if(!ic_tlb_flush_done) {
@@ -972,6 +974,9 @@ module rv32x_core {
 			}
 			if(!dc_cache_flush_done) {
 				dc.cache_flush();
+			}
+			if(!dc_tlb_flush_done) {
+				dc.tlb_flush();
 			}
 		}
 	}
@@ -986,6 +991,9 @@ module rv32x_core {
 	}
 	func dc.cache_flush_done {
 		dc_cache_flush_done := 1;
+	}
+	func dc.tlb_flush_done {
+		dc_tlb_flush_done := 1;
 	}
 	func ic.mem_read {
 		reg ic_read_cnt[3] = 0;
