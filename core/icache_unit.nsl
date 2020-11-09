@@ -289,8 +289,8 @@ module icache_va_read_test {
 
 	func walker.mem_read {
 		any {
-			walker.mem_adrs == {2'b00, 0x82000001}: walker.mem_rdata = pte1;
-			walker.mem_adrs == {2'b00, 0x82100002}: walker.mem_rdata = pte0;
+			walker.mem_adrs == {2'b00, 0x82000004}: walker.mem_rdata = pte1;
+			walker.mem_adrs == {2'b00, 0x82100008}: walker.mem_rdata = pte0;
 			else: { _write("fail(TEST_ID %x): invalid memory address\n", TEST_ID); fail(); }
 		}
 		walker.mem_valid();
