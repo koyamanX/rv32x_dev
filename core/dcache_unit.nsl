@@ -164,9 +164,9 @@ module dcache_unit {
 		}
 	}
 	func walker.mem_read {
-		pma_check(walker.mem_adrs);
+		pma_check(walker.mem_adrs[31:0]);
 		any {
-			!pma_empty && pma_cacheable:	mem_read(walker.mem_adrs, MEM_WORD);
+			!pma_empty && pma_cacheable:	mem_read(walker.mem_adrs[31:0], MEM_WORD);
 			else: {
 				any {
 					ptw_op == PTW_LOAD:		load_access_fault();
