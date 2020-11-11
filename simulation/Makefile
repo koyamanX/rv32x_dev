@@ -24,6 +24,7 @@ lint: $(VFILES)
 run_riscv_tests: $(TOP)
 	make -C ../software/riscv-tests/isa XLEN=32
 	./run_riscv_tests.py
+check: run_riscv_tests
 out/%.v: ../integration/%.nsl 
 	if [ ! -d out ]; then \
 		mkdir out; \
