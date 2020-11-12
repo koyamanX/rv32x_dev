@@ -211,7 +211,6 @@ module rv32x_core {
 	ic.priv_mode	= mode;
 
 	ic.satp_mode = satp.mode;
-	ic.satp_asid = satp.asid;
 	ic.satp_ppn = satp.ppn;
 
 	func reset {
@@ -492,6 +491,7 @@ module rv32x_core {
 					satp_w = cwdata;
 
 					satp.mode := satp_w.mode;
+					satp.asid := satp_w.asid;
 					satp.ppn := satp_w.ppn;
 				}
 			(mode >= SUPERVISOR) && cwadrs == SSCRATCH:	sscratch := cwdata;
@@ -1092,6 +1092,12 @@ module rv32x_core {
 	}
 	func dc.load_access_fault {
 		load_access_fault();
+	}
+	func dc.load_page_fault {
+		load_page_fault();
+	}
+	func dc.store_amo_page_fault {
+		store_amo_page_fault();
 	}
 	func dmem_cacheable {
 		dc.pma_cacheable();
