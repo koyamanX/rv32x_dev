@@ -11,7 +11,9 @@ riscv_tests_directory = '../software/riscv-tests/isa/'
 simulation_log_directory = './logs/'
 targets = [
 	'rv32ui-p-*',
+#	'rv32ui-v-*',
 	'rv32um-p-*',
+#	'rv32um-v-*',
 	'rv32mi-p-*',
 	'rv32ua-p-*',
 	'rv32si-p-*',
@@ -27,7 +29,6 @@ targets_should_be_failed = [
 	'rv32ua-p-amoswap_w',
 	'rv32ua-p-amoxor_w',
 	'rv32ua-p-lrsc',
-	'rv32si-p-dirty',
 ]
 targets_to_exclude = [
 	'rv32mi-p-breakpoint',
@@ -80,7 +81,7 @@ def run_tests(tests_list, tests_assertion):
 		if(a == 'should_be_passed'):
 			print('{:20}\t{:20}  and it\'s PASSED\tOK'.format(t, a))
 			passed+=1
-		elif(a == 'should_not_passed'):
+		elif(a == 'should_be_failed'):
 			print('{:20}\t{:20}  and it\'s PASSED\tNG'.format(t, a))
 			failed_tests.append(t)
 			failed+=1
