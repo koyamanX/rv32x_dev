@@ -23,7 +23,7 @@ module ptw {
 		sv32_va = vadrs;
 		.{satp_mode, satp_asid, satp_ppn} = satp;
 		if(walk) {
-			page_table_walk(LEVELS-1, (34'({satp_ppn, 0x000}) + 34'({sv32_va.vpn1, 2'b00})), sv32_va.vpn0);
+			page_table_walk(LEVELS-1, 34'({satp_ppn, sv32_va.vpn1, 2'b00}), sv32_va.vpn0);
 		}
 	}
 	proc page_table_walk {
@@ -38,21 +38,16 @@ module ptw {
 		sv32_pte = page_table_entry;
 
 		any {
-			((levels == 0) && !(sv32_pte.x || sv32_pte.w || sv32_pte.r)): {
-				page_fault();
-				idle();
-			}
-			(!sv32_pte.r && sv32_pte.w): {
-				/* reserved for future use */
-				page_fault();
-				idle();
-			}
-			((levels == 0) || (sv32_pte.x || sv32_pte.w || sv32_pte.r)): {
+			(((levels == 0) || ((sv32_pte.x || sv32_pte.w || sv32_pte.r) && !(sv32_pte.w && !sv32_pte.r))) && sv32_pte.v): {
 				pte_valid(page_table_entry);
 				idle();
 			}
+			((levels != 0) && (!sv32_pte.x && !sv32_pte.w && !sv32_pte.r) && sv32_pte.v): {
+				page_table_walk(levels-1, ({sv32_pte.ppn1, sv32_pte.ppn0, va_vpn0, 2'b00}), 10'(0x0));
+			}
 			else: {
-				page_table_walk(levels-1, ({sv32_pte.ppn1, sv32_pte.ppn0, 0x000} + {va_vpn0, 2'b00}), 10'(0x0));
+				page_fault();
+				idle();
 			}
 		}
 	}
