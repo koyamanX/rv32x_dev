@@ -1025,10 +1025,9 @@ module rv32x_core {
 		if(((mode == SUPERVISOR) && mstatus.tvm)) {
 			illegal_instruction_memory_stage();
 		} else {
-			if(ic_tlb_flush_done && ic_invalidate_done && dc_cache_flush_done && dc_tlb_flush_done) {
+			if(ic_tlb_flush_done && ic_invalidate_done && dc_tlb_flush_done) {
 				ic_tlb_flush_done := 0;
 				ic_invalidate_done := 0;
-				dc_cache_flush_done := 0;
 				dc_tlb_flush_done := 0;
 				rv32x.dmem_valid();
 			}
@@ -1037,9 +1036,6 @@ module rv32x_core {
 			}
 			if(!ic_invalidate_done) {
 				ic.invalidate();
-			}
-			if(!dc_cache_flush_done) {
-				dc.cache_flush();
 			}
 			if(!dc_tlb_flush_done) {
 				dc.tlb_flush();
