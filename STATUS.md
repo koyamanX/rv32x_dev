@@ -55,20 +55,20 @@ rv32mi-p-breakpoint 	skipped
 rv32mi-p-sbreak     	should_be_passed      and it's PASSED	OK
 rv32mi-p-shamt      	should_be_passed      and it's PASSED	OK
 rv32mi-p-illegal    	should_be_passed      and it's PASSED	OK
-rv32ua-p-amomin_w   	should_be_failed      and it's FAILED	
-rv32ua-p-lrsc       	should_be_failed      and it's FAILED	
-rv32ua-p-amominu_w  	should_be_failed      and it's FAILED	
-rv32ua-p-amoadd_w   	should_be_failed      and it's FAILED	
-rv32ua-p-amoor_w    	should_be_failed      and it's FAILED	
-rv32ua-p-amomax_w   	should_be_failed      and it's FAILED	
-rv32ua-p-amoand_w   	should_be_failed      and it's FAILED	
-rv32ua-p-amoxor_w   	should_be_failed      and it's FAILED	
-rv32ua-p-amomaxu_w  	should_be_failed      and it's FAILED	
-rv32ua-p-amoswap_w  	should_be_failed      and it's FAILED	
+rv32ua-p-amomin_w   	should_be_failed      and it's PASSED	NG
+rv32ua-p-lrsc       	should_be_failed      and it's PASSED	NG
+rv32ua-p-amominu_w  	should_be_failed      and it's PASSED	NG
+rv32ua-p-amoadd_w   	should_be_failed      and it's PASSED	NG
+rv32ua-p-amoor_w    	should_be_failed      and it's PASSED	NG
+rv32ua-p-amomax_w   	should_be_failed      and it's PASSED	NG
+rv32ua-p-amoand_w   	should_be_failed      and it's PASSED	NG
+rv32ua-p-amoxor_w   	should_be_failed      and it's PASSED	NG
+rv32ua-p-amomaxu_w  	should_be_failed      and it's PASSED	NG
+rv32ua-p-amoswap_w  	should_be_failed      and it's PASSED	NG
 rv32si-p-wfi        	should_be_passed      and it's PASSED	OK
 rv32si-p-ma_fetch   	should_be_passed      and it's PASSED	OK
 rv32si-p-csr        	should_be_passed      and it's PASSED	OK
 rv32si-p-scall      	should_be_passed      and it's PASSED	OK
 rv32si-p-sbreak     	should_be_passed      and it's PASSED	OK
-rv32si-p-dirty      	should_be_failed      and it's FAILED	
+rv32si-p-dirty      	should_be_passed      and it's PASSED	OK
 ```
