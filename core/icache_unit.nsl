@@ -46,11 +46,14 @@ module icache_unit {
 	wire index[8];
 	wire blockoffset[2];
 	wire byteoffset[2];
+	wire sv32;
 
 	integer i_;	/* only used by `generate` construct and re-used in this module */
 
 	.{tag, index, blockoffset, byteoffset} = adrs;
 	tlb_random_replace_pos++;
+
+	sv32 = (satp_mode && (priv_mode != MACHINE));
 
 	func reset {
 		idle();
@@ -62,7 +65,7 @@ module icache_unit {
 			invalidate_cache();
 		} else if(tlb_flush) {
 			flush_tlb();
-		} else if(read && satp_mode) {
+		} else if(read && sv32) {
 			access_tlb(adrs);
 			if(tlb_hit) {
 				sv32_pte = tlb_hit_data;
@@ -75,7 +78,7 @@ module icache_unit {
 			} else if(tlb_miss) {
 				page_table_walk(adrs);
 			}
-		} else if(read && !satp_mode) {
+		} else if(read && !sv32) {
 			compare_tag(cache_data[index], cache_tag[index], cache_valid[index], tag, index);
 		}
 	}
