@@ -358,8 +358,14 @@ module rv32x_core {
 
 				medeleg.environment_call_from_u_mode := edeleg_w.environment_call_from_u_mode;
 				medeleg.environment_call_from_s_mode := edeleg_w.environment_call_from_s_mode;
+				medeleg.load_access_fault := edeleg_w.load_access_fault;
+				medeleg.load_page_fault := edeleg_w.load_page_fault;
+				medeleg.store_amo_access_fault := edeleg_w.store_amo_access_fault;
+				medeleg.store_amo_page_fault := edeleg_w.store_amo_page_fault;
 				medeleg.breakpoint := edeleg_w.breakpoint;
 				medeleg.instruction_address_misaligned := edeleg_w.instruction_address_misaligned;
+				medeleg.instruction_access_fault := edeleg_w.instruction_access_fault;
+				medeleg.instruction_page_fault := edeleg_w.instruction_page_fault;
 			}
 			(mode >= MACHINE) && cwadrs == MIDELEG: {
 				ideleg_w = cwdata;
@@ -688,7 +694,6 @@ module rv32x_core {
 	func store_amo_page_fault_exception {
 		exception();
 		rv32x.get_pc_memory();
-		trap(MACHINE, STORE_AMO_PAGE_FAULT, rv32x.epc, rv32x.daddr);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
 		rv32x.stall_execute_req();
@@ -697,11 +702,14 @@ module rv32x_core {
 		rv32x.flush_decode();
 		rv32x.flush_execute();
 		rv32x.flush_memory();
+		any {
+			medeleg.store_amo_page_fault:	trap(SUPERVISOR, STORE_AMO_PAGE_FAULT, rv32x.epc, rv32x.daddr);
+			~medeleg.store_amo_page_fault:	trap(MACHINE, STORE_AMO_PAGE_FAULT, rv32x.epc, rv32x.daddr);
+		}
 	}
 	func load_page_fault_exception {
 		exception();
 		rv32x.get_pc_memory();
-		trap(MACHINE, LOAD_PAGE_FAULT, rv32x.epc, rv32x.daddr);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
 		rv32x.stall_execute_req();
@@ -710,11 +718,14 @@ module rv32x_core {
 		rv32x.flush_decode();
 		rv32x.flush_execute();
 		rv32x.flush_memory();
+		any {
+			medeleg.load_page_fault:	trap(SUPERVISOR, LOAD_PAGE_FAULT, rv32x.epc, rv32x.daddr);
+			~medeleg.load_page_fault:	trap(MACHINE, LOAD_PAGE_FAULT, rv32x.epc, rv32x.daddr);
+		}
 	}
 	func store_amo_access_fault_exception {
 		exception();
 		rv32x.get_pc_memory();
-		trap(MACHINE, STORE_AMO_ACCESS_FAULT, rv32x.epc, rv32x.daddr);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
 		rv32x.stall_execute_req();
@@ -723,11 +734,14 @@ module rv32x_core {
 		rv32x.flush_decode();
 		rv32x.flush_execute();
 		rv32x.flush_memory();
+		any {
+			medeleg.store_amo_access_fault: trap(SUPERVISOR, STORE_AMO_ACCESS_FAULT, rv32x.epc, rv32x.daddr);
+			~medeleg.store_amo_access_fault: trap(MACHINE, STORE_AMO_ACCESS_FAULT, rv32x.epc, rv32x.daddr);
+		}
 	}
 	func load_access_fault_exception {
 		exception();
 		rv32x.get_pc_memory();
-		trap(MACHINE, LOAD_ACCESS_FAULT, rv32x.epc, rv32x.daddr);
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
 		rv32x.stall_execute_req();
@@ -736,6 +750,10 @@ module rv32x_core {
 		rv32x.flush_decode();
 		rv32x.flush_execute();
 		rv32x.flush_memory();
+		any {
+			medeleg.load_access_fault:	trap(SUPERVISOR, LOAD_ACCESS_FAULT, rv32x.epc, rv32x.daddr);
+			~medeleg.load_access_fault:	trap(MACHINE, LOAD_ACCESS_FAULT, rv32x.epc, rv32x.daddr);
+		}
 	}
 	func illegal_instruction_execute_stage_exception {
 		exception();
@@ -849,7 +867,10 @@ module rv32x_core {
 		rv32x.get_pc_ifetch();	
 		rv32x.stall_ifetch_req();
 		rv32x.flush_ifetch();
-		trap(MACHINE, INSTRUCTION_PAGE_FAULT, rv32x.epc, rv32x.iaddr);
+		any {
+			medeleg.instruction_page_fault:	trap(SUPERVISOR, INSTRUCTION_PAGE_FAULT, rv32x.epc, rv32x.iaddr);
+			~medeleg.instruction_page_fault:	trap(MACHINE, INSTRUCTION_PAGE_FAULT, rv32x.epc, rv32x.iaddr);
+		}
 	}
 	func instruction_access_fault_exception {
 		exception();
