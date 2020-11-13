@@ -11,9 +11,9 @@ riscv_tests_directory = '../software/riscv-tests/isa/'
 simulation_log_directory = './logs/'
 targets = [
 	'rv32ui-p-*',
-#	'rv32ui-v-*',
+	'rv32ui-v-*',
 	'rv32um-p-*',
-#	'rv32um-v-*',
+	'rv32um-v-*',
 	'rv32mi-p-*',
 	'rv32ua-p-*',
 	'rv32si-p-*',
