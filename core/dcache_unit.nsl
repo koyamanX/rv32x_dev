@@ -29,6 +29,7 @@ module dcache_unit {
 	ptw walker;
 
 	mem tlb_data[32][32];
+	mem tlb_levels[32][2];
 	mem tlb_valid[32] = {0};
 	mem tlb_tag[32][20] = {0};
 	reg tlb_random_replace_pos[5] = 0;
@@ -36,12 +37,14 @@ module dcache_unit {
 	wire va[32];
 	func_self access_tlb(va);
 	wire tlb_hit_data[32];
-	func_self tlb_hit(tlb_hit_data);
+	wire tlb_hit_levels[2];
+	func_self tlb_hit(tlb_hit_data, tlb_hit_levels);
 	func_self tlb_miss();
 
 	wire refill_tlb_tag[20];
 	wire refill_tlb_data[32];
-	func_self refill_tlb(refill_tlb_tag, refill_tlb_data);
+	wire refill_tlb_levels[2];
+	func_self refill_tlb(refill_tlb_tag, refill_tlb_data, refill_tlb_levels);
 
 	wire sv32;
 
@@ -63,7 +66,10 @@ module dcache_unit {
 		sv32_va = adrs;
 		sv32_pte = tlb_hit_data;												/* valid on (tlb_hit) */
 		if(sv32) {
-			sv32_pa = {sv32_pte.ppn1[9:0], sv32_pte.ppn0, sv32_va.page_offset};	/* valid on (tlb_hit) */
+			any {
+				tlb_hit_levels == 0:	sv32_pa = {sv32_pte.ppn1[9:0], sv32_pte.ppn0, sv32_va.page_offset};	/* valid on (tlb_hit) */
+				tlb_hit_levels == 1:	sv32_pa = {sv32_pte.ppn1[9:0], sv32_va.vpn0, sv32_va.page_offset};	/* valid on (tlb_hit) */
+			}
 		} else {
 			sv32_pa = sv32_va;
 		}
@@ -127,6 +133,7 @@ module dcache_unit {
 
 				if(tlb_hit) {
 					pte = tlb_hit_data;
+					pte_levels = tlb_hit_levels;
 					pte_valid();
 				}
 				if(tlb_miss) {
@@ -177,7 +184,7 @@ module dcache_unit {
 		walker.walk({satp_mode, satp_asid, satp_ppn}, ptw_adrs);
 
 		if(walker.pte_valid) {
-			refill_tlb(ptw_adrs[31:12], walker.pte);
+			refill_tlb(ptw_adrs[31:12], walker.pte, walker.pte_levels);
 			idle();
 		}
 		if(walker.page_fault) {
@@ -200,7 +207,7 @@ module dcache_unit {
 	func access_tlb {
 		generate(i_ = 0; i_ < 32; i_++) {
 			if(tlb_valid[i_] && (tlb_tag[i_] == va[31:12])) {
-				tlb_hit(tlb_data[i_]);
+				tlb_hit(tlb_data[i_], tlb_levels[i_]);
 			}
 		}
 		if(!tlb_hit) {
@@ -210,6 +217,7 @@ module dcache_unit {
 	func refill_tlb {
 		tlb_data[tlb_random_replace_pos] := refill_tlb_data;
 		tlb_tag[tlb_random_replace_pos] := refill_tlb_tag;
+		tlb_levels[tlb_random_replace_pos] := refill_tlb_levels;
 		tlb_valid[tlb_random_replace_pos] := VALID;
 	}
 	func dcache.pma_check {

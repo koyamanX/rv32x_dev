@@ -1083,6 +1083,7 @@ module rv32x_core {
 	}
 	func dc.pte_valid {
 		ic.pte = dc.pte;
+		ic.pte_levels = dc.pte_levels;
 		ic.pte_valid();
 	}
 	func dc.read_tlb_page_fault {

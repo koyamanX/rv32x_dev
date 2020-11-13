@@ -7,7 +7,8 @@ declare ptw {
 	func_in walk(satp, vadrs);
 	func_out page_fault();
 	output pte[32];
-	func_out pte_valid(pte);
+	output pte_levels[2];
+	func_out pte_valid(pte, pte_levels);
 
 	output mem_adrs[34];
 	input mem_rdata[32];

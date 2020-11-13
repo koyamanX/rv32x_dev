@@ -43,6 +43,7 @@ declare dcache_unit {
 	input tlb_adrs[32];
 	func_in read_tlb(tlb_adrs);
 	output pte[32];
+	output pte_levels[2];
 	func_out pte_valid();
 	func_out read_tlb_page_fault();	
 	func_out read_tlb_access_fault();	

@@ -39,7 +39,7 @@ module ptw {
 
 		any {
 			(((levels == 0) || ((sv32_pte.x || sv32_pte.w || sv32_pte.r) && !(sv32_pte.w && !sv32_pte.r))) && sv32_pte.v): {
-				pte_valid(page_table_entry);
+				pte_valid(page_table_entry, levels);
 				idle();
 			}
 			((levels != 0) && (!sv32_pte.x && !sv32_pte.w && !sv32_pte.r) && sv32_pte.v): {

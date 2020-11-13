@@ -43,6 +43,7 @@ declare icache_unit {
 	output vadrs[32];
 	func_out walk(satp, vadrs);
 	input pte[32];
+	input pte_levels[2];
 	func_in pte_valid();
 	func_in page_fault();
 	func_in access_fault();

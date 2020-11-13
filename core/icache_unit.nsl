@@ -34,12 +34,14 @@ module icache_unit {
 	mem tlb_data[4][32];
 	mem tlb_valid[4] = {0};
 	mem tlb_tag[4][20] = {0};
+	mem tlb_levels[4][2];
 	reg tlb_random_replace_pos[2] = 0;
 
 	wire va[32];
 	func_self access_tlb(va);
 	wire tlb_hit_data[32];
-	func_self tlb_hit(tlb_hit_data);
+	wire tlb_hit_levels[2];
+	func_self tlb_hit(tlb_hit_data, tlb_hit_levels);
 	func_self tlb_miss();
 
 	wire tag[20];
@@ -71,7 +73,10 @@ module icache_unit {
 				sv32_pte = tlb_hit_data;
 				if(sv32_pte.x && ((sv32_pte.u && (priv_mode != SUPERVISOR)) || !sv32_pte.u)) {
 					/* map 32 bits virtual address to 32 bits physical address on sv32, not 34 bit physical address for now */
-					compare_tag(cache_data[index], cache_tag[index], cache_valid[index], ({sv32_pte.ppn1, sv32_pte.ppn0})[19:0], index);
+					any {
+						tlb_hit_levels == 0:	compare_tag(cache_data[index], cache_tag[index], cache_valid[index], ({sv32_pte.ppn1, sv32_pte.ppn0})[19:0], index);
+						tlb_hit_levels == 1:	compare_tag(cache_data[index], cache_tag[index], cache_valid[index], ({sv32_pte.ppn1, adrs[21:12]})[19:0], index);
+					}
 				} else {
 					instruction_page_fault();
 				}
@@ -92,7 +97,7 @@ module icache_unit {
 	func access_tlb {
 		generate(i_ = 0; i_ < 4; i_++) {
 			if(tlb_valid[i_] && (tlb_tag[i_] == va[31:12])) {
-				tlb_hit(tlb_data[i_]);
+				tlb_hit(tlb_data[i_], tlb_levels[i_]);
 			}
 		}
 		if(!tlb_hit) {
@@ -105,6 +110,7 @@ module icache_unit {
 			tlb_data[tlb_random_replace_pos] := pte;
 			tlb_tag[tlb_random_replace_pos] := ptw_vadrs[31:12];
 			tlb_valid[tlb_random_replace_pos] := VALID;
+			tlb_levels[tlb_random_replace_pos] := pte_levels;
 			idle();
 		} else if(page_fault) {
 			instruction_page_fault();
