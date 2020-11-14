@@ -48,7 +48,6 @@ declare icache_unit {
 	func_in page_fault();
 	func_in access_fault();
 
-	input sstatus_sum;
 	input priv_mode[2];
 
 	/* Cache Unit <-> Memory Interface */

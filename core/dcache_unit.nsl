@@ -86,7 +86,8 @@ module dcache_unit {
 				access_tlb(sv32_va);
 
 				if(tlb_hit) {
-					if(sv32_pte.v && sv32_pte.r && sv32_pte.a && sv32_pte.d) {
+					if(sv32_pte.v && (sv32_pte.r || (mstatus_mxr && sv32_pte.x)) && sv32_pte.a
+						&& ((sv32_pte.u && ((priv_mode == USER) || ((priv_mode == SUPERVISOR) && sstatus_sum))) || (!sv32_pte.u && priv_mode != USER))) {
 						dcache.read(sv32_pa, byteen);
 						if(!dcache.load_access_fault) {
 							read_cache(sv32_pa, byteen);
@@ -103,7 +104,8 @@ module dcache_unit {
 				access_tlb(sv32_va);
 
 				if(tlb_hit) {
-					if(sv32_pte.v && sv32_pte.r && sv32_pte.w && sv32_pte.a && sv32_pte.d) {
+					if(sv32_pte.v && sv32_pte.r && sv32_pte.w && sv32_pte.a && sv32_pte.d
+						&& ((sv32_pte.u && ((priv_mode == USER) || ((priv_mode == SUPERVISOR) && sstatus_sum))) || (!sv32_pte.u && priv_mode != USER))) {
 						dcache.write(sv32_pa, byteen, wdata);	
 						if(!dcache.store_amo_access_fault) {
 							write_cache(sv32_pa, byteen, wdata);

@@ -71,7 +71,8 @@ module icache_unit {
 			access_tlb(adrs);
 			if(tlb_hit) {
 				sv32_pte = tlb_hit_data;
-				if(sv32_pte.x && ((sv32_pte.u && (priv_mode != SUPERVISOR)) || !sv32_pte.u)) {
+				if(sv32_pte.v && sv32_pte.x && sv32_pte.a
+					&& ((sv32_pte.u && (priv_mode == USER)) || (!sv32_pte.u && priv_mode == SUPERVISOR))) {
 					/* map 32 bits virtual address to 32 bits physical address on sv32, not 34 bit physical address for now */
 					any {
 						tlb_hit_levels == 0:	compare_tag(cache_data[index], cache_tag[index], cache_valid[index], ({sv32_pte.ppn1, sv32_pte.ppn0})[19:0], index);
