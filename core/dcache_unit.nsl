@@ -236,6 +236,7 @@ module dcache_unit {
 		mem_write(dcache.mem_adrs, dcache.mem_size, dcache.mem_wdata);
 	}
 	func mem_valid {
+		dcache.mem_rdata = mem_rdata;
 		dcache.mem_valid();
 	}
 	func dcache.store_amo_access_fault {
