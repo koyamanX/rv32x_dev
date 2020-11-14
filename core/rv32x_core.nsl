@@ -1000,7 +1000,7 @@ module rv32x_core {
 		rv32x.stall_ifetch_req();
 		rv32x.trap(v);
 #ifdef DEBUG
-		debug_raise_exception(cause, epc, mtval, debug_einst);
+		debug_raise_exception(cause, epc, tval, debug_einst);
 #endif
 		finish();
 	}
@@ -1151,11 +1151,6 @@ module rv32x_core {
 	}
 	func rv32x.dmem_write {
 		dc.write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
-#ifdef DEBUG
-		if(rv32x.daddr == 0x80001000) {
-			sim_done(rv32x.wdata);
-		}
-#endif
 	}
 	func dc.mem_write {
 		reg dc_write_cnt[3] = 0;
@@ -1236,6 +1231,9 @@ module rv32x_core {
 	}
 	func rv32x.debug_mem_write {
 		debug_mem_write(rv32x.debug_mem_adrs, rv32x.debug_mem_byteen, rv32x.debug_mem_data);
+	}
+	func dc.sim_done {
+		sim_done(dc.tohost);
 	}
 #endif
 }

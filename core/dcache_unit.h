@@ -62,5 +62,9 @@ declare dcache_unit {
 	func_out mem_read(mem_adrs, mem_size);
 	func_out mem_write(mem_adrs, mem_size, mem_wdata);
 	func_in mem_valid;
+#ifdef DEBUG
+	output tohost[32];
+	func_out sim_done(tohost);
+#endif
 }
 #endif

@@ -254,8 +254,8 @@ public:
 				}
 			}
 			if(rising_edge) {
-				if((core->daddr == 0x80001000) && !no_sim_exit) {
-					ret = core->wdata;
+				if(core->sim_done && !no_sim_exit) {
+					ret = core->tohost;
 				}
 				if(core->debug_raise_exception) {
 					epc = core->debug_epc;

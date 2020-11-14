@@ -115,6 +115,11 @@ module dcache_unit {
 				if(tlb_miss) {
 					page_table_walk(sv32_va, PTW_STORE);
 				}
+#ifdef DEBUG
+				if(sv32_pa == 0x80001000) {
+					sim_done(wdata);
+				}
+#endif
 			}
 			read && !sv32: {
 				dcache.read(sv32_pa, byteen);	
@@ -127,6 +132,11 @@ module dcache_unit {
 				if(!dcache.store_amo_access_fault) {
 					write_cache(sv32_pa, byteen, wdata);
 				}
+#ifdef DEBUG
+				if(sv32_pa == 0x80001000) {
+					sim_done(wdata);
+				}
+#endif
 			}
 			read_tlb: {
 				access_tlb(tlb_adrs);
