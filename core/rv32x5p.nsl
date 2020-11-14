@@ -272,8 +272,8 @@ module rv32x5p {
 		}
 
 		any {
-			(rv32x_inst_dec.rs1 != 5'b00000)	
-				|| (rv32x_inst_dec.rd != 5'b00000): decode_illegal_instruction();
+			(!system_sfence_vma
+				&& ((rv32x_inst_dec.rs1 != 5'b00000) || (rv32x_inst_dec.rd != 5'b00000))): decode_illegal_instruction();
 		}
 	}
 	func load_interlock {	
