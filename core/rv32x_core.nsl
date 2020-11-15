@@ -5,7 +5,7 @@
 #include "csr.h"
 #include "csr_map.h"
 #include "icache_unit.h"
-#include "dcache_unit.h"
+#include "load_store_unit.h"
 
 #define INIT_MTVEC {30'b00000_00000_00000_00000_00000_00000, MTVEC_MODE_DIRECT}
 #define MISA_EXTENSIONS MISA_EXTENSIONS_I|MISA_EXTENSIONS_M|MISA_EXTENSIONS_U
@@ -13,11 +13,11 @@
 module rv32x_core {
 	rv32x5p rv32x;							/* 5-stage pipelined processor(single issue, in-order) */
 	icache_unit ic;
-	dcache_unit dc;
+	load_store_unit lsu;
 	reg ic_invalidate_done = 0;
 	reg ic_tlb_flush_done = 0;
-	reg dc_cache_flush_done = 0;
-	reg dc_tlb_flush_done = 0;
+	reg lsu_cache_flush_done = 0;
+	reg lsu_tlb_flush_done = 0;
 	reg mode[2];							/* Current execution mode */
 	
 	/* Trap */
@@ -200,12 +200,12 @@ module rv32x_core {
 	stip = ((supervisor_timer_interrupt_req | mip.stip));
 	seip = ((supervisor_external_interrupt_req | mip.seip));
 
-	dc.satp_mode	= satp.mode;
-	dc.satp_asid	= satp.asid;
-	dc.satp_ppn		= satp.ppn;
-	dc.mstatus_mxr	= mstatus.mxr;
-	dc.sstatus_sum	= sstatus.sum;
-	dc.priv_mode	= if(mstatus.mprv) mstatus.mpp else mode;
+	lsu.satp_mode	= satp.mode;
+	lsu.satp_asid	= satp.asid;
+	lsu.satp_ppn		= satp.ppn;
+	lsu.mstatus_mxr	= mstatus.mxr;
+	lsu.sstatus_sum	= sstatus.sum;
+	lsu.priv_mode	= if(mstatus.mprv) mstatus.mpp else mode;
 
 	ic.priv_mode	= mode;
 
@@ -226,7 +226,7 @@ module rv32x_core {
 		mtvec 						:= INIT_MTVEC;
 
 		ic.reset();
-		dc.reset();
+		lsu.reset();
 		resetvector = {mtvec.base, 2'b00};	/* Shynchronous execption(RESET) */
 		rv32x.reset(resetvector);
 	}
@@ -1020,12 +1020,12 @@ module rv32x_core {
 		if(!ic_invalidate_done) {
 			ic.invalidate();
 		}
-		if(!dc_cache_flush_done) {
-			dc.cache_flush();
+		if(!lsu_cache_flush_done) {
+			lsu.cache_flush();
 		}
-		if(dc_cache_flush_done && ic_invalidate_done) {
+		if(lsu_cache_flush_done && ic_invalidate_done) {
 			ic_invalidate_done := 0;
-			dc_cache_flush_done := 0;
+			lsu_cache_flush_done := 0;
 			rv32x.dmem_valid();
 		}
 	}
@@ -1036,10 +1036,10 @@ module rv32x_core {
 		if(((mode == SUPERVISOR) && mstatus.tvm)) {
 			illegal_instruction_memory_stage();
 		} else {
-			if(ic_tlb_flush_done && ic_invalidate_done && dc_tlb_flush_done) {
+			if(ic_tlb_flush_done && ic_invalidate_done && lsu_tlb_flush_done) {
 				ic_tlb_flush_done := 0;
 				ic_invalidate_done := 0;
-				dc_tlb_flush_done := 0;
+				lsu_tlb_flush_done := 0;
 				rv32x.dmem_valid();
 			}
 			if(!ic_tlb_flush_done) {
@@ -1048,8 +1048,8 @@ module rv32x_core {
 			if(!ic_invalidate_done) {
 				ic.invalidate();
 			}
-			if(!dc_tlb_flush_done) {
-				dc.tlb_flush();
+			if(!lsu_tlb_flush_done) {
+				lsu.tlb_flush();
 			}
 		}
 	}
@@ -1065,11 +1065,11 @@ module rv32x_core {
 	func ic.invalidate_done {
 		ic_invalidate_done := 1;
 	}
-	func dc.cache_flush_done {
-		dc_cache_flush_done := 1;
+	func lsu.cache_flush_done {
+		lsu_cache_flush_done := 1;
 	}
-	func dc.tlb_flush_done {
-		dc_tlb_flush_done := 1;
+	func lsu.tlb_flush_done {
+		lsu_tlb_flush_done := 1;
 	}
 	func ic.mem_read {
 		reg ic_read_cnt[3] = 0;
@@ -1090,17 +1090,17 @@ module rv32x_core {
 		}
 	}
 	func ic.walk {
-		dc.read_tlb(ic.vadrs);
+		lsu.read_tlb(ic.vadrs);
 	}
-	func dc.pte_valid {
-		ic.pte = dc.pte;
-		ic.pte_levels = dc.pte_levels;
+	func lsu.pte_valid {
+		ic.pte = lsu.pte;
+		ic.pte_levels = lsu.pte_levels;
 		ic.pte_valid();
 	}
-	func dc.read_tlb_page_fault {
+	func lsu.read_tlb_page_fault {
 		ic.page_fault();
 	}
-	func dc.read_tlb_access_fault {
+	func lsu.read_tlb_access_fault {
 		ic.access_fault();
 	}
 	func rv32x.imem_read {
@@ -1111,93 +1111,93 @@ module rv32x_core {
 		rv32x.imem_valid();
 	}
 	func rv32x.dmem_read {
-		dc.read(rv32x.daddr, rv32x.dbyteen);
+		lsu.read(rv32x.daddr, rv32x.dbyteen);
 	}
-	func dc.pma_check {
-		pma_check_dmem(dc.pma_adrs);
+	func lsu.pma_check {
+		pma_check_dmem(lsu.pma_adrs);
 	}
-	func dc.store_amo_access_fault {
+	func lsu.store_amo_access_fault {
 		store_amo_access_fault();
 	}
-	func dc.load_access_fault {
+	func lsu.load_access_fault {
 		load_access_fault();
 	}
-	func dc.load_page_fault {
+	func lsu.load_page_fault {
 		load_page_fault();
 	}
-	func dc.store_amo_page_fault {
+	func lsu.store_amo_page_fault {
 		store_amo_page_fault();
 	}
 	func dmem_cacheable {
-		dc.pma_cacheable();
+		lsu.pma_cacheable();
 	}
 	func dmem_empty {
-		dc.pma_empty();
+		lsu.pma_empty();
 	}
-	func dc.mem_read {
-		reg dc_read_cnt[3] = 0;
-		mem dc_read_data[4][32];
+	func lsu.mem_read {
+		reg lsu_read_cnt[3] = 0;
+		mem lsu_read_data[4][32];
 
-		if(dc.mem_size == MEM_QUADWORD) {
-			dmem_read({dc.mem_adrs[31:4], 4'({dc_read_cnt, 2'b00})}, MEM_WORD);
-			if(dc_read_cnt == 4) {
+		if(lsu.mem_size == MEM_QUADWORD) {
+			dmem_read({lsu.mem_adrs[31:4], 4'({lsu_read_cnt, 2'b00})}, MEM_WORD);
+			if(lsu_read_cnt == 4) {
 				if(dmem_valid) {
-					dc_read_cnt := 0;
-					dc.mem_rdata = {dc_read_data[3], dc_read_data[2], dc_read_data[1], dc_read_data[0]};
-					dc.mem_valid();
+					lsu_read_cnt := 0;
+					lsu.mem_rdata = {lsu_read_data[3], lsu_read_data[2], lsu_read_data[1], lsu_read_data[0]};
+					lsu.mem_valid();
 				}
 			} else {
 				if(dmem_valid) {
-					dc_read_cnt++;
-					dc_read_data[dc_read_cnt] := rdata;
+					lsu_read_cnt++;
+					lsu_read_data[lsu_read_cnt] := rdata;
 				}
 			}
 		} else {
-			dmem_read(dc.mem_adrs, dc.mem_size);
+			dmem_read(lsu.mem_adrs, lsu.mem_size);
 			if(dmem_valid) {
-				dc.mem_rdata = 128'(rdata);
-				dc.mem_valid();
+				lsu.mem_rdata = 128'(rdata);
+				lsu.mem_valid();
 			}
 		}
 	}
 	func rv32x.dmem_write {
-		dc.write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
+		lsu.write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
 	}
-	func dc.mem_write {
-		reg dc_write_cnt[3] = 0;
-		mem dc_write_data[4][32];
+	func lsu.mem_write {
+		reg lsu_write_cnt[3] = 0;
+		mem lsu_write_data[4][32];
 		
-		if(dc.mem_size == MEM_QUADWORD) {
-			dmem_write({dc.mem_adrs[31:4], 4'({dc_write_cnt, 2'b00})}, MEM_WORD, dc_write_data[dc_write_cnt]);
+		if(lsu.mem_size == MEM_QUADWORD) {
+			dmem_write({lsu.mem_adrs[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu_write_data[lsu_write_cnt]);
 			any {
-				dc_write_cnt == 0: {
-					dc_write_data[0] := dc.mem_wdata[31:0];
-					dc_write_data[1] := dc.mem_wdata[63:32];
-					dc_write_data[2] := dc.mem_wdata[95:64];
-					dc_write_data[3] := dc.mem_wdata[127:96];
-					dc_write_cnt++;
+				lsu_write_cnt == 0: {
+					lsu_write_data[0] := lsu.mem_wdata[31:0];
+					lsu_write_data[1] := lsu.mem_wdata[63:32];
+					lsu_write_data[2] := lsu.mem_wdata[95:64];
+					lsu_write_data[3] := lsu.mem_wdata[127:96];
+					lsu_write_cnt++;
 				}
-				dc_write_cnt == 4: {
+				lsu_write_cnt == 4: {
 					if(dmem_valid) {
-						dc_write_cnt := 0;
-						dc.mem_valid();
+						lsu_write_cnt := 0;
+						lsu.mem_valid();
 					}
 				}
 				else: {
 					if(dmem_valid) {
-						dc_write_cnt++;
+						lsu_write_cnt++;
 					}
 				}
 			}
 		} else {
-			dmem_write(dc.mem_adrs, dc.mem_size, dc.mem_wdata[31:0]);
+			dmem_write(lsu.mem_adrs, lsu.mem_size, lsu.mem_wdata[31:0]);
 			if(dmem_valid) {
-				dc.mem_valid();
+				lsu.mem_valid();
 			}
 		}
 	}
-	func dc.valid {
-		rv32x.rdata = dc.rdata;
+	func lsu.valid {
+		rv32x.rdata = lsu.rdata;
 		rv32x.dmem_valid();
 	}
 #ifdef DEBUG
@@ -1243,8 +1243,8 @@ module rv32x_core {
 	func rv32x.debug_mem_write {
 		debug_mem_write(rv32x.debug_mem_adrs, rv32x.debug_mem_byteen, rv32x.debug_mem_data);
 	}
-	func dc.sim_done {
-		sim_done(dc.tohost);
+	func lsu.sim_done {
+		sim_done(lsu.tohost);
 	}
 #endif
 }

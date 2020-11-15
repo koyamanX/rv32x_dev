@@ -1,4 +1,4 @@
-#include "dcache_unit.h"
+#include "load_store_unit.h"
 #include "cache.h"
 #include "opcode.h"
 #include "csr.h"
@@ -12,7 +12,7 @@
 #define PTW_LOAD		2'b10
 #define PTW_STORE		2'b11
 
-module dcache_unit {
+module load_store_unit {
 	reg cache_adrs[32];
 	reg cache_wdata[32];
 	reg cache_byteen[3];

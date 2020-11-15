@@ -1,5 +1,5 @@
-#ifndef DCACHE_UNIT_H
-#define DCACHE_UNIT_H
+#ifndef LOAD_STORE_UNIT_H
+#define LOAD_STORE_UNIT_H
 
 #define CLEAN 1'b0
 #define DIRTY 1'b1
@@ -9,7 +9,7 @@
 #define CACHE_WRITE	1'b1
 #define CACHE_READ	1'b0
 
-declare dcache_unit {
+declare load_store_unit {
 	/* CPU <-> Cache Unit */
 	input adrs[32];
 	output rdata[32];
