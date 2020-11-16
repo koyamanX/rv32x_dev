@@ -1,9 +1,11 @@
 #ifndef RV32X5P_H
 #define RV32X5P_H
 declare rv32x5p {
+	input resetvector[32];                      /* Initial PC value on reset */
+	func_in reset(resetvector);                 /* Reset processor */
+	input ialign[2];							/* ialign (32==2'b00, 16==2'b10) */
 	input inst[32];                             /* Irnstruction read on imem_read, only valid during imem_valid */
 	input rdata[32];                            /* Data read on dmem_read, only valid during dmem_valid */
-	input resetvector[32];                      /* Initial PC value on reset */
 	output wdata[32];                           /* Write data to dmem */
 	output daddr[32];                           /* Address to dmem */
 	output iaddr[32];                           /* Address to imem */
@@ -13,7 +15,6 @@ declare rv32x5p {
 	output cwadrs[12];                          /* CSR address for write */
 	input  crdata[32];                          /* Data read  */
 	output cwdata[32];                          /* Data to be written */
-	func_in reset(resetvector);                 /* Reset processor */
 	func_in dmem_valid;                         /* Indication of completation of current dmem transfer */
 	func_in imem_valid;                         /* Indication of completation of current imem transfer */
 	func_out imem_read(iaddr, ibyteen);         /* When data is ready on 'inst', imem_valid is asserted */
@@ -22,23 +23,7 @@ declare rv32x5p {
 	func_out csr_write_uimm();
 	func_out csr_read(cradrs) : crdata;         /* CSR read */
 	func_out csr_write(cwadrs, cwdata);         /* CSR write */
-	//func_in csr_failed();						/* CSR operation failed */
-	input vector[32];							/* New PC on interrupt */
-	output epc[32];								/* Interrupted PC */
-	func_in trap(vector);
-	func_in flush_ifetch;
-	func_in flush_decode;
-	func_in flush_execute;
-	func_in flush_memory;
-	func_in stall_ifetch_req();
-	func_in stall_decode_req();
-	func_in stall_execute_req();
-	func_in stall_memory_req();
-	func_in get_pc_ifetch() : epc;
-	func_in get_pc_decode() : epc;
-	func_in get_pc_execute() : epc;
-	func_in get_pc_memory() : epc;
-
+	
 	func_out fencei();							/* Indicating fence.i is issued */
 	func_out fence();							/* Indicating fence is issued */
 	output asid[9];
@@ -50,20 +35,38 @@ declare rv32x5p {
 	func_out sret();							/* Indicating sret is issued */
 	func_out uret();							/* Indicating uret is issued */
 	func_out wfi();								/* indicating Wait-For-Interrupt is issued */
-	output einst[32];
-	func_in get_inst_execute() : einst;
-	func_in get_inst_memory() : einst;
-	func_out illegal_instruction_execute_stage();
 
+	/* Trap */
+	input vector[32];							/* New PC on trap */
+	output epc[32];								/* Exception PC */
+	func_in trap(vector);
+	func_in flush_ifetch;
+	func_in flush_decode;
+	func_in flush_execute;
+	func_in flush_memory;
+	func_in stall_ifetch_req();
+	func_in stall_decode_req();
+	func_in stall_execute_req();
+	func_in stall_memory_req();
+	/* Internal exception status */
 	output misaligned_target_address[32];
-	func_out instruction_address_misaligned(misaligned_target_address);
 	output misaligned_memory_address[32];
+	func_out instruction_address_misaligned(misaligned_target_address);
 	func_out store_address_misaligned(misaligned_memory_address);
 	func_out load_address_misaligned(misaligned_memory_address);
+	func_out illegal_instruction_execute_stage();
+	/* Get internal PC at the stage */
+	func_in get_pc_ifetch() : epc;
+	func_in get_pc_decode() : epc;
+	func_in get_pc_execute() : epc;
+	func_in get_pc_memory() : epc;
+	/* Get internal instruction at the stage */
+	output einst[32];		/* Exception instruction */
+	func_in get_inst_execute() : einst;
+	func_in get_inst_memory() : einst;
 
+	/* Instruction is retired, increment instret register */
 	func_out instret();
-	
-	input ialign[2];
 #ifdef DEBUG
 	output debug_x0[32];
 	output debug_x1[32];
