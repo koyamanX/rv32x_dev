@@ -507,30 +507,95 @@ module rv32x5p {
 		wire mem_adrs[32];
 		wire mem_data[32];
 		wire mem_byteen[3];
-		wire loaded_value[32]; 
+		wire loaded_value[32];
 		func_self ext : loaded_value;
 		func_self csrrw;
 		func_self csrrs;
 		func_self csrrc;
 
-		mwreg.pc = EMREG.pc;
-		mwreg.pc4 = EMREG.pc4;
-		mwreg.inst = EMREG.inst;
-		mwreg.funct12 = EMREG.funct12;
-		mwreg.rd = EMREG.rd;
-		mwreg.rs1 = EMREG.rs1;
-		mwreg.rs2 = EMREG.rs2;
-		mwreg.rs1_data = EMREG.rs1_data;
-		mwreg.rs2_data = EMREG.rs2_data;
-		mwreg.load = EMREG.load;
-		mwreg.store = EMREG.store;
-		mwreg.alu_q = if(EMREG.csrrw || EMREG.csrrc || EMREG.csrrs) crdata else EMREG.alu_q;
-		mwreg.wb_value = if(EMREG.load) loaded_value else if(EMREG.csrrw || EMREG.csrrc || EMREG.csrrs) crdata else EMREG.alu_q;
-		mwreg.wb = if(memory_nop) 1'b0 else EMREG.wb;
-
+		if(!memory_nop) {
+			mwreg.pc = EMREG.pc;
+			mwreg.pc4 = EMREG.pc4;
+			mwreg.inst = EMREG.inst;
+			mwreg.funct12 = EMREG.funct12;
+			mwreg.rd = EMREG.rd;
+			mwreg.rs1 = EMREG.rs1;
+			mwreg.rs2 = EMREG.rs2;
+			mwreg.rs1_data = EMREG.rs1_data;
+			mwreg.rs2_data = EMREG.rs2_data;
+			mwreg.load = EMREG.load;
+			mwreg.store = EMREG.store;
+			mwreg.alu_q = if(EMREG.csrrw || EMREG.csrrc || EMREG.csrrs) crdata else EMREG.alu_q;
+			mwreg.wb_value = if(EMREG.load) loaded_value else if(EMREG.csrrw || EMREG.csrrc || EMREG.csrrs) crdata else EMREG.alu_q;
+			mwreg.wb = EMREG.wb;
+		} else {
+			mwreg = 0;
+		}
 		mem_byteen = {1'b0, EMREG.funct3[1:0]};
 		mem_adrs = EMREG.alu_q;
-		mem_data = if((MWREG.rd == EMREG.rs2) && (EMREG.rs2 != 5'b0000)) MWREG.wb_value else EMREG.rs2_data;	/* Forward from wb stage */
+		/* For store operation, forward rs2 data */
+		mem_data = if((MWREG.rd == EMREG.rs2) && (EMREG.rs2 != 5'b0000)) MWREG.wb_value else EMREG.rs2_data;
+
+		any {
+			EMREG.store: {
+				dmem_write(mem_adrs, mem_byteen, mem_data);
+			}
+			EMREG.load: {
+				dmem_read(mem_adrs, mem_byteen);
+			}
+			EMREG.csrrw: {
+				csrrw();
+			}
+			EMREG.csrrs: {
+				csrrs();
+			}
+			EMREG.csrrc: {
+				csrrc();
+			}
+			EMREG.fencei: {
+				fencei();
+				ifetch.finish();
+				decode.finish();
+				execute.finish();
+				rv32x_btb.flush();
+			}
+			EMREG.sfence_vma: {
+				sfence_vma(EMREG.rs1_data, EMREG.rs2_data[8:0]);
+				ifetch.finish();
+				decode.finish();
+				execute.finish();
+				rv32x_btb.flush();
+			}
+			EMREG.fence: {
+				fence();
+			}
+		}
+		alt {
+			(!EMREG.store && !EMREG.load && !EMREG.fencei && !EMREG.fence && !EMREG.sfence_vma && !stall_memory): {
+				writeback(mwreg);
+			}
+			(dmem_valid && !stall_memory && !EMREG.fencei && !EMREG.fence && !EMREG.sfence_vma): {
+				ext();
+				writeback(mwreg);
+			}
+			(dmem_valid && !stall_memory && EMREG.sfence_vma): {
+				ifetch(EMREG.pc4);
+				writeback(mwreg);
+			}
+			(dmem_valid && !stall_memory && EMREG.fence): {
+				ifetch(EMREG.pc4);
+				writeback(mwreg);
+			}
+			(dmem_valid && !stall_memory && EMREG.fencei): {
+				ifetch(EMREG.pc4);
+				writeback(mwreg);
+			}
+			else: {
+				stall_ifetch();		
+				stall_decode();
+				stall_execute();
+			}
+		}
 #ifdef DEBUG
 		mwreg.debug_mem_adrs = mem_adrs;
 		mwreg.debug_mem_byteen = mem_byteen;
@@ -538,39 +603,6 @@ module rv32x5p {
 		mwreg.debug_mem_write = EMREG.store;
 		mwreg.debug_wb = if(memory_nop) 1'b0 else EMREG.wb;
 #endif
-
-		any {
-			EMREG.store:    dmem_write(mem_adrs, mem_byteen, mem_data);
-			EMREG.load:     dmem_read(mem_adrs, mem_byteen);
-			EMREG.csrrw:	csrrw();
-			EMREG.csrrs:	csrrs();
-			EMREG.csrrc:	csrrc();
-			EMREG.fencei: 	{fencei(); ifetch.finish(); decode.finish(); execute.finish(); rv32x_btb.flush();}
-			EMREG.sfence_vma: 	{sfence_vma(EMREG.rs1_data, EMREG.rs2_data[8:0]); ifetch.finish(); decode.finish(); execute.finish(); rv32x_btb.flush();}
-			EMREG.fence: 	fence();
-		}
-		if(!EMREG.store && !EMREG.load && !EMREG.fencei && !EMREG.fence && !EMREG.sfence_vma && !stall_memory) {
-			writeback(mwreg);
-		} else if(dmem_valid && !stall_memory && !EMREG.fencei && !EMREG.fence && !EMREG.sfence_vma) {
-			ext();
-			writeback(mwreg);
-		} else if(dmem_valid && !stall_memory && EMREG.sfence_vma) {
-			/* ifetch, decode, execute are flushed along side with fence.i*/
-			ifetch(EMREG.pc4);
-			writeback(mwreg);
-		} else if(dmem_valid && !stall_memory && EMREG.fence) {
-			/* ifetch, decode, execute are flushed along side with fence.i*/
-			ifetch(EMREG.pc4);
-			writeback(mwreg);
-		} else if(dmem_valid && !stall_memory && EMREG.fencei) {
-			/* ifetch, decode, execute are flushed along side with fence.i*/
-			ifetch(EMREG.pc4);
-			//writeback(mwreg);
-		} else {
-			stall_ifetch();		
-			stall_decode();
-			stall_execute();
-		}
 	}
 	func csrrw {
 		csr_wb_data = if(EMREG.uimm) 32'(EMREG.rs1) else EMREG.rs1_data;
@@ -610,12 +642,11 @@ module rv32x5p {
 			}
 		}
 	}
-	/* OPTIMIZE: do ext in writeback stage? */
 	func ext {
 		any {
 			EMREG.funct3 == LB: return 32'({24{rdata[7]}, rdata[7:0]});
 			EMREG.funct3 == LH: return 32'({16{rdata[15]}, rdata[15:0]});
-			else:             return 32'(rdata);
+			else:				return 32'(rdata);
 		}
 	}
 	func flush_memory {
@@ -633,7 +664,6 @@ module rv32x5p {
 			instret();	/* not precise but for now, use this */
 			rv32x_reg32.writea(MWREG.rd, wb_value);
 		}
-
 #ifdef DEBUG
 		if(MWREG.debug_mem_write) {
 			debug_mem_write(MWREG.debug_mem_adrs, MWREG.debug_mem_byteen, MWREG.debug_mem_data);
