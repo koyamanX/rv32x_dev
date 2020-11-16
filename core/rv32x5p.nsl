@@ -298,32 +298,15 @@ module rv32x5p {
 		stall_execute();
 	}
 	func memory_load_hazzard_a {
-		if(!memory_load_hazzard_b) {
-			DEREG.alu_b := execute_alu_b;
-			DEREG.alu_b_forward_en := 0;
-		}
 		load_interlock();
 	}
 	func memory_load_hazzard_b {
-		if(!memory_load_hazzard_a) {
-			DEREG.alu_a := execute_alu_a;
-			DEREG.alu_a_forward_en := 0;
-		}
 		load_interlock();
 	}
 	func csr_load_hazzard_a {
-		if(!csr_load_hazzard_b) {
-			DEREG.alu_b := execute_alu_b;	
-			DEREG.alu_b_forward_en := 0;
-		}
 		load_interlock();
 	}
 	func csr_load_hazzard_b {
-		/* memory stage ends, this signal is cleared by forwarding unit */
-		if(!csr_load_hazzard_a) {
-			DEREG.alu_a := execute_alu_a;	
-			DEREG.alu_a_forward_en := 0;
-		}
 		load_interlock();
 	}
 	/* Forwarding Unit */
