@@ -10,7 +10,7 @@
 #include "btb.h"
 
 module rv32x5p {
-	/* Pipeline registers */
+	/* Pipeline registers (see regs5.h) */
 	reg PC[32];
 	idreg_t reg IDREG;
 	dereg_t reg DEREG;
@@ -27,20 +27,21 @@ module rv32x5p {
 	func_self stall_execute();
 	func_self stall_memory();
 	func_self load_interlock();					/* stall pipeline until load finishes */
-	func_self memory_load_hazzard_a();
-	func_self memory_load_hazzard_b();
-	func_self csr_load_hazzard_a();
-	func_self csr_load_hazzard_b();
+	func_self memory_load_hazzard_a();			/* load hazzard on ALU input a */
+	func_self memory_load_hazzard_b();			/* load hazzard on ALU input b */
+	func_self csr_load_hazzard_a();				/* CSR load hazzard(one clock latency) on ALU input a */
+	func_self csr_load_hazzard_b();				/* CSR load hazzard(one clock latency) on ALU input b */
 	func_self ifetch_nop();						/* insert nop instruction in ifetch */
 	func_self decode_nop();						/* insert nop instruction in decode */
 	func_self execute_nop();					/* insert nop instruction in execute */
 	func_self memory_nop();						/* insert nop instruction in memory */
 	func_self nop();							/* no-op (indicating unimplemented instruction) */
-	wire execute_alu_a[32];						/* forwarded ALU input A */
-	wire execute_alu_b[32];						/* forwarded ALU input B */
-	reg32 rv32x_reg32;							/* General-purpose registers */
-	munit32 rv32x_munit32;						/* Extension unit for M-Extensions */
-	btb rv32x_btb;
+	wire execute_alu_a[32];						/* forward-path to ALU input A in execute stage */
+	wire execute_alu_b[32];						/* forward-path to ALU input B in execute stage */
+	reg32 rv32x_reg32;							/* General-purpose registers(written value is forwarded to read ports 
+													if rd==rs1 or rd==rs2 in same cycle) */
+	munit32 rv32x_munit32;						/* Extension unit for M-Extensions, may require some cycle to complete its operations */
+	btb rv32x_btb;								/* Branch prediction and branch target buffer */
 
 	func reset {
 		/* Reset Extension Unit */
@@ -59,8 +60,6 @@ module rv32x5p {
 	proc ifetch {
 		wire pc4[32];
 		wire predicted_new_pc[32];
-		wire predict_as_taken;
-		wire predict_as_not_taken;
 		inc32 rv32x_inc32;
 
 		rv32x_btb.predict(PC);
@@ -73,13 +72,16 @@ module rv32x5p {
 			predicted_new_pc = pc4;
 		}
 
-		predict_as_taken = if(ifetch_nop) 1'b0 else rv32x_btb.predict_as_taken;
-		predict_as_not_taken = if(ifetch_nop) 1'b0 else rv32x_btb.predict_as_not_taken;
 		if(imem_valid) {
-			if(!stall_ifetch) {		
+			if(!stall_ifetch) {	
 #define NOP (0x00000013)
 				ifetch(predicted_new_pc);
-				decode({PC, pc4, if(ifetch_nop) NOP else inst, predict_as_taken, predict_as_not_taken});
+				if(ifetch_nop) {
+					decode({PC, pc4, NOP, 1'b0, 1'b0});
+				} else {
+					/* feedback to predictor(at execute stage where actual branch condition calculates) */
+					decode({PC, pc4, inst, rv32x_btb.predict_as_taken, rv32x_btb.predict_as_not_taken});
+				}
 			}
 		}
 	}
@@ -87,6 +89,7 @@ module rv32x5p {
 		ifetch.finish();
 		ifetch_nop();
 	}
+	/* stall request from outside enviroment(on trap) */
 	func stall_ifetch_req {
 		stall_ifetch();
 	}
