@@ -95,8 +95,7 @@ module rv32x5p {
 	}
 	proc decode {
 		dereg_t wire dereg;
-		inst_dec rv32x_inst_dec;
-		adder32 rv32x_adder32;
+		/* decode information of system instructions */
 		func_self system_csrrw;
 		func_self system_csrrs;
 		func_self system_csrrc;
@@ -107,73 +106,85 @@ module rv32x5p {
 		func_self system_ebreak;
 		func_self system_wfi;
 		func_self system_sfence_vma;
+		func_self system_priv;
+		/* decode information of misc_mem instructions */
 		func_self misc_mem_fencei;
 		func_self misc_mem_fence;
 		func_self misc_mem_sfence_vma;
 		func_self uimm;
-		func_self system_priv;
+		/* instruction decoded is illegal */
 		func_self decode_illegal_instruction;
-		wire alu_a[32];         /* ALU input A */
-		wire alu_b[32];         /* ALU input B */
+		wire alu_a[32];			/* ALU input A */
+		wire alu_b[32];			/* ALU input B */
+		/* Forwarding may be taken place on ALU input a/b */
 		wire alu_a_forward_en;
 		wire alu_b_forward_en;
+		inst_dec rv32x_inst_dec;		/* instruction decoder */
+		adder32 rv32x_adder32;			/* Adder for branch target */
 
+		/* decode and read operand from register file */
 		rv32x_inst_dec.exe(IDREG.inst);
 		rv32x_reg32.reada(rv32x_inst_dec.rs1);
 		rv32x_reg32.readb(rv32x_inst_dec.rs2);
+		/* calc branch address */
 		rv32x_adder32.exe(IDREG.pc, rv32x_inst_dec.imm);
 
+		/* condition where forwarding may be taken place on ALU a/b */
 		alu_a_forward_en = if(rv32x_inst_dec.lui || rv32x_inst_dec.auipc 
 								|| rv32x_inst_dec.jal) 1'b0 else 1'b1;
 		alu_b_forward_en = if(rv32x_inst_dec.op 
 								|| rv32x_inst_dec.branch) 1'b1 else 1'b0;
 
-		dereg.pc = IDREG.pc;
-		dereg.pc4 = IDREG.pc4;
-		dereg.inst = IDREG.inst;
-		dereg.alu_fn = rv32x_inst_dec.alu_fn;
-		dereg.alu_sel = rv32x_inst_dec.m_ext;
-		dereg.alu_a = alu_a;
-		dereg.alu_b = alu_b;
-		dereg.alu_a_forward_en = if(decode_nop) 1'b0 else alu_a_forward_en;
-		dereg.alu_b_forward_en = if(decode_nop) 1'b0 else alu_b_forward_en;
-		dereg.funct3 = rv32x_inst_dec.funct3;
-		dereg.funct12 = rv32x_inst_dec.funct12;
-		dereg.rd = if(decode_nop) 5'b00000 else rv32x_inst_dec.rd;
-		dereg.rs1 = rv32x_inst_dec.rs1;
-		dereg.rs2 = rv32x_inst_dec.rs2;
-		dereg.rs1_data = rv32x_reg32.rdataa;
-		dereg.rs2_data = rv32x_reg32.rdatab;
-		dereg.load = if(decode_nop) 1'b0 else rv32x_inst_dec.load;
-		dereg.store = if(decode_nop) 1'b0 else rv32x_inst_dec.store;
-		dereg.jump = if(decode_nop) 1'b0 else rv32x_inst_dec.jal || rv32x_inst_dec.jalr;
-		dereg.branch = if(decode_nop) 1'b0 else rv32x_inst_dec.branch;
-		dereg.beq = rv32x_inst_dec.beq;
-		dereg.bne = rv32x_inst_dec.bne;
-		dereg.blt = rv32x_inst_dec.blt;
-		dereg.bltu = rv32x_inst_dec.bltu;
-		dereg.bge = rv32x_inst_dec.bge;
-		dereg.bgeu = rv32x_inst_dec.bgeu;
-		dereg.nextpc = rv32x_adder32.q;
-		dereg.csrrw = if(decode_nop) 1'b0 else system_csrrw;
-		dereg.csrrs = if(decode_nop) 1'b0 else system_csrrs;
-		dereg.csrrc = if(decode_nop) 1'b0 else system_csrrc;
-		dereg.uimm = uimm;
-		dereg.fencei = if(decode_nop) 1'b0 else misc_mem_fencei;
-		dereg.fence = if(decode_nop) 1'b0 else misc_mem_fence;
-		dereg.sfence_vma = if(decode_nop) 1'b0 else system_sfence_vma;
-		dereg.wb = if(decode_nop) 1'b0 else rv32x_inst_dec.wb;
-		dereg.ecall = if(decode_nop) 1'b0 else system_ecall;
-		dereg.ebreak = if(decode_nop) 1'b0 else system_ebreak;
-		dereg.mret = if(decode_nop) 1'b0 else system_mret;
-		dereg.sret = if(decode_nop) 1'b0 else system_sret;
-		dereg.uret = if(decode_nop) 1'b0 else system_uret;
-		dereg.wfi = if(decode_nop) 1'b0 else system_wfi;
-		dereg.illegal_instruction = if(decode_nop) 1'b0 else (rv32x_inst_dec.illegal_instruction || decode_illegal_instruction);
-		dereg.predict_as_taken = if(decode_nop) 1'b0 else IDREG.predict_as_taken;
-		dereg.predict_as_not_taken = if(decode_nop) 1'b0 else IDREG.predict_as_not_taken;
+		if(!decode_nop) {
+			dereg.pc = IDREG.pc;
+			dereg.pc4 = IDREG.pc4;
+			dereg.inst = IDREG.inst;
+			dereg.alu_sel = rv32x_inst_dec.m_ext;
+			dereg.alu_fn = rv32x_inst_dec.alu_fn;
+			dereg.alu_a = alu_a;
+			dereg.alu_b = alu_b;
+			dereg.alu_a_forward_en = alu_a_forward_en;
+			dereg.alu_b_forward_en = alu_b_forward_en;
+			dereg.funct3 = rv32x_inst_dec.funct3;
+			dereg.funct12 = rv32x_inst_dec.funct12;
+			dereg.rd = rv32x_inst_dec.rd;
+			dereg.rs1 = rv32x_inst_dec.rs1;
+			dereg.rs2 = rv32x_inst_dec.rs2;
+			dereg.rs1_data = rv32x_reg32.rdataa;
+			dereg.rs2_data = rv32x_reg32.rdatab;
+			dereg.load = rv32x_inst_dec.load;
+			dereg.store = rv32x_inst_dec.store;
+			dereg.jump = (rv32x_inst_dec.jal || rv32x_inst_dec.jalr);
+			dereg.branch = rv32x_inst_dec.branch;
+			dereg.beq = rv32x_inst_dec.beq;
+			dereg.bne = rv32x_inst_dec.bne;
+			dereg.blt = rv32x_inst_dec.blt;
+			dereg.bltu = rv32x_inst_dec.bltu;
+			dereg.bge = rv32x_inst_dec.bge;
+			dereg.bgeu = rv32x_inst_dec.bgeu;
+			dereg.nextpc = rv32x_adder32.q;
+			dereg.csrrw = system_csrrw;
+			dereg.csrrs = system_csrrs;
+			dereg.csrrc = system_csrrc;
+			dereg.uimm = uimm;
+			dereg.fencei = misc_mem_fencei;
+			dereg.fence = misc_mem_fence;
+			dereg.sfence_vma = system_sfence_vma;
+			dereg.ecall = system_ecall;
+			dereg.ebreak = system_ebreak;
+			dereg.mret = system_mret;
+			dereg.sret = system_sret;
+			dereg.uret = system_uret;
+			dereg.wfi = system_wfi;
+			dereg.wb = rv32x_inst_dec.wb;
+			dereg.illegal_instruction = (rv32x_inst_dec.illegal_instruction || decode_illegal_instruction);
+			dereg.predict_as_taken = IDREG.predict_as_taken;
+			dereg.predict_as_not_taken = IDREG.predict_as_not_taken;
+		} else {
+			dereg = 0;
+		}
 
-		if(!stall_decode) {			
+		if(!stall_decode) {
 			execute(dereg);
 		}
 	}
@@ -186,7 +197,7 @@ module rv32x5p {
 	}
 	func rv32x_inst_dec.op_imm {
 		alu_a = rv32x_reg32.rdataa;
-		alu_b = rv32x_inst_dec.imm;        
+		alu_b = rv32x_inst_dec.imm;
 
 		any {
 			(rv32x_inst_dec.funct3 == ALU_SLL)
@@ -200,7 +211,7 @@ module rv32x5p {
 		alu_b = rv32x_reg32.rdatab;
 
 		any {
-			((rv32x_inst_dec.funct7 != 7'b0000000) 	
+			((rv32x_inst_dec.funct7 != 7'b0000000)
 				&& (rv32x_inst_dec.funct7 != 7'b0100000)
 				&& (rv32x_inst_dec.funct7 != M_EXT)): 	decode_illegal_instruction();
 		}
@@ -236,7 +247,7 @@ module rv32x5p {
 	}
 	func rv32x_inst_dec.misc_mem {
 		any {
-			rv32x_inst_dec.funct3 == FENCEI: 	{
+			rv32x_inst_dec.funct3 == FENCEI: {
 				misc_mem_fencei();
 
 				any {
@@ -252,13 +263,13 @@ module rv32x5p {
 		alu_a = rv32x_reg32.rdataa;
 		alu_b = 0x00000000;
 		any {
-			rv32x_inst_dec.funct3 == CSRRW:		{system_csrrw();}	
+			rv32x_inst_dec.funct3 == CSRRW:		{system_csrrw();}
 			rv32x_inst_dec.funct3 == CSRRC:		{system_csrrc();}
 			rv32x_inst_dec.funct3 == CSRRS:		{system_csrrs();}
-			rv32x_inst_dec.funct3 == CSRRWI:	{system_csrrw(); uimm();}	
-			rv32x_inst_dec.funct3 == CSRRCI:	{system_csrrc(); uimm();}	
+			rv32x_inst_dec.funct3 == CSRRWI:	{system_csrrw(); uimm();}
+			rv32x_inst_dec.funct3 == CSRRCI:	{system_csrrc(); uimm();}
 			rv32x_inst_dec.funct3 == CSRRSI:	{system_csrrs(); uimm();}
-			rv32x_inst_dec.funct3 == PRIV:		system_priv();
+			rv32x_inst_dec.funct3 == PRIV:		{system_priv();}
 			else: decode_illegal_instruction();
 		}
 	}
@@ -269,7 +280,7 @@ module rv32x5p {
 			rv32x_inst_dec.funct12 == MRET:			{system_mret();}
 			rv32x_inst_dec.funct12 == SRET:			{system_sret();}
 			rv32x_inst_dec.funct12 == URET:			{system_uret();}
-			rv32x_inst_dec.funct12 == WFI:			{system_wfi(); /* check if illegal */} 
+			rv32x_inst_dec.funct12 == WFI:			{system_wfi(); /* check if illegal */}
 			rv32x_inst_dec.funct7  == SFENCE_VMA:	{system_sfence_vma();}
 			else: decode_illegal_instruction();
 		}
@@ -279,21 +290,23 @@ module rv32x5p {
 				&& ((rv32x_inst_dec.rs1 != 5'b00000) || (rv32x_inst_dec.rd != 5'b00000))): decode_illegal_instruction();
 		}
 	}
-	func load_interlock {	
-		stall_ifetch();			
+	func load_interlock {
+		/* Execute stage cannot be executed since one of its operand is from memory (load operation),
+			so stall execute, decode and ifetch until its ready to go */
+		stall_ifetch();
 		stall_decode();
 		stall_execute();
 	}
 	func memory_load_hazzard_a {
 		if(!memory_load_hazzard_b) {
-			DEREG.alu_b := execute_alu_b;	
+			DEREG.alu_b := execute_alu_b;
 			DEREG.alu_b_forward_en := 0;
 		}
 		load_interlock();
 	}
 	func memory_load_hazzard_b {
 		if(!memory_load_hazzard_a) {
-			DEREG.alu_a := execute_alu_a;	
+			DEREG.alu_a := execute_alu_a;
 			DEREG.alu_a_forward_en := 0;
 		}
 		load_interlock();
@@ -306,6 +319,7 @@ module rv32x5p {
 		load_interlock();
 	}
 	func csr_load_hazzard_b {
+		/* memory stage ends, this signal is cleared by forwarding unit */
 		if(!csr_load_hazzard_a) {
 			DEREG.alu_a := execute_alu_a;	
 			DEREG.alu_a_forward_en := 0;
