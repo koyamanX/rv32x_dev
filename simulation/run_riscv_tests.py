@@ -28,7 +28,8 @@ targets_should_be_failed = [
 	'rv32ua-p-amoor_w',
 	'rv32ua-p-amoswap_w',
 	'rv32ua-p-amoxor_w',
-	'rv32ua-p-lrsc',
+#	'rv32ua-p-lrsc',
+	'rv32si-p-dirty',
 ]
 targets_to_exclude = [
 	'rv32mi-p-breakpoint',
