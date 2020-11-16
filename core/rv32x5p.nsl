@@ -338,7 +338,9 @@ module rv32x5p {
 	}
 	proc execute {
 		emreg_t wire emreg;
-		alu32 rv32x_alu32;
+		wire csr_wb_data[32];
+		wire alu_q[32];
+		wire target_address[32];
 		func_self taken;
 		wire not_taken;
 		func_self condcheck;
@@ -346,124 +348,129 @@ module rv32x5p {
 		func_self m_misaligned;
 		func_self miss_prediction;
 		func_self correct_prediction;
-		wire csr_wb_data[32];
-		wire alu_q[32];
-		wire target_address[32];
+		alu32 rv32x_alu32;
 
-		not_taken = (!taken && DEREG.branch);
-		emreg.pc = DEREG.pc;
-		emreg.pc4 = DEREG.pc4;
-		emreg.inst = DEREG.inst;
-		emreg.funct3 = DEREG.funct3;
-		emreg.funct12 = DEREG.funct12;
-		emreg.rd = if(execute_nop) 5'b00000 else DEREG.rd;
-		emreg.rs1 = DEREG.rs1;
-		emreg.rs2 = DEREG.rs2;
-		emreg.rs1_data = execute_alu_a;
-		/* Forward from wb */
-		/* if rs2_data is imm, don't forward (!op || !branch) */
-		emreg.rs2_data = if(DEREG.store) if((DEREG.rs2 == MWREG.rd) && (DEREG.rs2 != 5'b00000)) MWREG.wb_value else DEREG.rs2_data else execute_alu_b;	
-		emreg.load = if(execute_nop) 1'b0 else DEREG.load;
-		emreg.store = if(execute_nop) 1'b0 else DEREG.store;
-		emreg.alu_q = if(DEREG.jump) DEREG.pc4 else alu_q;	/* address for link register */
-		emreg.fencei = if(execute_nop) 1'b0 else DEREG.fencei;
-		emreg.fence = if(execute_nop) 1'b0 else DEREG.fence;
-		emreg.sfence_vma = if(execute_nop) 1'b0 else DEREG.sfence_vma;
-		emreg.wb = if(execute_nop || i_misaligned) 1'b0 else DEREG.wb;
-		emreg.csrrw = if(execute_nop) 1'b0 else DEREG.csrrw;
-		emreg.csrrs = if(execute_nop) 1'b0 else DEREG.csrrs;
-		emreg.csrrc = if(execute_nop) 1'b0 else DEREG.csrrc;
-		emreg.uimm = if(execute_nop) 1'b0 else DEREG.uimm;
+		if(!execute_nop) {
+			emreg.pc = DEREG.pc;
+			emreg.pc4 = DEREG.pc4;
+			emreg.inst = DEREG.inst;
+			emreg.funct3 = DEREG.funct3;
+			emreg.funct12 = DEREG.funct12;
+			emreg.rd = DEREG.rd;
+			emreg.rs1 = DEREG.rs1;
+			emreg.rs2 = DEREG.rs2;
+			emreg.rs1_data = execute_alu_a;
+			/* read data from rs2, is used for store operation so forward */
+			if(DEREG.store && ((DEREG.rs2 == MWREG.rd) && (DEREG.rs2 != 5'b00000))) {
+				emreg.rs2_data = MWREG.wb_value;
+			} else if(DEREG.store) {
+				emreg.rs2_data = DEREG.rs2_data;
+			} else {
+				emreg.rs2_data = execute_alu_b;
+			}
+			emreg.load = DEREG.load;
+			emreg.store = DEREG.store;
+			emreg.alu_q = if(DEREG.jump) DEREG.pc4 else alu_q;	/* address for link register */
+			emreg.fencei = DEREG.fencei;
+			emreg.fence = DEREG.fence;
+			emreg.sfence_vma = DEREG.sfence_vma;
+			emreg.wb = if(i_misaligned) 1'b0 else DEREG.wb;
+			emreg.uimm = DEREG.uimm;
+			emreg.csrrw = DEREG.csrrw;
+			emreg.csrrs = DEREG.csrrs;
+			emreg.csrrc = DEREG.csrrc;
+		} else {
+			emreg = 0;
+		}
 		target_address = if(DEREG.branch) DEREG.nextpc else alu_q;
+		not_taken = (!taken && DEREG.branch);
 
 		if(!load_interlock) {
+			/* both Operands are ready */
 			any {
 				DEREG.alu_sel == ALU: {
-					alu_q = rv32x_alu32.exe(execute_alu_a, 
-											execute_alu_b, DEREG.alu_fn);	
+					alu_q = rv32x_alu32.exe(execute_alu_a, execute_alu_b, DEREG.alu_fn);
 				}
 				DEREG.alu_sel == MUNIT: {
-					alu_q = rv32x_munit32.exe(execute_alu_a, 
-											execute_alu_b, DEREG.alu_fn[2:0]);	
+					alu_q = rv32x_munit32.exe(execute_alu_a, execute_alu_b, DEREG.alu_fn[2:0]);	
 					if(!rv32x_munit32.done) {
 						stall_ifetch();
 						stall_decode();
 						stall_execute();		/* Stall ifetch, decode */
 					}
 				}
+				(DEREG.branch): {condcheck();}
+				(DEREG.ecall): {ecall();}
+				(DEREG.ebreak): {ebreak();}
+				(DEREG.mret): {mret();}
+				(DEREG.sret): {sret();}
+				(DEREG.uret): {uret();}
+				(DEREG.wfi): {wfi();}
 			}
-			if(DEREG.branch) {
-				condcheck();
-			}
-			if(DEREG.ecall) {
-				ecall();
-			}
-			if(DEREG.ebreak) {
-				ebreak();
-			}
-			if(DEREG.mret) {
-				mret();
-			}
-			if(DEREG.sret) {
-				sret();
-			}
-			if(DEREG.uret) {
-				uret();
-			}
-			if(DEREG.wfi) {
-				wfi();
-			}
-			if(DEREG.illegal_instruction) {
-				illegal_instruction_execute_stage();
-			}
-			if(DEREG.jump  && !stall_execute) {
-				stall_ifetch();				
-				stall_decode();
-				ifetch_nop();
-				ifetch.finish();
-				decode_nop();
-				decode.finish();
-				ifetch(target_address);
-				memory(emreg);
-			} else if((not_taken && DEREG.predict_as_taken) && !stall_execute) {
-				miss_prediction();
-				stall_ifetch();	
-				stall_decode();
-				ifetch_nop();
-				ifetch.finish();
-				decode_nop();
-				decode.finish();
-				ifetch(DEREG.pc4);
-				memory(emreg);
-			} else if((taken && DEREG.predict_as_not_taken) && !stall_execute) {
-				miss_prediction();
-				stall_ifetch();	
-				stall_decode();
-				ifetch_nop();
-				ifetch.finish();
-				decode_nop();
-				decode.finish();
-				ifetch(target_address);
-				memory(emreg);
-			} else if((taken && DEREG.predict_as_taken) || (not_taken && DEREG.predict_as_not_taken)) {
-				correct_prediction();
-				memory(emreg);
-			} else if((DEREG.alu_sel == ALU) && !stall_execute) {		
-				memory(emreg);
-			} else if((DEREG.alu_sel == MUNIT) && rv32x_munit32.done && !stall_execute) {	
-				memory(emreg);		
+			alt {
+				/* Branch and jump instructions */
+				(DEREG.jump  && !stall_execute): {
+					stall_ifetch();
+					stall_decode();
+					ifetch_nop();
+					ifetch.finish();
+					decode_nop();
+					decode.finish();
+					ifetch(target_address);
+					memory(emreg);	/* for logging and update link register */
+				} 
+				((not_taken && DEREG.predict_as_taken) && !stall_execute): {
+					miss_prediction();	/* update branch target address */
+					stall_ifetch();
+					stall_decode();
+					ifetch_nop();
+					ifetch.finish();
+					decode_nop();
+					decode.finish();
+					ifetch(DEREG.pc4);
+					memory(emreg);	/* for logging */
+				}
+				((taken && DEREG.predict_as_not_taken) && !stall_execute): {
+					miss_prediction();	/* update branch target address */
+					stall_ifetch();
+					stall_decode();
+					ifetch_nop();
+					ifetch.finish();
+					decode_nop();
+					decode.finish();
+					ifetch(target_address);
+					memory(emreg);	/* for logging */
+				}
+				((taken && DEREG.predict_as_taken) || (not_taken && DEREG.predict_as_not_taken)): {
+					correct_prediction();
+					memory(emreg);	/* for logging */
+				}
+				/* ALU and M-Ext instructions */
+				((DEREG.alu_sel == ALU) && !stall_execute): {
+					memory(emreg);	/* for logging */
+				}
+				((DEREG.alu_sel == MUNIT) && rv32x_munit32.done && !stall_execute): {
+					memory(emreg);	/* for logging */
+				}
+
 			}
 			if((DEREG.jump || taken) && ((target_address[1:0] & ialign) != 2'b00)) {
+				/* Instruction address misaligned(on target address) */
 				i_misaligned();
 			}
 			any {
-				((alu_q[1:0] != 2'b00) && ({1'b0, DEREG.funct3[1:0]} == MEM_WORD)):		m_misaligned();	
-				((alu_q[0] != 1'b0) && ({1'b0, DEREG.funct3[1:0]} == MEM_HALFWORD)):	m_misaligned();	
+				/* Data address misaligned */
+				((alu_q[1:0] != 2'b00) && ({1'b0, DEREG.funct3[1:0]} == MEM_WORD)):		m_misaligned();
+				((alu_q[0] != 1'b0) && ({1'b0, DEREG.funct3[1:0]} == MEM_HALFWORD)):	m_misaligned();
 			}
+			/* Exceptions in execute stage */
 			any {
+				(DEREG.illegal_instruction):	illegal_instruction_execute_stage();
+				(i_misaligned):					instruction_address_misaligned(target_address);
 				(DEREG.load && m_misaligned):	load_address_misaligned(alu_q);
 				(DEREG.store && m_misaligned):	store_address_misaligned(alu_q);
 			}
+			/* Update branch prediction */
 			any {
 				taken: rv32x_btb.taken();
 				not_taken: rv32x_btb.not_taken();
@@ -473,15 +480,9 @@ module rv32x5p {
 	func miss_prediction {
 		rv32x_btb.regist(DEREG.pc, target_address);
 	}
-	func i_misaligned {
-		instruction_address_misaligned(target_address);
-	}
 	func condcheck {
 		wire eq, lt;
 
-		/* OPTIMIZE: critical path ? */
-		/* OPTIMIZE: must split test branch condition then check condition then branch */
-		/* OPTIMIZE: should it be test eq, lt in decode stage then check result & branch in execute */
 		eq = rv32x_alu32.z; 	/* is equal? */
 		lt = rv32x_alu32.q[0]; 	/* is less than? */
 		any {
@@ -493,7 +494,6 @@ module rv32x5p {
 			(DEREG.bgeu & ~lt): taken();
 		}
 	} 
-
 	func flush_execute {
 		execute.finish();
 		execute_nop();
