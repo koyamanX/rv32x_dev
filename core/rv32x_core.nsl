@@ -18,21 +18,22 @@ module rv32x_core {
 	reg ic_tlb_flush_done = 0;
 	reg lsu_cache_flush_done = 0;
 	reg lsu_tlb_flush_done = 0;
-	reg mode[2];							/* Current execution mode */
+	reg priv_mode[2];						/* Current priv mode */
 	
 	/* Trap */
-	reg cause[32];
-	reg epc[32];
-	reg tval[32];
-	reg trap_mode[2];
-	proc_name trap(trap_mode, cause, epc, tval);
+	reg trap_cause[32];
+	reg trap_pc[32];
+	reg trap_val[32];
+	reg trap_priv_mode[2];
+	proc_name trap(trap_priv_mode, trap_cause, trap_pc, trap_val);
 	proc_name trap_mret();
 	proc_name trap_sret();
 	proc_name trap_uret();
-	/* Interrupt */
+	/* Interrupts */
 	func_self interrupt();
 	func_self machine_interrupt_enabled();
 	func_self supervisor_interrupt_enabled();
+	/* Pending interrupts */
 	func_self machine_timer_interrupt_pending();
 	func_self machine_software_interrupt_pending();
 	func_self machine_external_interrupt_pending();
@@ -56,7 +57,7 @@ module rv32x_core {
 	func_self load_page_fault_exception();
 	func_self store_amo_access_fault_exception();
 	func_self load_access_fault_exception();
-
+	/* Pending exceptions */
 	func_self instruction_address_breakpoint();
 	func_self instruction_page_fault();
 	func_self instruction_access_fault();
@@ -78,21 +79,21 @@ module rv32x_core {
 	func_self supervisor_timer_interrupt();
 	func_self supervisor_external_interrupt();
 	func_self supervisor_software_interrupt();
-
+	/* CSR operations */
 	wire cwadrs[32];
 	wire cwdata[32];
-	func_self csr_write(cwadrs, cwdata);
 	wire cradrs[32];
 	wire crdata[32];
 	func_self csr_read(cradrs) : crdata;
+	func_self csr_write(cwadrs, cwdata);
 	func_self csr_read_not_mapped();
 	func_self csr_write_not_mapped();
 #ifdef DEBUG
 	reg debug_einst[32];
 #endif
 
-
 	/* CSRs */
+	/* Machine mode CSRs */
 	mvendorid_t reg mvendorid		= 0;
 	marchid_t reg marchid			= 0;
 	mimpid_t reg mimpid				= 0;
@@ -109,7 +110,7 @@ module rv32x_core {
 	mip_t reg mip					= 0;
 	mideleg_t reg mideleg			= 0;
 	medeleg_t reg medeleg			= 0;
-
+	/* Supervisor mode CSRs */
 	sstatus_t reg sstatus			= 0;		
 	sie_t reg sie					= 0;
 	stvec_t reg stvec				= 0;
@@ -119,7 +120,7 @@ module rv32x_core {
 	stval_t reg stval 				= 0;
 	sip_t reg sip					= 0;
 	satp_t reg satp					= 0;
-
+	/* User mode CSRs */
 	ustatus_t reg ustatus			= 0;
 	uie_t reg uie					= 0;
 	utvec_t reg utvec				= 0;
@@ -128,7 +129,11 @@ module rv32x_core {
 	ucause_t reg ucause				= 0;
 	utval_t reg utval 				= 0;
 	uip_t reg uip					= 0;
-
+	/* Hardware Performance Monitor */
+	reg minstret[64]				= 0;
+	reg mcycle[64]					= 0;
+	reg utime[64]					= 0;
+	/* Interrupts sources */
 	wire msip;
 	wire mtip;
 	wire meip;
@@ -142,16 +147,10 @@ module rv32x_core {
 	wire sxlen[2];
 	wire uxlen[2];
 	wire ialign[2];
-
-	reg minstret[64]				= 0;
-	reg mcycle[64]					= 0;
-	reg utime[64]					= 0;
 	
 	sxlen = MISA_MXL_32;
 	uxlen = MISA_MXL_32;
 	ialign = 2'b11;
-
-	rv32x.ialign = ialign;
 
 	if(!csr_write) {	/* precisely, !((mcycle || minstret) && csr_write) */
 		mcycle++;	/* if wfi, then stop counting up */
@@ -168,10 +167,10 @@ module rv32x_core {
 		many times. So check if currently handling interrupts(in trap state)
 		or not.
 	*/
-	if(((mode < MACHINE) || ((mode == MACHINE) && mstatus.mie)) && !trap) {
+	if(((priv_mode < MACHINE) || ((priv_mode == MACHINE) && mstatus.mie)) && !trap) {
 		machine_interrupt_enabled();
 	}
-	if(((mode < SUPERVISOR) || mstatus.sie) && !trap) {
+	if(((priv_mode < SUPERVISOR) || mstatus.sie) && !trap) {
 		supervisor_interrupt_enabled();
 	}
 	if(meip && mie.meie) {
@@ -202,20 +201,21 @@ module rv32x_core {
 
 	lsu.satp_mode	= satp.mode;
 	lsu.satp_asid	= satp.asid;
-	lsu.satp_ppn		= satp.ppn;
+	lsu.satp_ppn	= satp.ppn;
 	lsu.mstatus_mxr	= mstatus.mxr;
 	lsu.sstatus_sum	= sstatus.sum;
-	lsu.priv_mode	= if(mstatus.mprv) mstatus.mpp else mode;
+	lsu.priv_mode	= if(mstatus.mprv) mstatus.mpp else priv_mode;
 
-	ic.priv_mode	= mode;
-
+	ic.priv_mode	= priv_mode;
 	ic.satp_mode = satp.mode;
 	ic.satp_ppn = satp.ppn;
+
+	rv32x.ialign = ialign;
 
 	func reset {
 		wire resetvector[32];
 
-		mode 						:= MACHINE;
+		priv_mode 					:= MACHINE;
 		mstatus.mie 				:= 0;
 		mstatus.mprv 				:= 0;
 		mstatush.mbe				:= 0;
@@ -240,67 +240,67 @@ module rv32x_core {
 	func csr_read {
 		any {
 			/* Machine-mode */
-			(mode >= MACHINE) && cradrs == MVENDORID:		return mvendorid;
-			(mode >= MACHINE) && cradrs == MARCHID:			return marchid;
-			(mode >= MACHINE) && cradrs == MIMPID:			return mimpid;
-			(mode >= MACHINE) && cradrs == MHARTID:			return mhartid;
-			(mode >= MACHINE) && cradrs == MSTATUS:			return mstatus;
-			(mode >= MACHINE) && cradrs == MISA:			return misa;
-			(mode >= MACHINE) && cradrs == MEDELEG:			return medeleg;
-			(mode >= MACHINE) && cradrs == MIDELEG:			return mideleg;
-			(mode >= MACHINE) && cradrs == MIE:				return mie;
-			(mode >= MACHINE) && cradrs == MTVEC:			return mtvec;
-			//(mode >= MACHINE) && cradrs == MCOUNTEREN:	return mcounteren;
-			(mode >= MACHINE) && cradrs == MSTATUSH:		return mstatush;
-			(mode >= MACHINE) && cradrs == MSCRATCH:		return mscratch;
-			(mode >= MACHINE) && cradrs == MEPC:			return mepc;
-			(mode >= MACHINE) && cradrs == MCAUSE:			return mcause;
-			(mode >= MACHINE) && cradrs == MTVAL:			return mtval;
-			(mode >= MACHINE) && cradrs == MIP:				return mip | 32'({meip, 1'b1, seip, ueip, mtip, 1'b0, stip, utip, msip, 1'b0, ssip, usip});
-			//(mode >= MACHINE) && cradrs == MTINST:		return mtinst;
-			//(mode >= MACHINE) && cradrs == MTVAL2:		return mtval2;
+			(priv_mode >= MACHINE) && cradrs == MVENDORID:			return mvendorid;
+			(priv_mode >= MACHINE) && cradrs == MARCHID:			return marchid;
+			(priv_mode >= MACHINE) && cradrs == MIMPID:				return mimpid;
+			(priv_mode >= MACHINE) && cradrs == MHARTID:			return mhartid;
+			(priv_mode >= MACHINE) && cradrs == MSTATUS:			return mstatus;
+			(priv_mode >= MACHINE) && cradrs == MISA:				return misa;
+			(priv_mode >= MACHINE) && cradrs == MEDELEG:			return medeleg;
+			(priv_mode >= MACHINE) && cradrs == MIDELEG:			return mideleg;
+			(priv_mode >= MACHINE) && cradrs == MIE:				return mie;
+			(priv_mode >= MACHINE) && cradrs == MTVEC:				return mtvec;
+			//(priv_mode >= MACHINE) && cradrs == MCOUNTEREN:		return mcounteren;
+			(priv_mode >= MACHINE) && cradrs == MSTATUSH:			return mstatush;
+			(priv_mode >= MACHINE) && cradrs == MSCRATCH:			return mscratch;
+			(priv_mode >= MACHINE) && cradrs == MEPC:				return mepc;
+			(priv_mode >= MACHINE) && cradrs == MCAUSE:				return mcause;
+			(priv_mode >= MACHINE) && cradrs == MTVAL:				return mtval;
+			(priv_mode >= MACHINE) && cradrs == MIP:				return mip | 32'({meip, 1'b1, seip, ueip, mtip, 1'b0, stip, utip, msip, 1'b0, ssip, usip});
+			//(priv_mode >= MACHINE) && cradrs == MTINST:			return mtinst;
+			//(priv_mode >= MACHINE) && cradrs == MTVAL2:			return mtval2;
 			/* Machine Memory Protection */
 			/* Machine Counter/Timers */
-			(mode >= MACHINE) && cradrs == MCYCLEH:			return mcycle[63:32];
-			(mode >= MACHINE) && cradrs == MCYCLE:			return mcycle[31:0];
-			(mode >= MACHINE) && cradrs == MINSTRETH:		return minstret[63:32];
-			(mode >= MACHINE) && cradrs == MINSTRET:		return minstret[31:0];
+			(priv_mode >= MACHINE) && cradrs == MCYCLEH:			return mcycle[63:32];
+			(priv_mode >= MACHINE) && cradrs == MCYCLE:				return mcycle[31:0];
+			(priv_mode >= MACHINE) && cradrs == MINSTRETH:			return minstret[63:32];
+			(priv_mode >= MACHINE) && cradrs == MINSTRET:			return minstret[31:0];
 
 			/* Supervisor-mode */
-			(mode >= SUPERVISOR) && cradrs == SSTATUS:		return sstatus;
-			//(mode >= SUPERVISOR) && cradrs == SEDELEG:	return sedeleg;
-			//(mode >= SUPERVISOR) && cradrs == SIDELEG:	return sideleg;
-			(mode >= SUPERVISOR) && cradrs == SIE:			return sie;
-			(mode >= SUPERVISOR) && cradrs == STVEC:		return stvec;
-			//(mode >= SUPERVISOR) && cradrs == SCOUNTEREN:	return scounteren;
-			(mode >= SUPERVISOR) && cradrs == SSCRATCH:		return sscratch;
-			(mode >= SUPERVISOR) && cradrs == SEPC:			return sepc;
-			(mode >= SUPERVISOR) && cradrs == SCAUSE:		return scause;
-			(mode >= SUPERVISOR) && cradrs == STVAL:		return stval;
-			(mode >= SUPERVISOR) && cradrs == SIP:			return sip;
-			(mode >= SUPERVISOR) && cradrs == SATP
-				&& !((mode == SUPERVISOR) && mstatus.tvm):	return satp;
+			(priv_mode >= SUPERVISOR) && cradrs == SSTATUS:			return sstatus;
+			//(priv_mode >= SUPERVISOR) && cradrs == SEDELEG:		return sedeleg;
+			//(priv_mode >= SUPERVISOR) && cradrs == SIDELEG:		return sideleg;
+			(priv_mode >= SUPERVISOR) && cradrs == SIE:				return sie;
+			(priv_mode >= SUPERVISOR) && cradrs == STVEC:			return stvec;
+			//(priv_mode >= SUPERVISOR) && cradrs == SCOUNTEREN:	return scounteren;
+			(priv_mode >= SUPERVISOR) && cradrs == SSCRATCH:		return sscratch;
+			(priv_mode >= SUPERVISOR) && cradrs == SEPC:			return sepc;
+			(priv_mode >= SUPERVISOR) && cradrs == SCAUSE:			return scause;
+			(priv_mode >= SUPERVISOR) && cradrs == STVAL:			return stval;
+			(priv_mode >= SUPERVISOR) && cradrs == SIP:				return sip;
+			(priv_mode >= SUPERVISOR) && cradrs == SATP
+				&& !((priv_mode == SUPERVISOR) && mstatus.tvm):		return satp;
 
 			/* User-mode */
-			(mode >= USER) && cradrs == USTATUS:			return ustatus;
-			(mode >= USER) && cradrs == UIE:				return uie;
-			(mode >= USER) && cradrs == UTVEC:				return utvec;
-			(mode >= USER) && cradrs == USCRATCH:			return uscratch;
-			(mode >= USER) && cradrs == UEPC:				return uepc;
-			(mode >= USER) && cradrs == UCAUSE:				return ucause;
-			(mode >= USER) && cradrs == UTVAL:				return utval;
-			(mode >= USER) && cradrs == UIP:				return uip;
-			//(mode >= USER) && cradrs == FFLAGS:			return fflags;
-			//(mode >= USER) && cradrs == FRM:				return frm;
-			//(mode >= USER) && cradrs == FCSR:				return fcsr;
+			(priv_mode >= USER) && cradrs == USTATUS:				return ustatus;
+			(priv_mode >= USER) && cradrs == UIE:					return uie;
+			(priv_mode >= USER) && cradrs == UTVEC:					return utvec;
+			(priv_mode >= USER) && cradrs == USCRATCH:				return uscratch;
+			(priv_mode >= USER) && cradrs == UEPC:					return uepc;
+			(priv_mode >= USER) && cradrs == UCAUSE:				return ucause;
+			(priv_mode >= USER) && cradrs == UTVAL:					return utval;
+			(priv_mode >= USER) && cradrs == UIP:					return uip;
+			//(priv_mode >= USER) && cradrs == FFLAGS:				return fflags;
+			//(priv_mode >= USER) && cradrs == FRM:					return frm;
+			//(priv_mode >= USER) && cradrs == FCSR:				return fcsr;
 			/* User Counter/Timers */
-			(mode >= USER) && cradrs == CYCLEH:				return mcycle[63:32];
-			(mode >= USER) && cradrs == CYCLE:				return mcycle[31:0];
-			(mode >= USER) && cradrs == INSTRETH:			return minstret[63:32];
-			(mode >= USER) && cradrs == INSTRET:			return minstret[31:0];
-			(mode >= USER) && cradrs == TIMEH:				return utime[63:32];
-			(mode >= USER) && cradrs == TIME:				return utime[31:0];
-			else:											{csr_read_not_mapped(); return 0x00000000;}
+			(priv_mode >= USER) && cradrs == CYCLEH:				return mcycle[63:32];
+			(priv_mode >= USER) && cradrs == CYCLE:					return mcycle[31:0];
+			(priv_mode >= USER) && cradrs == INSTRETH:				return minstret[63:32];
+			(priv_mode >= USER) && cradrs == INSTRET:				return minstret[31:0];
+			(priv_mode >= USER) && cradrs == TIMEH:					return utime[63:32];
+			(priv_mode >= USER) && cradrs == TIME:					return utime[31:0];
+			else:							{csr_read_not_mapped(); return 0x00000000;}
 		}
 	}
 	func rv32x.csr_write {
@@ -313,7 +313,6 @@ module rv32x_core {
 			illegal_instruction_memory_stage();
 		}
 	}
-
 	func csr_write {
 		mstatus_t wire status_w; 
 		mtvec_t  wire tvec_w;
@@ -324,7 +323,7 @@ module rv32x_core {
 		satp_t wire satp_w;
 
 		any {
-			(mode >= MACHINE) && cwadrs == MSTATUS: {
+			(priv_mode >= MACHINE) && cwadrs == MSTATUS: {
 				status_w = cwdata;
 				
 				//mstatus.sd	:= status_w.sd;
@@ -352,9 +351,8 @@ module rv32x_core {
 				mstatus.upie	:= status_w.upie;
 				ustatus.uie		:= status_w.uie;
 				ustatus.upie	:= status_w.upie;
-
 			}
-			(mode >= MACHINE) && cwadrs == MEDELEG: {
+			(priv_mode >= MACHINE) && cwadrs == MEDELEG: {
 				edeleg_w = cwdata;
 
 				medeleg.environment_call_from_u_mode := edeleg_w.environment_call_from_u_mode;
@@ -368,14 +366,14 @@ module rv32x_core {
 				medeleg.instruction_access_fault := edeleg_w.instruction_access_fault;
 				medeleg.instruction_page_fault := edeleg_w.instruction_page_fault;
 			}
-			(mode >= MACHINE) && cwadrs == MIDELEG: {
+			(priv_mode >= MACHINE) && cwadrs == MIDELEG: {
 				ideleg_w = cwdata;
 
 				mideleg.seip := ideleg_w.seip;
 				mideleg.stip := ideleg_w.stip;
 				mideleg.ssip := ideleg_w.ssip;
 			}
-			(mode >= MACHINE) && cwadrs == MIE: {
+			(priv_mode >= MACHINE) && cwadrs == MIE: {
 				ie_w = cwdata;
 
 				/* Machine mode */
@@ -402,7 +400,7 @@ module rv32x_core {
 				uie.utie := ie_w.utie;
 				uie.usie := ie_w.usie;
 			}
-			(mode >= MACHINE) && cwadrs == MTVEC: {
+			(priv_mode >= MACHINE) && cwadrs == MTVEC: {
 				tvec_w = cwdata;
 				
 				mtvec.base := tvec_w.base;
@@ -410,12 +408,22 @@ module rv32x_core {
 					mtvec.mode := tvec_w.mode;
 				}
 			}
-			(mode >= MACHINE) && cwadrs == MSTATUSH:	mstatush := cwdata & 0x00000000;
-			(mode >= MACHINE) && cwadrs == MSCRATCH:	mscratch := cwdata;
-			(mode >= MACHINE) && cwadrs == MEPC:		mepc := {cwdata[31:2], (cwdata[1:0] & ~ialign)};
-			(mode >= MACHINE) && cwadrs == MCAUSE:		mcause := mcause;
-			(mode >= MACHINE) && cwadrs == MTVAL:		mtval := cwdata;
-			(mode >= MACHINE) && cwadrs == MIP: {
+			(priv_mode >= MACHINE) && cwadrs == MSTATUSH: {
+				mstatush := cwdata & 0x00000000;
+			}
+			(priv_mode >= MACHINE) && cwadrs == MSCRATCH: {
+				mscratch := cwdata;
+			}
+			(priv_mode >= MACHINE) && cwadrs == MEPC: {
+				mepc := {cwdata[31:2], (cwdata[1:0] & ~ialign)};
+			}
+			(priv_mode >= MACHINE) && cwadrs == MCAUSE:	{
+				mcause := mcause;
+			}
+			(priv_mode >= MACHINE) && cwadrs == MTVAL: {
+				mtval := cwdata;
+			}
+			(priv_mode >= MACHINE) && cwadrs == MIP: {
 				ip_w = cwdata;
 				
 				/* mip.meip, mip.mtip, mip.msip is read-only */
@@ -439,12 +447,19 @@ module rv32x_core {
 				uip.ueip := ip_w.ueip;
 				uip.utip := ip_w.utip;
 			}
-			(mode >= MACHINE) && cwadrs == MCYCLE:			mcycle	:= {mcycle[63:32], cwdata};
-			(mode >= MACHINE) && cwadrs == MINSTRET:		minstret := {minstret[63:32], cwdata};
-			(mode >= MACHINE) && cwadrs == MCYCLEH:			mcycle	:= {cwdata, mcycle[31:0]};
-			(mode >= MACHINE) && cwadrs == MINSTRETH:		minstret := {cwdata, minstret[31:0]};
-
-			(mode >= SUPERVISOR) && cwadrs == SSTATUS: {
+			(priv_mode >= MACHINE) && cwadrs == MCYCLE:	{
+				mcycle	:= {mcycle[63:32], cwdata};
+			}
+			(priv_mode >= MACHINE) && cwadrs == MINSTRET: {
+				minstret := {minstret[63:32], cwdata};
+			}
+			(priv_mode >= MACHINE) && cwadrs == MCYCLEH: {
+				mcycle	:= {cwdata, mcycle[31:0]};
+			}
+			(priv_mode >= MACHINE) && cwadrs == MINSTRETH: {
+				minstret := {cwdata, minstret[31:0]};
+			}
+			(priv_mode >= SUPERVISOR) && cwadrs == SSTATUS: {
 				status_w = cwdata;
 
 				mstatus.sum		:= status_w.sum;
@@ -461,7 +476,7 @@ module rv32x_core {
 				sstatus.spie	:= status_w.spie;
 				sstatus.spp		:= status_w.spp;
 			}
-			(mode >= SUPERVISOR) && cwadrs == STVEC: {
+			(priv_mode >= SUPERVISOR) && cwadrs == STVEC: {
 				tvec_w = cwdata;
 				
 				stvec.base := tvec_w.base;
@@ -469,7 +484,7 @@ module rv32x_core {
 					stvec.mode := tvec_w.mode;
 				}
 			}
-			(mode >= SUPERVISOR) && cwadrs == SIE: {
+			(priv_mode >= SUPERVISOR) && cwadrs == SIE: {
 				ie_w = cwdata;
 				
 				mie.seie := ie_w.seie;
@@ -489,7 +504,7 @@ module rv32x_core {
 				uip.ueip := ip_w.ueip;
 				uip.utip := ip_w.utip;
 			}
-			(mode >= SUPERVISOR) && cwadrs == SIP: {
+			(priv_mode >= SUPERVISOR) && cwadrs == SIP: {
 				ip_w = cwdata;
 
 				mip.ssip := ip_w.ssip;
@@ -499,20 +514,27 @@ module rv32x_core {
 				sip.usip := ip_w.usip;
 				uip.usip := ip_w.usip;
 			}
-			(mode >= SUPERVISOR) && cwadrs == SATP
-				&& !((mode == SUPERVISOR) && (mstatus.tvm)): {
+			(priv_mode >= SUPERVISOR) && cwadrs == SATP
+				&& !((priv_mode == SUPERVISOR) && (mstatus.tvm)): {
 					satp_w = cwdata;
 
 					satp.mode := satp_w.mode;
 					satp.asid := satp_w.asid;
 					satp.ppn := satp_w.ppn;
 				}
-			(mode >= SUPERVISOR) && cwadrs == SSCRATCH:	sscratch := cwdata;
-			(mode >= SUPERVISOR) && cwadrs == SEPC:		sepc := {cwdata[31:2], (cwdata[1:0] & ~ialign)};
-			(mode >= SUPERVISOR) && cwadrs == SCAUSE:	scause := scause;
-			(mode >= SUPERVISOR) && cwadrs == STVAL:	stval := cwdata;
-
-			(mode >= USER) && cwadrs == USTATUS: {
+			(priv_mode >= SUPERVISOR) && cwadrs == SSCRATCH: {
+				sscratch := cwdata;
+			}
+			(priv_mode >= SUPERVISOR) && cwadrs == SEPC: {
+				sepc := {cwdata[31:2], (cwdata[1:0] & ~ialign)};
+			}
+			(priv_mode >= SUPERVISOR) && cwadrs == SCAUSE: {
+				scause := scause;
+			}
+			(priv_mode >= SUPERVISOR) && cwadrs == STVAL: {
+				stval := cwdata;
+			}
+			(priv_mode >= USER) && cwadrs == USTATUS: {
 				status_w = cwdata;
 
 				mstatus.uie := status_w.uie;
@@ -522,7 +544,7 @@ module rv32x_core {
 				ustatus.uie := status_w.uie;
 				ustatus.upie := status_w.upie;
 			}
-			(mode >= USER) && cwadrs == UIE: {
+			(priv_mode >= USER) && cwadrs == UIE: {
 				ie_w = cwdata;
 
 				mie.ueie := ie_w.ueie;
@@ -535,7 +557,7 @@ module rv32x_core {
 				uie.utie := ie_w.utie;
 				uie.usie := ie_w.usie;
 			}
-			(mode >= USER) && cwadrs == UTVEC: {
+			(priv_mode >= USER) && cwadrs == UTVEC: {
 				tvec_w = cwdata;
 				
 				utvec.base := tvec_w.base;
@@ -543,11 +565,19 @@ module rv32x_core {
 					utvec.mode := tvec_w.mode;
 				}
 			}
-			(mode >= USER) && cwadrs == USCRATCH:		uscratch := cwdata;
-			(mode >= USER) && cwadrs == UEPC:			uepc := cwdata;
-			(mode >= USER) && cwadrs == UCAUSE:			ucause := cwdata;
-			(mode >= USER) && cwadrs == UTVAL:			utval := cwdata;
-			(mode >= USER) && cwadrs == UIP: {
+			(priv_mode >= USER) && cwadrs == USCRATCH: {
+				uscratch := cwdata;
+			}
+			(priv_mode >= USER) && cwadrs == UEPC: {
+				uepc := cwdata;
+			}
+			(priv_mode >= USER) && cwadrs == UCAUSE: {
+				ucause := cwdata;
+			}
+			(priv_mode >= USER) && cwadrs == UTVAL: {
+				utval := cwdata;
+			}
+			(priv_mode >= USER) && cwadrs == UIP: {
 				ip_w = cwdata;
 
 				mip.usip := ip_w.usip;
@@ -566,8 +596,8 @@ module rv32x_core {
 	func rv32x.wfi {
 		any {
 			/* no bounded time limit, so always generates illegal instruction exception on less priv */
-			(mstatus.tw && mode == USER): 		illegal_instruction_execute_stage();
-			(mstatus.tw && mode == SUPERVISOR): illegal_instruction_execute_stage();
+			(mstatus.tw && priv_mode == USER):			illegal_instruction_execute_stage();
+			(mstatus.tw && priv_mode == SUPERVISOR):	illegal_instruction_execute_stage();
 		}
 	}
 	func rv32x.ebreak {
@@ -585,6 +615,7 @@ module rv32x_core {
 	func rv32x.load_address_misaligned {
 		load_address_misaligned();
 	}
+	/* Trap priority encoder */
 	alt {
 		/* Interrupt has higher priorities than exceptions */
 		machine_interrupt_enabled && machine_external_interrupt_pending:		machine_external_interrupt();
@@ -605,23 +636,23 @@ module rv32x_core {
 		/* Process exception in preceeding instruction in pipeline */	
 		/* Memory stage */
 		/* memory address is sent out to bus in memory stage process load_store_amo_address_breakpoint at memory stage */
-		illegal_instruction_memory_stage:							illegal_instruction_memory_stage_exception();
-		load_store_amo_address_breakpoint:							load_store_amo_address_breakpoint_exception();
-		store_amo_address_misaligned:								store_amo_address_misaligned_exception();
-		load_address_misaligned:									load_address_misaligned_exception();
-		store_amo_page_fault:										store_amo_page_fault_exception();
-		load_page_fault:											load_page_fault_exception();
-		store_amo_access_fault:										store_amo_access_fault_exception();
-		load_access_fault:											load_access_fault_exception();
+		illegal_instruction_memory_stage:										illegal_instruction_memory_stage_exception();
+		load_store_amo_address_breakpoint:										load_store_amo_address_breakpoint_exception();
+		store_amo_address_misaligned:											store_amo_address_misaligned_exception();
+		load_address_misaligned:												load_address_misaligned_exception();
+		store_amo_page_fault:													store_amo_page_fault_exception();
+		load_page_fault:														load_page_fault_exception();
+		store_amo_access_fault:													store_amo_access_fault_exception();
+		load_access_fault:														load_access_fault_exception();
 		/* Execute stage */
-		instruction_address_misaligned:								instruction_address_misaligned_exception();	
-		illegal_instruction_execute_stage:							illegal_instruction_execute_stage_exception();
-		environment_call:											environment_call_exception();	
-		environment_break:											environment_break_exception();	
+		instruction_address_misaligned:											instruction_address_misaligned_exception();	
+		illegal_instruction_execute_stage:										illegal_instruction_execute_stage_exception();
+		environment_call:														environment_call_exception();	
+		environment_break:														environment_break_exception();	
 		/* Ifetch stage */
-		instruction_address_breakpoint:								instruction_address_breakpoint_exception();
-		instruction_page_fault:										instruction_page_fault_exception();
-		instruction_access_fault:									instruction_access_fault_exception();
+		instruction_address_breakpoint:											instruction_address_breakpoint_exception();
+		instruction_page_fault:													instruction_page_fault_exception();
+		instruction_access_fault:												instruction_access_fault_exception();
 	}
 	func interrupt {
 		rv32x.stall_ifetch_req();
@@ -679,9 +710,6 @@ module rv32x_core {
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 		rv32x.flush_execute();
-#ifdef DEBUG
-		debug_einst := rv32x.einst;
-#endif
 	}
 	func load_address_misaligned_exception {
 		exception();
@@ -694,9 +722,6 @@ module rv32x_core {
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 		rv32x.flush_execute();
-#ifdef DEBUG
-		debug_einst := rv32x.einst;
-#endif
 	}
 	func store_amo_page_fault_exception {
 		exception();
@@ -773,9 +798,6 @@ module rv32x_core {
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 		rv32x.flush_execute();
-#ifdef DEBUG
-		debug_einst := rv32x.einst;
-#endif
 	}
 	func illegal_instruction_memory_stage_exception {
 		exception();
@@ -790,9 +812,6 @@ module rv32x_core {
 		rv32x.flush_decode();
 		rv32x.flush_execute();
 		rv32x.flush_memory();
-#ifdef DEBUG
-		debug_einst := rv32x.einst;
-#endif
 	}
 	func environment_call_exception {
 		exception();
@@ -800,19 +819,19 @@ module rv32x_core {
 		rv32x.get_inst_execute();
 
 		any {
-			(mode == MACHINE): {
+			(priv_mode == MACHINE): {
 				trap(MACHINE, ENVIRONMENT_CALL_FROM_M_MODE, rv32x.epc, 0x00000000);
 			}
-			(mode == SUPERVISOR) && (~medeleg.environment_call_from_s_mode): {
+			(priv_mode == SUPERVISOR) && (~medeleg.environment_call_from_s_mode): {
 				trap(MACHINE, ENVIRONMENT_CALL_FROM_S_MODE, rv32x.epc, 0x00000000);
 			}
-			(mode == SUPERVISOR) && (medeleg.environment_call_from_s_mode): {
+			(priv_mode == SUPERVISOR) && (medeleg.environment_call_from_s_mode): {
 				trap(SUPERVISOR, ENVIRONMENT_CALL_FROM_S_MODE, rv32x.epc, 0x00000000);
 			}
-			(mode == USER) && (~medeleg.environment_call_from_u_mode): {
+			(priv_mode == USER) && (~medeleg.environment_call_from_u_mode): {
 				trap(MACHINE, ENVIRONMENT_CALL_FROM_U_MODE, rv32x.epc, 0x00000000);
 			}
-			(mode == USER) && (medeleg.environment_call_from_u_mode): {
+			(priv_mode == USER) && (medeleg.environment_call_from_u_mode): {
 				trap(SUPERVISOR, ENVIRONMENT_CALL_FROM_U_MODE, rv32x.epc, 0x00000000);
 			}
 		}
@@ -822,9 +841,6 @@ module rv32x_core {
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 		rv32x.flush_execute();
-#ifdef DEBUG
-		debug_einst := rv32x.einst;
-#endif
 	}
 	func environment_break_exception {
 		any {
@@ -844,9 +860,6 @@ module rv32x_core {
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 		rv32x.flush_execute();
-#ifdef DEBUG
-		debug_einst := rv32x.einst;
-#endif
 	}
 	func instruction_address_misaligned_exception {
 		any {
@@ -861,10 +874,7 @@ module rv32x_core {
 		rv32x.flush_decode();
 		rv32x.stall_execute_req();
 		rv32x.flush_execute();
-#ifdef DEBUG
 		rv32x.get_inst_execute();
-		debug_einst := rv32x.einst;
-#endif
 	}
 	func instruction_address_breakpoint_exception {
 		exception();
@@ -887,7 +897,7 @@ module rv32x_core {
 		trap(MACHINE, INSTRUCTION_ACCESS_FAULT, rv32x.epc, rv32x.iaddr);
 	}
 	func rv32x.mret {
-		if(mode != MACHINE) {
+		if(priv_mode != MACHINE) {
 			illegal_instruction_execute_stage();
 		} else {
 			mtval := 0;
@@ -899,7 +909,7 @@ module rv32x_core {
 		}
 	}
 	func rv32x.sret {
-		if((mode == SUPERVISOR) && mstatus.tsr) {
+		if((priv_mode == SUPERVISOR) && mstatus.tsr) {
 			illegal_instruction_execute_stage();
 		} else {
 			stval := 0;
@@ -911,7 +921,7 @@ module rv32x_core {
 		}
 	}
 	func rv32x.uret {
-		if(mode != USER) {
+		if(priv_mode != USER) {
 			illegal_instruction_execute_stage();
 		} else {
 			utval := 0;
@@ -928,7 +938,7 @@ module rv32x_core {
 		mstatus.mpp		:= MACHINE;
 		mstatus.mprv 	:= if(mstatus.mpp != MACHINE) 1'b0 else sstatus.mprv;
 		sstatus.mprv 	:= if(mstatus.mpp != MACHINE) 1'b0 else sstatus.mprv;
-		mode 			:= mstatus.mpp;
+		priv_mode 		:= mstatus.mpp;
 		rv32x.stall_ifetch_req();
 		rv32x.trap({mepc[31:2], mepc[1:0] & ~ialign});
 		finish();
@@ -940,7 +950,7 @@ module rv32x_core {
 		sstatus.spie	:= 1;
 		mstatus.mprv 	:= if(mstatus.mpp != MACHINE) 1'b0 else sstatus.mprv;
 		sstatus.mprv 	:= if(mstatus.mpp != MACHINE) 1'b0 else sstatus.mprv;
-		mode 			:= {1'b0, sstatus.spp};	
+		priv_mode 		:= {1'b0, sstatus.spp};	
 		rv32x.stall_ifetch_req();
 		rv32x.trap({sepc[31:2], sepc[1:0] & ~ialign});
 		finish();
@@ -954,7 +964,7 @@ module rv32x_core {
 		ustatus.upie	:= 1;
 		mstatus.mprv 	:= 0;
 		sstatus.mprv 	:= 0;
-		mode			:= USER;
+		priv_mode		:= USER;
 		rv32x.stall_ifetch_req();
 		rv32x.trap({uepc[31:2], uepc[1:0] & ~ialign});
 		finish();
@@ -964,56 +974,55 @@ module rv32x_core {
 		mtvec_t wire tvec;
 		
 		any {
-			trap_mode == MACHINE: {
-				mode			:= MACHINE;
+			trap_priv_mode == MACHINE: {
+				priv_mode		:= MACHINE;
 				mstatus.mpie 	:= mstatus.mie;
 				mstatus.mie 	:= 0;
-				mstatus.mpp 	:= mode;
-				mcause 			:= cause;
-				mepc 			:= epc;
-				mtval			:= tval;
+				mstatus.mpp 	:= priv_mode;
+				mcause 			:= trap_cause;
+				mepc 			:= trap_pc;
+				mtval			:= trap_val;
 				tvec 			= mtvec;
 			}
-			trap_mode == SUPERVISOR: {
-				mode			:= SUPERVISOR;
-				mstatus.spp		:= mode[0];
-				sstatus.spp		:= mode[0];
+			trap_priv_mode == SUPERVISOR: {
+				priv_mode		:= SUPERVISOR;
+				mstatus.spp		:= priv_mode[0];
+				sstatus.spp		:= priv_mode[0];
 				mstatus.spie 	:= sstatus.sie;
 				sstatus.spie 	:= sstatus.sie;
 				mstatus.sie		:= 0;
 				sstatus.sie		:= 0;
-				scause			:= cause;
-				sepc			:= epc;
-				stval			:= tval;
+				scause			:= trap_cause;
+				sepc			:= trap_pc;
+				stval			:= trap_val;
 				tvec			= stvec;
 			}
-			trap_mode == USER: {
-				mode			:= USER;
+			trap_priv_mode == USER: {
+				priv_mode		:= USER;
 				mstatus.upie 	:= ustatus.uie;
 				sstatus.upie 	:= ustatus.uie;
 				ustatus.upie 	:= ustatus.uie;
 				mstatus.uie		:= 0;
 				sstatus.uie		:= 0;
 				ustatus.uie		:= 0;
-				ucause			:= cause;
-				mepc			:= epc;
-				utval			:= tval;
+				ucause			:= trap_cause;
+				mepc			:= trap_pc;
+				utval			:= trap_val;
 				tvec			= utvec;
 			}
 		}
 
 		any {
-			tvec.mode == 2'b00: 				v = {tvec.base, 2'b00};
-			tvec.mode == 2'b01 && !cause[31]:	v = {tvec.base, 2'b00};
-			tvec.mode == 2'b01 && cause[31]:	v = {tvec.base, 2'b00}
-														+32'({cause[9:0], 2'b00});
+			tvec.mode == 2'b00: 					v = {tvec.base, 2'b00};
+			tvec.mode == 2'b01 && !trap_cause[31]:	v = {tvec.base, 2'b00};
+			tvec.mode == 2'b01 && trap_cause[31]:	v = ({tvec.base, 2'b00} + 32'({trap_cause[9:0], 2'b00}));
 		}
 		rv32x.stall_ifetch_req();
 		rv32x.trap(v);
-#ifdef DEBUG
-		debug_raise_exception(cause, epc, tval, debug_einst);
-#endif
 		finish();
+#ifdef DEBUG
+		debug_raise_exception(trap_cause, trap_pc, trap_val, debug_einst);
+#endif
 	}
 	/* fence.i */
 	func rv32x.fencei {
@@ -1033,7 +1042,7 @@ module rv32x_core {
 		rv32x.dmem_valid();
 	}
 	func rv32x.sfence_vma {
-		if(((mode == SUPERVISOR) && mstatus.tvm)) {
+		if(((priv_mode == SUPERVISOR) && mstatus.tvm)) {
 			illegal_instruction_memory_stage();
 		} else {
 			if(ic_tlb_flush_done && ic_invalidate_done && lsu_tlb_flush_done) {
@@ -1060,16 +1069,16 @@ module rv32x_core {
 		instruction_access_fault();
 	}
 	func ic.tlb_flush_done {
-		ic_tlb_flush_done := 1;
+		ic_tlb_flush_done		:= 1;
 	}
 	func ic.invalidate_done {
-		ic_invalidate_done := 1;
+		ic_invalidate_done 		:= 1;
 	}
 	func lsu.cache_flush_done {
-		lsu_cache_flush_done := 1;
+		lsu_cache_flush_done	:= 1;
 	}
 	func lsu.tlb_flush_done {
-		lsu_tlb_flush_done := 1;
+		lsu_tlb_flush_done		:= 1;
 	}
 	func ic.mem_read {
 		reg ic_read_cnt[3] = 0;
