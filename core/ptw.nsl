@@ -38,12 +38,12 @@ module ptw {
 		sv32_pte = page_table_entry;
 		any {
 			(sv32_pte.v && ((levels == 0) || ((sv32_pte.x || sv32_pte.w || sv32_pte.r) && !(sv32_pte.w && !sv32_pte.r)))): {
-				/* non-leaf PTE, not future reserved */
+				/* Leaf PTE */
 				pte_valid(page_table_entry, levels);
 				idle();
 			}
 			(sv32_pte.v && ((levels != 0) && (!sv32_pte.x && !sv32_pte.w && !sv32_pte.r))): {
-				/* Leaf PTE */
+				/* non-leaf PTE, not future reserved */
 				page_table_walk(levels-1, ({sv32_pte.ppn1, sv32_pte.ppn0, va_vpn0, 2'b00}), 10'(0x0));
 			}
 			else: {
