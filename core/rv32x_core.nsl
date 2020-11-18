@@ -1099,17 +1099,17 @@ module rv32x_core {
 		}
 	}
 	func ic.walk {
-		lsu.read_tlb(ic.vadrs);
+		lsu.read_utlb(ic.vadrs);
 	}
-	func lsu.pte_valid {
-		ic.pte = lsu.pte;
-		ic.pte_levels = lsu.pte_levels;
+	func lsu.utlb_pte_valid {
+		ic.pte = lsu.utlb_pte;
+		ic.pte_levels = lsu.utlb_pte_levels;
 		ic.pte_valid();
 	}
-	func lsu.read_tlb_page_fault {
+	func lsu.utlb_page_fault {
 		ic.page_fault();
 	}
-	func lsu.read_tlb_access_fault {
+	func lsu.utlb_access_fault {
 		ic.access_fault();
 	}
 	func rv32x.imem_read {

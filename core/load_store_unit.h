@@ -41,13 +41,13 @@ declare load_store_unit {
 	func_out load_access_fault();
 
 	/* Cache Unit <-> uTLB interfaces */
-	input tlb_adrs[32];
-	func_in read_tlb(tlb_adrs);
-	output pte[32];
-	output pte_levels[2];
-	func_out pte_valid();
-	func_out read_tlb_page_fault();	
-	func_out read_tlb_access_fault();	
+	input utlb_adrs[32];
+	func_in read_utlb(utlb_adrs);
+	output utlb_pte[32];
+	output utlb_pte_levels[2];
+	func_out utlb_pte_valid();
+	func_out utlb_page_fault();
+	func_out utlb_access_fault();
 
 	/* Cache Unit <-> Memory Interface */
 	output pma_adrs[32];
