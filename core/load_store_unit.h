@@ -12,13 +12,14 @@
 declare load_store_unit {
 	/* CPU <-> Cache Unit */
 	input adrs[32];
-	output rdata[32];
-	input wdata[32];
+	output load_data[32];
+	input store_data[32];
 	input byteen[3];
 	func_in reset();
-	func_in read(adrs, byteen);				/* must be asserted until valid arrives */
-	func_in write(adrs, byteen, wdata);		/* must be asserted until valid arrives */
-	func_out valid;							/* hit */
+	/* Operations */
+	func_in load(adrs, byteen);					/* must be asserted until valid arrives */
+	func_in store(adrs, byteen, store_data);	/* must be asserted until valid arrives */
+	func_out valid;								/* operation is done */
 
 	func_in cache_flush;
 	func_out cache_flush_done;

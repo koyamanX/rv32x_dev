@@ -1120,7 +1120,7 @@ module rv32x_core {
 		rv32x.imem_valid();
 	}
 	func rv32x.dmem_read {
-		lsu.read(rv32x.daddr, rv32x.dbyteen);
+		lsu.load(rv32x.daddr, rv32x.dbyteen);
 	}
 	func lsu.pma_check {
 		pma_check_dmem(lsu.pma_adrs);
@@ -1170,7 +1170,7 @@ module rv32x_core {
 		}
 	}
 	func rv32x.dmem_write {
-		lsu.write(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
+		lsu.store(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
 	}
 	func lsu.mem_write {
 		reg lsu_write_cnt[3] = 0;
@@ -1206,7 +1206,7 @@ module rv32x_core {
 		}
 	}
 	func lsu.valid {
-		rv32x.rdata = lsu.rdata;
+		rv32x.rdata = lsu.load_data;
 		rv32x.dmem_valid();
 	}
 #ifdef DEBUG

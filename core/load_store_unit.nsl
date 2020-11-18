@@ -82,7 +82,7 @@ module load_store_unit {
 			tlb_flush: {
 				flush_tlb();
 			}
-			read && sv32: {
+			load && sv32: {
 				access_tlb(sv32_va);
 
 				if(tlb_hit) {
@@ -100,15 +100,15 @@ module load_store_unit {
 					page_table_walk(sv32_va, PTW_LOAD);
 				}
 			}
-			write && sv32: {
+			store && sv32: {
 				access_tlb(sv32_va);
 
 				if(tlb_hit) {
 					if(sv32_pte.v && sv32_pte.r && sv32_pte.w && sv32_pte.a && sv32_pte.d
 						&& ((sv32_pte.u && ((priv_mode == USER) || ((priv_mode == SUPERVISOR) && sstatus_sum))) || (!sv32_pte.u && priv_mode != USER))) {
-						dcache.write(sv32_pa, byteen, wdata);	
+						dcache.write(sv32_pa, byteen, store_data);	
 						if(!dcache.store_amo_access_fault) {
-							write_cache(sv32_pa, byteen, wdata);
+							write_cache(sv32_pa, byteen, store_data);
 						}
 					} else {
 						store_amo_page_fault();
@@ -119,24 +119,24 @@ module load_store_unit {
 				}
 #ifdef DEBUG
 				if(sv32_pa == 0x80001000) {
-					sim_done(wdata);
+					sim_done(store_data);
 				}
 #endif
 			}
-			read && !sv32: {
+			load && !sv32: {
 				dcache.read(sv32_pa, byteen);	
 				if(!dcache.load_access_fault) {
 					read_cache(sv32_pa, byteen);
 				}
 			}
-			write && !sv32: {
-				dcache.write(sv32_pa, byteen, wdata);	
+			store && !sv32: {
+				dcache.write(sv32_pa, byteen, store_data);	
 				if(!dcache.store_amo_access_fault) {
-					write_cache(sv32_pa, byteen, wdata);
+					write_cache(sv32_pa, byteen, store_data);
 				}
 #ifdef DEBUG
 				if(sv32_pa == 0x80001000) {
-					sim_done(wdata);
+					sim_done(store_data);
 				}
 #endif
 			}
@@ -173,7 +173,7 @@ module load_store_unit {
 		dcache.read(cache_adrs, cache_byteen);	
 
 		if(dcache.valid) {
-			rdata = dcache.rdata;
+			load_data = dcache.rdata;
 			valid();
 			idle();
 		}
