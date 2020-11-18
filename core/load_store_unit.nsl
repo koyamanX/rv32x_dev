@@ -12,6 +12,9 @@
 #define PTW_LOAD		2'b10
 #define PTW_STORE		2'b11
 
+#define CACHE_LOAD		2'b00
+#define CACHE_STORE		2'b01
+
 module load_store_unit {
 	reg cache_adrs[32];
 	reg cache_wdata[32];
@@ -34,8 +37,8 @@ module load_store_unit {
 	mem tlb_tag[32][20] = {0};
 	reg tlb_random_replace_pos[5] = 0;
 
-	wire va[32];
-	func_self access_tlb(va);
+	wire va_tag[20];
+	func_self access_tlb(va_tag);
 	wire tlb_hit_data[32];
 	wire tlb_hit_levels[2];
 	func_self tlb_hit(tlb_hit_data, tlb_hit_levels);
@@ -45,6 +48,12 @@ module load_store_unit {
 	wire refill_tlb_data[32];
 	wire refill_tlb_levels[2];
 	func_self refill_tlb(refill_tlb_tag, refill_tlb_data, refill_tlb_levels);
+
+	wire translate_cache_access_type[2];
+	wire translate_valid;
+	wire va[32];
+	wire pa[32];							/* valid on translate_valid */
+	func_self translate(translate_cache_access_type, va) : translate_valid;
 
 	wire sv32;
 
@@ -59,21 +68,11 @@ module load_store_unit {
 		idle();
 	}
 	proc idle {
-		sv32_pte_t wire sv32_pte;
+		wire sv32_va[32];
 		wire sv32_pa[32];
-		sv32_va_t wire sv32_va;
 
 		sv32_va = adrs;
-		sv32_pte = tlb_hit_data;												/* valid on (tlb_hit) */
-		if(sv32) {
-			any {
-				tlb_hit_levels == 0:	sv32_pa = {sv32_pte.ppn1[9:0], sv32_pte.ppn0, sv32_va.page_offset};	/* valid on (tlb_hit) */
-				tlb_hit_levels == 1:	sv32_pa = {sv32_pte.ppn1[9:0], sv32_va.vpn0, sv32_va.page_offset};	/* valid on (tlb_hit) */
-			}
-		} else {
-			sv32_pa = sv32_va;
-		}
-
+		sv32_pa = pa;
 		alt {
 			cache_flush: {
 				dcache.cache_flush();
@@ -82,39 +81,21 @@ module load_store_unit {
 			tlb_flush: {
 				flush_tlb();
 			}
-			load && sv32: {
-				access_tlb(sv32_va);
-
-				if(tlb_hit) {
-					if(sv32_pte.v && (sv32_pte.r || (mstatus_mxr && sv32_pte.x)) && sv32_pte.a
-						&& ((sv32_pte.u && ((priv_mode == USER) || ((priv_mode == SUPERVISOR) && sstatus_sum))) || (!sv32_pte.u && priv_mode != USER))) {
-						dcache.read(sv32_pa, byteen);
-						if(!dcache.load_access_fault) {
-							read_cache(sv32_pa, byteen);
-						}
-					} else {
-						load_page_fault();
+			load: {
+				if(translate(CACHE_LOAD, sv32_va)) {
+					if(!dcache.load_access_fault) {
+						read_cache(sv32_pa, byteen);
 					}
-				}
-				if(tlb_miss) {
+				} else {
 					page_table_walk(sv32_va, PTW_LOAD);
 				}
 			}
-			store && sv32: {
-				access_tlb(sv32_va);
-
-				if(tlb_hit) {
-					if(sv32_pte.v && sv32_pte.r && sv32_pte.w && sv32_pte.a && sv32_pte.d
-						&& ((sv32_pte.u && ((priv_mode == USER) || ((priv_mode == SUPERVISOR) && sstatus_sum))) || (!sv32_pte.u && priv_mode != USER))) {
-						dcache.write(sv32_pa, byteen, store_data);	
-						if(!dcache.store_amo_access_fault) {
-							write_cache(sv32_pa, byteen, store_data);
-						}
-					} else {
-						store_amo_page_fault();
+			store: {
+				if(translate(CACHE_STORE, sv32_va)) {
+					if(!dcache.store_amo_access_fault) {
+						write_cache(sv32_pa, byteen, store_data);
 					}
-				}
-				if(tlb_miss) {
+				} else {
 					page_table_walk(sv32_va, PTW_STORE);
 				}
 #ifdef DEBUG
@@ -123,25 +104,8 @@ module load_store_unit {
 				}
 #endif
 			}
-			load && !sv32: {
-				dcache.read(sv32_pa, byteen);	
-				if(!dcache.load_access_fault) {
-					read_cache(sv32_pa, byteen);
-				}
-			}
-			store && !sv32: {
-				dcache.write(sv32_pa, byteen, store_data);	
-				if(!dcache.store_amo_access_fault) {
-					write_cache(sv32_pa, byteen, store_data);
-				}
-#ifdef DEBUG
-				if(sv32_pa == 0x80001000) {
-					sim_done(store_data);
-				}
-#endif
-			}
 			read_utlb: {
-				access_tlb(utlb_adrs);
+				access_tlb(utlb_adrs[31:12]);
 
 				if(tlb_hit) {
 					utlb_pte = tlb_hit_data;
@@ -152,6 +116,44 @@ module load_store_unit {
 					page_table_walk(utlb_adrs, PTW_FETCH);
 				}
 			}
+		}
+	}
+	func translate {
+		sv32_pte_t wire sv32_pte;
+
+		if(sv32) {
+			access_tlb(va[31:12]);
+			sv32_pte = tlb_hit_data;	/* valid on (tlb_hit) */
+			any {
+				(translate_cache_access_type == CACHE_LOAD) && tlb_hit: {
+					if(sv32_pte.v && (sv32_pte.r || (mstatus_mxr && sv32_pte.x)) && sv32_pte.a
+						&& ((sv32_pte.u && ((priv_mode == USER) || ((priv_mode == SUPERVISOR) && sstatus_sum))) || (!sv32_pte.u && priv_mode != USER))) {
+							return 1;
+					} else {
+						load_page_fault();
+						return 0;
+					}
+				}
+				(translate_cache_access_type == CACHE_STORE) && tlb_hit: {
+					if(sv32_pte.v && sv32_pte.r && sv32_pte.w && sv32_pte.a && sv32_pte.d
+						&& ((sv32_pte.u && ((priv_mode == USER) || ((priv_mode == SUPERVISOR) && sstatus_sum))) || (!sv32_pte.u && priv_mode != USER))) {
+							return 1;
+					} else {
+						store_amo_page_fault();
+						return 0;
+					}
+				}
+				else: {
+					return 0;
+				}
+			}
+			any {
+				tlb_hit_levels == 0:	pa = {sv32_pte.ppn1[9:0], sv32_pte.ppn0, va[11:0]};
+				tlb_hit_levels == 1:	pa = {sv32_pte.ppn1[9:0], va[21:0]};
+			}
+		} else {
+			pa = va;
+			return 1;
 		}
 	}
 	proc flush_cache {
@@ -200,11 +202,9 @@ module load_store_unit {
 			idle();
 		}
 		if(walker.page_fault) {
-			any {
-				ptw_op == PTW_FETCH:	utlb_page_fault();
-				ptw_op == PTW_STORE:	store_amo_page_fault();
-				ptw_op == PTW_LOAD:		load_page_fault();
-			}
+			idle();
+		}
+		if(dcache.load_access_fault) {
 			idle();
 		}
 	}
@@ -218,7 +218,7 @@ module load_store_unit {
 	}
 	func access_tlb {
 		generate(i_ = 0; i_ < 32; i_++) {
-			if(tlb_valid[i_] && (tlb_tag[i_] == va[31:12])) {
+			if(tlb_valid[i_] && (tlb_tag[i_] == va_tag)) {
 				tlb_hit(tlb_data[i_], tlb_levels[i_]);
 			}
 		}
@@ -260,5 +260,11 @@ module load_store_unit {
 			else: 									load_access_fault();
 		}
 	}
+	func walker.page_fault {
+		any {
+			ptw_op == PTW_FETCH:	utlb_page_fault();
+			ptw_op == PTW_STORE:	store_amo_page_fault();
+			ptw_op == PTW_LOAD:		load_page_fault();
+		}
+	}
 }
-
