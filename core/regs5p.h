@@ -22,6 +22,7 @@ struct dereg_t {
 	alu_a_forward_en;
 	alu_b_forward_en;
 	funct3[3];
+	funct7[7];
 	funct12[12];
 	rd[5];
 	rs1[5];
@@ -56,12 +57,14 @@ struct dereg_t {
 	illegal_instruction;
 	predict_as_taken;
 	predict_as_not_taken;
+	amo;
 };
 struct emreg_t {
 	pc[32];
 	pc4[32];
 	inst[32];
 	funct3[3];
+	funct7[7];
 	funct12[12];
 	rd[5];
 	rs1[5];
@@ -79,6 +82,7 @@ struct emreg_t {
 	csrrw;
 	csrrs;
 	csrrc;
+	amo;
 };
 struct mwreg_t {
 	pc[32];

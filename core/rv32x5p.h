@@ -24,6 +24,13 @@ declare rv32x5p {
 	func_out csr_read(cradrs) : crdata;         /* CSR read */
 	func_out csr_write(cwadrs, cwdata);         /* CSR write */
 	
+	output amo_src[32];
+	output amo_addr[32];
+	output amo_funct5[5];
+	output amo_aq;
+	output amo_rl;
+	output amo_width[3];
+	func_out amo_exe(amo_src, amo_addr, amo_funct5, amo_aq, amo_rl, amo_width);
 	func_out fencei();							/* Indicating fence.i is issued */
 	func_out fence();							/* Indicating fence is issued */
 	output asid[9];

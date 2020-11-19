@@ -50,6 +50,17 @@
 #define FENCEI		3'b001
 #define FENCE 		3'b000
 
+#define LR_W		5'b00010
+#define SC_W		5'b00011
+#define AMOSWAP_W	5'b00001
+#define AMOADD_W	5'b00000
+#define AMOXOR_W	5'b00100
+#define AMOAND_W	5'b01100
+#define AMOOR_W		5'b01000
+#define AMOMIN_W	5'b10000
+#define AMOMAX_W	5'b10100
+#define AMOMINU_W	5'b11000
+#define AMOMAXU_W	5'b11100
 
 /* funct3 M Standard Extension */
 #define ALU_MUL		3'b000

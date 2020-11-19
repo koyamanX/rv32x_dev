@@ -146,6 +146,7 @@ module rv32x5p {
 			dereg.alu_a_forward_en = alu_a_forward_en;
 			dereg.alu_b_forward_en = alu_b_forward_en;
 			dereg.funct3 = rv32x_inst_dec.funct3;
+			dereg.funct7 = rv32x_inst_dec.funct7;
 			dereg.funct12 = rv32x_inst_dec.funct12;
 			dereg.rd = rv32x_inst_dec.rd;
 			dereg.rs1 = rv32x_inst_dec.rs1;
@@ -180,6 +181,7 @@ module rv32x5p {
 			dereg.illegal_instruction = (rv32x_inst_dec.illegal_instruction || decode_illegal_instruction);
 			dereg.predict_as_taken = IDREG.predict_as_taken;
 			dereg.predict_as_not_taken = IDREG.predict_as_not_taken;
+			dereg.amo = rv32x_inst_dec.amo;
 		} else {
 			dereg = 0;
 		}
@@ -257,6 +259,16 @@ module rv32x5p {
 				}
 			}
 			rv32x_inst_dec.funct3 == FENCE: 	{misc_mem_fence(); /* check if illegal instruction */}
+		}
+	}
+	func rv32x_inst_dec.amo {
+		if(rv32x_inst_dec.funct3 != 3'b010) {
+			decode_illegal_instruction();
+		}
+		any {
+			(rv32x_inst_dec.funct7[6:2] == LR_W) && (rv32x_inst_dec.rs2 != 0): ;
+			(rv32x_inst_dec.funct7[6:2] == SC_W): ;
+			else: decode_illegal_instruction();
 		}
 	}
 	func rv32x_inst_dec.system {
@@ -355,6 +367,7 @@ module rv32x5p {
 			emreg.pc4 = DEREG.pc4;
 			emreg.inst = DEREG.inst;
 			emreg.funct3 = DEREG.funct3;
+			emreg.funct7 = DEREG.funct7;
 			emreg.funct12 = DEREG.funct12;
 			emreg.rd = DEREG.rd;
 			emreg.rs1 = DEREG.rs1;
@@ -379,6 +392,7 @@ module rv32x5p {
 			emreg.csrrw = DEREG.csrrw;
 			emreg.csrrs = DEREG.csrrs;
 			emreg.csrrc = DEREG.csrrc;
+			emreg.amo = DEREG.amo;
 		} else {
 			emreg = 0;
 		}
@@ -508,6 +522,8 @@ module rv32x5p {
 		wire mem_data[32];
 		wire mem_byteen[3];
 		wire loaded_value[32];
+		wire ordering_aq;
+		wire ordering_rl;
 		func_self ext : loaded_value;
 		func_self csrrw;
 		func_self csrrs;
@@ -535,6 +551,8 @@ module rv32x5p {
 		mem_adrs = EMREG.alu_q;
 		/* For store operation, forward rs2 data */
 		mem_data = if((MWREG.rd == EMREG.rs2) && (EMREG.rs2 != 5'b0000)) MWREG.wb_value else EMREG.rs2_data;
+		ordering_aq = EMREG.funct7[1];
+		ordering_rl = EMREG.funct7[0];
 
 		any {
 			EMREG.store: {
@@ -569,9 +587,12 @@ module rv32x5p {
 			EMREG.fence: {
 				fence();
 			}
+			EMREG.amo: {
+				amo_exe(EMREG.rs1_data, EMREG.rs2_data, EMREG.funct7[6:2], ordering_aq, ordering_rl, mem_byteen);
+			}
 		}
 		alt {
-			(!EMREG.store && !EMREG.load && !EMREG.fencei && !EMREG.fence && !EMREG.sfence_vma && !stall_memory): {
+			(!EMREG.store && !EMREG.load && !EMREG.fencei && !EMREG.fence && !EMREG.sfence_vma && !EMREG.amo && !stall_memory): {
 				writeback(mwreg);
 			}
 			(dmem_valid && !stall_memory && !EMREG.fencei && !EMREG.fence && !EMREG.sfence_vma): {

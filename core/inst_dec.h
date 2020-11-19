@@ -33,5 +33,6 @@ declare inst_dec {
 	func_out op();
 	func_out illegal_instruction();
 	func_out m_ext();
+	func_out amo();
 }
 #endif
