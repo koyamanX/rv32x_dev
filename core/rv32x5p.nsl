@@ -266,7 +266,7 @@ module rv32x5p {
 			decode_illegal_instruction();
 		}
 		any {
-			(rv32x_inst_dec.funct7[6:2] == LR_W) && (rv32x_inst_dec.rs2 != 0): ;
+			(rv32x_inst_dec.funct7[6:2] == LR_W) && (rv32x_inst_dec.rs2 == 0): ;
 			(rv32x_inst_dec.funct7[6:2] == SC_W): ;
 			else: decode_illegal_instruction();
 		}
