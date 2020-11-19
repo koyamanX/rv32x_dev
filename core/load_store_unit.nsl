@@ -27,7 +27,7 @@ module load_store_unit {
 	proc_name read_cache(cache_adrs, cache_byteen);
 	proc_name write_cache(cache_adrs, cache_byteen, cache_wdata);
 	proc_name flush_tlb();
-	proc_name page_table_walk(ptw_adrs, ptw_op);
+	proc_name page_table_walk(ptw_op, ptw_adrs);
 	cache dcache;
 	ptw walker;
 
@@ -87,7 +87,7 @@ module load_store_unit {
 						read_cache(sv32_pa, byteen);
 					}
 				} else {
-					page_table_walk(sv32_va, PTW_LOAD);
+					page_table_walk(PTW_LOAD, sv32_va);
 				}
 			}
 			store: {
@@ -96,7 +96,7 @@ module load_store_unit {
 						write_cache(sv32_pa, byteen, store_data);
 					}
 				} else {
-					page_table_walk(sv32_va, PTW_STORE);
+					page_table_walk(PTW_STORE, sv32_va);
 				}
 #ifdef DEBUG
 				if(sv32_pa == 0x80001000) {
@@ -113,7 +113,7 @@ module load_store_unit {
 					utlb_pte_valid();
 				}
 				if(tlb_miss) {
-					page_table_walk(utlb_adrs, PTW_FETCH);
+					page_table_walk(PTW_FETCH, utlb_adrs);
 				}
 			}
 		}
