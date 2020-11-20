@@ -16,6 +16,7 @@ targets = [
 	'rv32um-v-*',
 	'rv32mi-p-*',
 	'rv32ua-p-*',
+	'rv32ua-v-*',
 	'rv32si-p-*',
 ]
 targets_should_be_failed = [
@@ -23,6 +24,10 @@ targets_should_be_failed = [
 	'rv32ua-p-amomax_w',
 	'rv32ua-p-amominu_w',
 	'rv32ua-p-amomin_w',
+	'rv32ua-v-amomaxu_w',
+	'rv32ua-v-amomax_w',
+	'rv32ua-v-amominu_w',
+	'rv32ua-v-amomin_w',
 	'rv32si-p-dirty',
 ]
 targets_to_exclude = [
