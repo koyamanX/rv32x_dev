@@ -32,7 +32,7 @@ declare rv32x5p {
 	output amo_aq;
 	output amo_rl;
 	output amo_width[3];
-	func_out amo_exe(amo_src, amo_addr, amo_funct5, amo_aq, amo_rl, amo_width);
+	func_out amo_exe(amo_src, amo_addr, amo_funct5, amo_aq, amo_rl, amo_width, daddr);
 	func_out fencei();							/* Indicating fence.i is issued */
 	func_out fence();							/* Indicating fence is issued */
 	output asid[9];
