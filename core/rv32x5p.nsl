@@ -370,6 +370,7 @@ module rv32x5p {
 		func_self condcheck;
 		func_self i_misaligned;
 		func_self m_misaligned;
+		func_self a_misaligned;
 		func_self miss_prediction;
 		func_self correct_prediction;
 		alu32 rv32x_alu32;
@@ -486,8 +487,9 @@ module rv32x5p {
 			}
 			any {
 				/* Data address misaligned */
-				((alu_q[1:0] != 2'b00) && ({1'b0, DEREG.funct3[1:0]} == MEM_WORD)):		m_misaligned();
-				((alu_q[0] != 1'b0) && ({1'b0, DEREG.funct3[1:0]} == MEM_HALFWORD)):	m_misaligned();
+				((alu_q[1:0] != 2'b00) && ({1'b0, DEREG.funct3[1:0]} == MEM_WORD)):			m_misaligned();
+				((alu_q[0] != 1'b0) && ({1'b0, DEREG.funct3[1:0]} == MEM_HALFWORD)):		m_misaligned();
+				((DEREG.rs1_data[1:0] != 2'b00) && ({1'b0, DEREG.funct3[1:0]} == MEM_WORD)):a_misaligned();
 			}
 			/* Exceptions in execute stage */
 			any {
@@ -495,6 +497,7 @@ module rv32x5p {
 				(i_misaligned):					instruction_address_misaligned(target_address);
 				(DEREG.load && m_misaligned):	load_address_misaligned(alu_q);
 				(DEREG.store && m_misaligned):	store_address_misaligned(alu_q);
+				(DEREG.amo && a_misaligned):	store_address_misaligned(DEREG.rs1_data);
 			}
 			/* Update branch prediction */
 			any {
