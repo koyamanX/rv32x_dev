@@ -86,9 +86,7 @@ module load_store_unit {
 			}
 			load: {
 				if(translate(CACHE_LOAD, sv32_va)) {
-					if(!dcache.load_access_fault) {
-						read_cache(sv32_pa, byteen);
-					}
+					read_cache(sv32_pa, byteen);
 					if(load_reserved) {
 						reservation.valid := 1;
 						reservation.addr := sv32_pa;
@@ -103,9 +101,7 @@ module load_store_unit {
 						store_conditional_status = 1;
 						valid();
 					} else {
-						if(!dcache.store_amo_access_fault) {
-							write_cache(sv32_pa, byteen, store_data, store_conditional);
-						}
+						write_cache(sv32_pa, byteen, store_data, store_conditional);
 					}
 					if(store_conditional) {
 						reservation.valid := 0;
