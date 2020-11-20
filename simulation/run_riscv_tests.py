@@ -19,7 +19,6 @@ targets = [
 	'rv32si-p-*',
 ]
 targets_should_be_failed = [
-	'rv32ua-p-amoadd_w',
 	'rv32ua-p-amoand_w',
 	'rv32ua-p-amomaxu_w',
 	'rv32ua-p-amomax_w',

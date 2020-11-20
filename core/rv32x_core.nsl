@@ -1125,6 +1125,9 @@ module rv32x_core {
 	func rv32x.load_reserved {
 		lsu.load_reserved();
 	}
+	func rv32x.amo_exe {
+		lsu.amo_exe(rv32x.amo_src, rv32x.amo_addr, rv32x.amo_funct5, rv32x.amo_aq, rv32x.amo_rl, rv32x.amo_width);
+	}
 	func lsu.pma_check {
 		pma_check_dmem(lsu.pma_adrs);
 	}
@@ -1213,7 +1216,6 @@ module rv32x_core {
 	}
 	func lsu.valid {
 		rv32x.rdata = lsu.load_data;
-		rv32x.store_conditional_status = lsu.store_conditional_status;
 		rv32x.dmem_valid();
 	}
 #ifdef DEBUG

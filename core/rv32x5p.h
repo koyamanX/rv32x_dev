@@ -26,7 +26,6 @@ declare rv32x5p {
 	
 	func_out load_reserved();
 	func_out store_conditional();
-	input store_conditional_status;
 	output amo_src[32];
 	output amo_addr[32];
 	output amo_funct5[5];

@@ -99,6 +99,7 @@ struct mwreg_t {
 	alu_q[32];
 	wb_value[32];
 	wb;
+	amo;
 #ifdef DEBUG
 	debug_mem_write;
 	debug_mem_adrs[32];

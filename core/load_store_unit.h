@@ -27,7 +27,14 @@ declare load_store_unit {
 	func_in load_reserved();					/* This signal is asserted alongside with load */
 	func_in store_conditional();				/* This signal is asserted alongside with store */
 	func_out valid;								/* operation is done */
-	output store_conditional_status;
+
+	input amo_src[32];
+	input amo_addr[32];
+	input amo_funct5[5];
+	input amo_aq;
+	input amo_rl;
+	input amo_width[3];
+	func_in amo_exe(amo_src, amo_addr, amo_funct5, amo_aq, amo_rl, amo_width);
 
 	func_in cache_flush;
 	func_out cache_flush_done;

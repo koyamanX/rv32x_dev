@@ -133,7 +133,7 @@ module rv32x5p {
 		alu_a_forward_en = if(rv32x_inst_dec.lui || rv32x_inst_dec.auipc 
 								|| rv32x_inst_dec.jal) 1'b0 else 1'b1;
 		alu_b_forward_en = if(rv32x_inst_dec.op 
-								|| rv32x_inst_dec.branch) 1'b1 else 1'b0;
+								|| rv32x_inst_dec.branch || rv32x_inst_dec.amo) 1'b1 else 1'b0;
 
 		if(!decode_nop) {
 			dereg.pc = IDREG.pc;
@@ -271,6 +271,7 @@ module rv32x5p {
 		any {
 			(rv32x_inst_dec.funct7[6:2] == LR_W) && (rv32x_inst_dec.rs2 == 0): ;
 			(rv32x_inst_dec.funct7[6:2] == SC_W): ;
+			(rv32x_inst_dec.funct7[6:2] == AMOADD_W): ;
 			else: decode_illegal_instruction();
 		}
 	}
@@ -325,28 +326,28 @@ module rv32x5p {
 		load_interlock();
 	}
 	/* Forwarding Unit */
-	if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && EMREG.load && memory) {
+	if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && (EMREG.load || EMREG.amo) && memory) {
 		memory_load_hazzard_a();
 	} else if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && (EMREG.csrrc || EMREG.csrrs || EMREG.csrrw) && memory) {
 		csr_load_hazzard_a();
-	} else if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && !EMREG.load && memory) {
+	} else if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && !EMREG.load && !EMREG.amo && memory) {
 		execute_alu_a = EMREG.alu_q;
-	} else if((DEREG.rs1 == MWREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && MWREG.load && writeback) {
+	} else if((DEREG.rs1 == MWREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && (MWREG.load || EMREG.amo) && writeback) {
 		execute_alu_a = MWREG.wb_value;
-	} else if((DEREG.rs1 == MWREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && !MWREG.load && writeback) {
+	} else if((DEREG.rs1 == MWREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && !MWREG.load && !MWREG.amo && writeback) {
 		execute_alu_a = MWREG.alu_q;
 	} else {
 		execute_alu_a = DEREG.alu_a;
 	}
-	if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && EMREG.load && memory) {
+	if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && (EMREG.load || EMREG.amo) && memory) {
 		memory_load_hazzard_b();
 	} else if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && (EMREG.csrrc || EMREG.csrrs || EMREG.csrrw) && memory) {
 		csr_load_hazzard_b();
-	} else if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && !EMREG.load && memory) {
+	} else if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && !EMREG.load && !EMREG.amo && memory) {
 		execute_alu_b = EMREG.alu_q;
-	} else if((DEREG.rs2 == MWREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && MWREG.load && writeback) {
+	} else if((DEREG.rs2 == MWREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && (MWREG.load || MWREG.amo) && writeback) {
 		execute_alu_b = MWREG.wb_value;
-	} else if((DEREG.rs2 == MWREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && !MWREG.load && writeback) {
+	} else if((DEREG.rs2 == MWREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && !MWREG.load && !MWREG.amo && writeback) {
 		execute_alu_b = MWREG.alu_q;
 	} else {
 		execute_alu_b = DEREG.alu_b;
@@ -547,8 +548,9 @@ module rv32x5p {
 			mwreg.load = EMREG.load;
 			mwreg.store = EMREG.store;
 			mwreg.alu_q = if(EMREG.csrrw || EMREG.csrrc || EMREG.csrrs) crdata else EMREG.alu_q;
-			mwreg.wb_value = if(EMREG.load || lr_w) loaded_value else if(EMREG.csrrw || EMREG.csrrc || EMREG.csrrs) crdata else if(sc_w) store_conditional_status else EMREG.alu_q;
+			mwreg.wb_value = if(EMREG.load || EMREG.amo) loaded_value else if(EMREG.csrrw || EMREG.csrrc || EMREG.csrrs) crdata else EMREG.alu_q;
 			mwreg.wb = EMREG.wb;
+			mwreg.amo = EMREG.amo;
 		} else {
 			mwreg = 0;
 		}
@@ -558,7 +560,7 @@ module rv32x5p {
 		mem_data = if((MWREG.rd == EMREG.rs2) && (EMREG.rs2 != 5'b0000)) MWREG.wb_value else EMREG.rs2_data;
 		ordering_aq = EMREG.funct7[1];
 		ordering_rl = EMREG.funct7[0];
-		lr_w = (EMREG.funct7[6:2] == LR_W) && EMREG.amo;
+		lr_w = (EMREG.funct7[6:2] == LR_W) && (EMREG.rs2 == 0) && EMREG.amo;
 		sc_w = (EMREG.funct7[6:2] == SC_W) && EMREG.amo;
 
 		any {
@@ -601,6 +603,9 @@ module rv32x5p {
 			sc_w: {
 				store_conditional();
 				dmem_write(EMREG.rs1_data, mem_byteen, EMREG.rs2_data);
+			}
+			EMREG.amo && !(lr_w || sc_w): {
+				amo_exe(EMREG.rs2_data, EMREG.rs1_data, EMREG.funct7[6:2], ordering_aq, ordering_rl, mem_byteen);
 			}
 		}
 		alt {
