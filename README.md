@@ -1,5 +1,5 @@
 ## RISC-V (RV32IMAC) Implementation in NSL
-- This repository contains implementation of RV32IMAC(currently supporting RV32IM,Zicsr,Zifencei, some delegation to S-Mode with User-Mode and Supervisor-Mode, Machine-Mode except for PMP, HPM, SV32).  
+- This repository contains implementation of RV32IMAC(currently supporting RV32IMA,Zicsr,Zifencei,SV32, simple PMAs and some delegation to S-Mode with User-Mode and Supervisor-Mode, Machine-Mode except for PMP, HPM).  
 - This implementation is fully synthisable and also able to convert to software simulator(by verilator).  
 - Written in [NSL](http://www.overtone.co.jp/products/and-the-nsl/) 
 ### NSL 
@@ -46,17 +46,13 @@ $ ./run.sh 'make -C run_riscv_tests'
 - environment_call
 - load_address_misaligned
 - store_amo_address_misalgined
-- reset
-
-#### Not-fully implemented
 - load_access_fault
 - store_amo_access_fault
 - instruction_access_fault
-
-#### Not implemented
-- instruction_address_breakpoint
-- instruction_page_fault
+- load_page_fault
 - store_amo_page_fault
+- instruction_page_fault
+- reset
 
 ### Interrupts support
 - Machine mode timer interrupt (via CLINT)
@@ -70,8 +66,14 @@ $ ./run.sh 'make -C run_riscv_tests'
 #### Exceptions delegation
 - environment_call_from_s_mode
 - environment_call_from_u_mode
-- breakpoint
+- load_access_fault
+- store_amo_access_fault
+- instruction_access_fault
+- load_page_fault
+- store_amo_page_fault
+- instruction_page_fault
 - instruction_address_misaligned
+- breakpoint
 #### Interrupts delegation
 - machine mode external interrupt
 - machine mode software interrupt
@@ -116,9 +118,9 @@ For simulation purpose, address map below is mapped.
 |Name|Region|Is cacheable?|Accessibilty|
 |--|--|--|--|
 |BOOTROM|0x0000\_0000 - 0x0000\_1000|Cacheable|X|
-|PLIC|0x0c00\_0000 - 0x1000\_0000|Non-cacheable|RW|
-|CLINT|0x0200\_0000 - 0x0200\_c000|Non-cacheable|RW|
-|MMIO DEVICES|0x4000\_0000 - 0x4001\_0000|Non-cacheable|RW|
+|PLIC|0x0c00\_0000 - 0x1000\_0000|Non-cacheable|RWA|
+|CLINT|0x0200\_0000 - 0x0200\_c000|Non-cacheable|RWA|
+|MMIO DEVICES|0x4000\_0000 - 0x4001\_0000|Non-cacheable|RWA|
 |RAM0|0x8000\_0000 - 0x8400\_8000|Cacheable|RWXA|
 
 
