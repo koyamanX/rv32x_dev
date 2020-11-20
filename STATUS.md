@@ -102,26 +102,26 @@ rv32mi-p-breakpoint 	skipped
 rv32mi-p-sbreak     	should_be_passed      and it's PASSED	OK
 rv32mi-p-shamt      	should_be_passed      and it's PASSED	OK
 rv32mi-p-illegal    	should_be_passed      and it's PASSED	OK
-rv32ua-p-amomin_w   	should_be_failed      and it's FAILED	
+rv32ua-p-amomin_w   	should_be_passed      and it's PASSED	OK
 rv32ua-p-lrsc       	should_be_passed      and it's PASSED	OK
-rv32ua-p-amominu_w  	should_be_failed      and it's FAILED	
+rv32ua-p-amominu_w  	should_be_passed      and it's PASSED	OK
 rv32ua-p-amoadd_w   	should_be_passed      and it's PASSED	OK
 rv32ua-p-amoor_w    	should_be_passed      and it's PASSED	OK
-rv32ua-p-amomax_w   	should_be_failed      and it's FAILED	
+rv32ua-p-amomax_w   	should_be_passed      and it's PASSED	OK
 rv32ua-p-amoand_w   	should_be_passed      and it's PASSED	OK
 rv32ua-p-amoxor_w   	should_be_passed      and it's PASSED	OK
-rv32ua-p-amomaxu_w  	should_be_failed      and it's FAILED	
+rv32ua-p-amomaxu_w  	should_be_passed      and it's PASSED	OK
 rv32ua-p-amoswap_w  	should_be_passed      and it's PASSED	OK
 rv32ua-v-amoxor_w   	should_be_passed      and it's PASSED	OK
 rv32ua-v-amoor_w    	should_be_passed      and it's PASSED	OK
 rv32ua-v-amoand_w   	should_be_passed      and it's PASSED	OK
 rv32ua-v-lrsc       	should_be_passed      and it's FAILED	NG
 rv32ua-v-amoadd_w   	should_be_passed      and it's PASSED	OK
-rv32ua-v-amomin_w   	should_be_failed      and it's TIMEOUT	NG
-rv32ua-v-amomaxu_w  	should_be_failed      and it's TIMEOUT	NG
+rv32ua-v-amomin_w   	should_be_passed      and it's PASSED	OK
+rv32ua-v-amomaxu_w  	should_be_passed      and it's PASSED	OK
 rv32ua-v-amoswap_w  	should_be_passed      and it's PASSED	OK
-rv32ua-v-amominu_w  	should_be_failed      and it's TIMEOUT	NG
-rv32ua-v-amomax_w   	should_be_failed      and it's TIMEOUT	NG
+rv32ua-v-amominu_w  	should_be_passed      and it's PASSED	OK
+rv32ua-v-amomax_w   	should_be_passed      and it's PASSED	OK
 rv32si-p-wfi        	should_be_passed      and it's PASSED	OK
 rv32si-p-ma_fetch   	should_be_passed      and it's PASSED	OK
 rv32si-p-csr        	should_be_passed      and it's PASSED	OK
