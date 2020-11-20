@@ -262,6 +262,9 @@ module rv32x5p {
 		}
 	}
 	func rv32x_inst_dec.amo {
+		alu_a = rv32x_reg32.rdataa;
+		alu_b = rv32x_reg32.rdatab;
+
 		if(rv32x_inst_dec.funct3 != 3'b010) {
 			decode_illegal_instruction();
 		}
@@ -524,6 +527,8 @@ module rv32x5p {
 		wire loaded_value[32];
 		wire ordering_aq;
 		wire ordering_rl;
+		wire lr_w;
+		wire sc_w;
 		func_self ext : loaded_value;
 		func_self csrrw;
 		func_self csrrs;
@@ -542,7 +547,7 @@ module rv32x5p {
 			mwreg.load = EMREG.load;
 			mwreg.store = EMREG.store;
 			mwreg.alu_q = if(EMREG.csrrw || EMREG.csrrc || EMREG.csrrs) crdata else EMREG.alu_q;
-			mwreg.wb_value = if(EMREG.load) loaded_value else if(EMREG.csrrw || EMREG.csrrc || EMREG.csrrs) crdata else EMREG.alu_q;
+			mwreg.wb_value = if(EMREG.load || lr_w) loaded_value else if(EMREG.csrrw || EMREG.csrrc || EMREG.csrrs) crdata else if(sc_w) store_conditional_status else EMREG.alu_q;
 			mwreg.wb = EMREG.wb;
 		} else {
 			mwreg = 0;
@@ -553,6 +558,8 @@ module rv32x5p {
 		mem_data = if((MWREG.rd == EMREG.rs2) && (EMREG.rs2 != 5'b0000)) MWREG.wb_value else EMREG.rs2_data;
 		ordering_aq = EMREG.funct7[1];
 		ordering_rl = EMREG.funct7[0];
+		lr_w = (EMREG.funct7[6:2] == LR_W) && EMREG.amo;
+		sc_w = (EMREG.funct7[6:2] == SC_W) && EMREG.amo;
 
 		any {
 			EMREG.store: {
@@ -587,8 +594,13 @@ module rv32x5p {
 			EMREG.fence: {
 				fence();
 			}
-			EMREG.amo: {
-				amo_exe(EMREG.rs1_data, EMREG.rs2_data, EMREG.funct7[6:2], ordering_aq, ordering_rl, mem_byteen);
+			lr_w: {
+				load_reserved();
+				dmem_read(EMREG.rs1_data, mem_byteen);
+			}
+			sc_w: {
+				store_conditional();
+				dmem_write(EMREG.rs1_data, mem_byteen, EMREG.rs2_data);
 			}
 		}
 		alt {

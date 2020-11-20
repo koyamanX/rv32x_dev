@@ -9,6 +9,11 @@
 #define CACHE_WRITE	1'b1
 #define CACHE_READ	1'b0
 
+struct reservation_t {
+	valid;
+	addr[32];
+};
+
 declare load_store_unit {
 	/* CPU <-> Cache Unit */
 	input adrs[32];
@@ -19,7 +24,10 @@ declare load_store_unit {
 	/* Operations */
 	func_in load(adrs, byteen);					/* must be asserted until valid arrives */
 	func_in store(adrs, byteen, store_data);	/* must be asserted until valid arrives */
+	func_in load_reserved();					/* This signal is asserted alongside with load */
+	func_in store_conditional();				/* This signal is asserted alongside with store */
 	func_out valid;								/* operation is done */
+	output store_conditional_status;
 
 	func_in cache_flush;
 	func_out cache_flush_done;
