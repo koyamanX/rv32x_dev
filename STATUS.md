@@ -115,7 +115,7 @@ rv32ua-p-amoswap_w  	should_be_passed      and it's PASSED	OK
 rv32ua-v-amoxor_w   	should_be_passed      and it's PASSED	OK
 rv32ua-v-amoor_w    	should_be_passed      and it's PASSED	OK
 rv32ua-v-amoand_w   	should_be_passed      and it's PASSED	OK
-rv32ua-v-lrsc       	should_be_passed      and it's FAILED	NG
+rv32ua-v-lrsc       	should_be_passed      and it's PASSED	OK
 rv32ua-v-amoadd_w   	should_be_passed      and it's PASSED	OK
 rv32ua-v-amomin_w   	should_be_passed      and it's PASSED	OK
 rv32ua-v-amomaxu_w  	should_be_passed      and it's PASSED	OK
