@@ -273,6 +273,9 @@ module rv32x5p {
 			(rv32x_inst_dec.funct7[6:2] == SC_W): ;
 			(rv32x_inst_dec.funct7[6:2] == AMOADD_W): ;
 			(rv32x_inst_dec.funct7[6:2] == AMOOR_W): ;
+			(rv32x_inst_dec.funct7[6:2] == AMOXOR_W): ;
+			(rv32x_inst_dec.funct7[6:2] == AMOAND_W): ;
+			(rv32x_inst_dec.funct7[6:2] == AMOSWAP_W): ;
 			else: decode_illegal_instruction();
 		}
 	}
