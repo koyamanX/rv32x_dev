@@ -613,7 +613,8 @@ module rv32x5p {
 				dmem_write(EMREG.rs1_data, mem_byteen, EMREG.rs2_data);
 			}
 			EMREG.amo && !(lr_w || sc_w): {
-				amo_exe(EMREG.rs2_data, EMREG.rs1_data, EMREG.funct7[6:2], ordering_aq, ordering_rl, mem_byteen);
+				/* daddr can be used as badaddr, so set on amo_exe */
+				amo_exe(EMREG.rs2_data, EMREG.rs1_data, EMREG.funct7[6:2], ordering_aq, ordering_rl, mem_byteen, EMREG.rs1_data);
 			}
 		}
 		alt {
