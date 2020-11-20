@@ -261,12 +261,17 @@ module load_store_unit {
 			}
 		}
 		state amo_alu_op {
+
 			any {
 				amo_op_funct5 == AMOADD_W:	amo_alu_result := rs1_data + rs2_data;
 				amo_op_funct5 == AMOOR_W:	amo_alu_result := rs1_data | rs2_data;
 				amo_op_funct5 == AMOXOR_W:	amo_alu_result := rs1_data ^ rs2_data;
 				amo_op_funct5 == AMOAND_W:	amo_alu_result := rs1_data & rs2_data;
 				amo_op_funct5 == AMOSWAP_W:	amo_alu_result := rs2_data;
+				amo_op_funct5 == AMOMIN_W:	amo_alu_result := if((33#(rs1_data) - 33#(rs2_data))[32]) rs1_data else rs2_data;
+				amo_op_funct5 == AMOMINU_W:	amo_alu_result := if((33'(rs1_data) - 33'(rs2_data))[32]) rs1_data else rs2_data;
+				amo_op_funct5 == AMOMAX_W:	amo_alu_result := if((33#(rs1_data) - 33#(rs2_data))[32]) rs2_data else rs1_data;
+				amo_op_funct5 == AMOMAXU_W:	amo_alu_result := if((33'(rs1_data) - 33'(rs2_data))[32]) rs2_data else rs1_data;
 			}
 			goto amo_writeback;
 		}

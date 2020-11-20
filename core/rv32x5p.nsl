@@ -276,6 +276,10 @@ module rv32x5p {
 			(rv32x_inst_dec.funct7[6:2] == AMOXOR_W): ;
 			(rv32x_inst_dec.funct7[6:2] == AMOAND_W): ;
 			(rv32x_inst_dec.funct7[6:2] == AMOSWAP_W): ;
+			(rv32x_inst_dec.funct7[6:2] == AMOMIN_W): ;
+			(rv32x_inst_dec.funct7[6:2] == AMOMINU_W): ;
+			(rv32x_inst_dec.funct7[6:2] == AMOMAX_W): ;
+			(rv32x_inst_dec.funct7[6:2] == AMOMAXU_W): ;
 			else: decode_illegal_instruction();
 		}
 	}
