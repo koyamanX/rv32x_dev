@@ -262,7 +262,8 @@ module load_store_unit {
 		}
 		state amo_alu_op {
 			any {
-				amo_op_funct5 == AMOADD_W: amo_alu_result := rs1_data + rs2_data;
+				amo_op_funct5 == AMOADD_W:	amo_alu_result := rs1_data + rs2_data;
+				amo_op_funct5 == AMOOR_W:	amo_alu_result := rs1_data | rs2_data;
 			}
 			goto amo_writeback;
 		}
