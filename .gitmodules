@@ -10,3 +10,6 @@
 [submodule "docs/rv32x_dev.wiki"]
 	path = docs/rv32x_dev.wiki
 	url = git@github.com:/koyamanX/rv32x_dev.wiki.git
+[submodule "docs/xv6-riscv-book"]
+	path = docs/xv6-riscv-book
+	url = https://github.com/mit-pdos/xv6-riscv-book
