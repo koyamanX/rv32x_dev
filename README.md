@@ -75,9 +75,9 @@ $ ./run.sh 'make -C run_riscv_tests'
 - instruction_address_misaligned
 - breakpoint
 #### Interrupts delegation
-- machine mode external interrupt
-- machine mode software interrupt
-- machine mode timer interrupt
+- supervisor mode external interrupt
+- supervisor mode software interrupt
+- supervisor mode timer interrupt
 
 ### Executing arbitary executable file
 - You can simply give executable file to its first arguments.
