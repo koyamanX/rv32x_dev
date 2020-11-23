@@ -86,31 +86,25 @@ $ ./run.sh 'make -C run_riscv_tests'
 will cause simulator to finish its execution with error message.
 
 ### rv32x_simulation options
-- See [codes to parse options](simulation/rv32x_simulation.cpp)
-
-``` 
-$ cd simulation
-$ ./rv32x_simulation $NAME_OF_EXECUTABLE
+- Simulator executable takes at least one positional argument, RISCV32-little ELF executable.
 ```
+$ cd simulation
+$ ./rv32x_simulation [Name_Of_ELF_File] [Options]
+```
+#### [Options]
+Options are prefixed with --.
+- print-all (Print execution trace)
+- no-sim-exit (Instruct simulator not to exit on writting data to 0x80001000)
 
 ### TODO 
-- Implement PMP, PMA for Instruction address
-- Implement HPM
-- Implement N-Extension
-- Implement SV32
-- Implement AMO
-- Improve Fmax for FPGA implementation
-- Attach GDB RSP server
-- Develop SoC for FPGA
-- Implement Compress and Atomic
-- Implement Supervisor mode
+- See Issues and Projetcs pages.
 
 ### Implementing on FPGA (sid)
 The core can be implemented on FPGA.
 However, not well-tested. 
 SoC is currently under developing for FPGA.
 - UART 				(Implemented)
-- VGA Controller	(Implemented)
+- VGA Controller	(Implemented, Not-mapped)
 - SDRAM Controller	(sid)
 - SPI SDHC			(sid)
 #### Memory Map
@@ -123,8 +117,6 @@ For simulation purpose, address map below is mapped.
 |CLINT|0x0200\_0000 - 0x0200\_c000|Non-cacheable|RWA|
 |MMIO DEVICES|0x4000\_0000 - 0x4001\_0000|Non-cacheable|RWA|
 |RAM0|0x8000\_0000 - 0x8400\_8000|Cacheable|RWXA|
-
-
 
 R: means readable through data address space.  
 W: means writable through data address space.  
