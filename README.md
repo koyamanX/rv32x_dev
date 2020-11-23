@@ -124,3 +124,6 @@ X: means executable through instruction address space.
 A: means atomic operation is allowed through data address space.
 
 - MMIO DEVICES includes UART TXD, RXD.
+- Accessing out-of-bound address will generate access fault corresponds to access type.
+- AMO operations does not support, misaligned operations and operand must always be aligned to word boundary.
+- MMIO Devices does not support byte and halfword access, however does not generate access fault.
