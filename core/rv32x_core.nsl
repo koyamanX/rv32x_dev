@@ -192,9 +192,9 @@ module rv32x_core {
 		supervisor_software_interrupt_pending();
 	}
 
-	msip = (machine_software_interrupt_req & ~mideleg.msip);
-	mtip = (machine_timer_interrupt_req & ~mideleg.mtip);
-	meip = (machine_external_interrupt_req & ~mideleg.meip);
+	msip = (machine_software_interrupt_req);
+	mtip = (machine_timer_interrupt_req);
+	meip = (machine_external_interrupt_req);
 	ssip = ((supervisor_software_interrupt_req | mip.ssip));
 	stip = ((supervisor_timer_interrupt_req | mip.stip));
 	seip = ((supervisor_external_interrupt_req | mip.seip));
