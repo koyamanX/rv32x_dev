@@ -86,6 +86,7 @@ $ ./run.sh 'make -C run_riscv_tests'
 will cause simulator to finish its execution with error message.
 
 ### rv32x_simulation options
+- See [codes to parse options](simulation/rv32x_simulation.cpp)
 
 ``` 
 $ cd simulation
