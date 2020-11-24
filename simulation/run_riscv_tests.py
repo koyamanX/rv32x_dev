@@ -29,6 +29,7 @@ failed=0
 failed_tests = []
 timeout=0
 passed=0
+skipped=0
 def gen_tests_list():
 	tests_list = list()
 	for i in targets:
@@ -42,10 +43,11 @@ def gen_tests_assertion(tests_list):
 		tests_assertion[tests_list.index(i)] = 'should_be_failed'
 	return tests_assertion
 def run_tests(tests_list, tests_assertion):
-	global passed, failed, timeout
+	global passed, failed, timeout, skipped
 	for t, a in zip(tests_list, tests_assertion):
 		if(t in targets_to_exclude):
 			print('{:20}\tskipped'.format(t))
+			skipped += 1
 			continue
 		try:
 			subprocess.run([simulator, riscv_tests_directory+t, '--print-inst-trace', '--print-exception', '--print-disasm'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=8)
@@ -94,7 +96,7 @@ def main():
 	if md_opt == 1:
 		print('```')
 		return exit_code
-	print('{} tests done, {} passed, {} failed, timeout {}'.format(len(tests_list), passed, failed, timeout))
+	print('{} tests done, {} passed, {} failed, timeout {}, skipped {}'.format(len(tests_list), passed, failed, timeout, skipped))
 	print('-'*100)
 	expected_to_fail_tests = (set(failed_tests) & set(targets_should_be_failed))
 	unexpected_to_fail_tests = (set(failed_tests) - set(targets_should_be_failed))
