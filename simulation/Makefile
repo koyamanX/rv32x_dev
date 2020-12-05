@@ -1,9 +1,9 @@
 TOP=rv32x_simulation
 NSL2VL=nsl2vl
-NFLAGS=-O2 -neg_res -I../core -I../integration -DDEBUG
+NFLAGS=-O2 -neg_res -I../core -I../integration -I../integration/sdspi/src -DDEBUG
 #SIMFLAGS=-verisim2 -target $(TOP)
 INCOPT=-I../core
-NSRC := $(wildcard ../core/*.nsl) $(wildcard ../integration/*.nsl) $(wildcard ../simulation/*.nsl)
+NSRC := $(wildcard ../core/*.nsl) $(wildcard ../integration/*.nsl) $(wildcard ../integration/sdspi/src/*.nsl) $(wildcard ../simulation/*.nsl)
 SRC := $(notdir $(NSRC)) 
 # VFILES := $(addprefix out/, $(SRC:.nsl=.v))
 VFILES := $(addprefix out/, $(SRC:.nsl=.v)) 
@@ -30,7 +30,11 @@ out/%.v: ../integration/%.nsl
 		mkdir out; \
 	fi
 	$(NSL2VL) $(NFLAGS) $< -o $@
-
+out/%.v: ../integration/sdspi/src/%.nsl 
+	if [ ! -d out ]; then \
+		mkdir out; \
+	fi
+	$(NSL2VL) $(NFLAGS) $< -o $@
 out/%.v: ../core/%.nsl 
 	if [ ! -d out ]; then \
 		mkdir out; \

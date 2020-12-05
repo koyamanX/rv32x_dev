@@ -3,6 +3,7 @@
 #include "uart_receiver.h"
 #include "uart_sender.h"
 #include "fifo_8_8.h"
+#include "sdspi_slave.h"
 
 declare debug_uart_sender {
 	input adrs[10];
@@ -31,6 +32,10 @@ declare rv32x_simulation simulation {
 	func_out imem_read(iaddr, ibyteen);  
 	func_out dmem_read(daddr, dbyteen);  
 	func_out dmem_write(daddr, dbyteen, wdata); 
+	input block_data[4096];
+	output block_adrs[32];
+	func_in block_data_valid();
+	func_out read_block(block_adrs);
 #ifdef DEBUG
 	output uart_data[8];
 	func_out uart_done();
@@ -96,9 +101,14 @@ module rv32x_simulation {
 	rv32x_integration core;
 	uart_receiver ur;
 	debug_uart_sender us;	/* same as uart_sender.nsl except for status.en is 1 at reset */
+	sdspi_slave sdsim;
 	
 	ur.RXD = core.TXD;
 	core.RXD = us.TXD;
+	sdsim.SCLK = core.SCLK;
+	sdsim.CS = core.CS;
+	sdsim.MOSI = core.MOSI;
+	core.MISO = sdsim.MISO;
 
 	func ur.done {
 		uart_done();
@@ -132,6 +142,13 @@ module rv32x_simulation {
 	func dmem_valid {
 		core.rdata = rdata;
 		core.dmem_valid();
+	}
+	func sdsim.read_block {
+		read_block(sdsim.adrs);
+	}
+	func block_data_valid {
+		sdsim.block_valid();
+		sdsim.block_data = block_data;
 	}
 #ifdef DEBUG
 	func core.sim_done {

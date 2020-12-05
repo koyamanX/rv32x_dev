@@ -35,7 +35,7 @@
 #define SUPERVISOR_SOFTWARE_INTERRUPT	0x80000001
 #define SUPERVISOR_EXTERNAL_INTERRUPT	0x80000009
 
-
+#define BLOCK_DEVICE_FILENAME "block_device.img"
 
 using namespace std;
 
@@ -87,6 +87,9 @@ private:
 	int trace_output_flag = 0;
 	int print_all_flag = 0;
 	int priv_mode = 3;
+	uint8_t buf[512];
+	FILE *block_device;
+	int block_device_avail = 0;
 public:
 	processor_t(const char *name) {
 		procname = name;
@@ -94,6 +97,10 @@ public:
 		insert_new_mem(memory, "RAM0", 0x80000000, (0x84008000-0x80000000), 0);
 		print_mem_list(memory);
 		core = new Vrv32x_simulation;	
+		if(access(BLOCK_DEVICE_FILENAME, F_OK) == 0) {
+			block_device_avail = 1;
+			block_device = fopen(BLOCK_DEVICE_FILENAME, "rb");
+		}
 #ifndef FAST_SIM
 		tfp = new VerilatedVcdC;
 		core->trace(tfp, 99);
@@ -107,6 +114,9 @@ public:
 #endif
 		core->final();
 		fclose(logfile);
+		if(block_device_avail) {
+			fclose(block_device);
+		}
 	};
 	const char *setExeFileName(const char *s) {
 		exefilename = s;
@@ -232,6 +242,21 @@ public:
 				fflush(stderr);
 				fflush(stdout);
 				exit(-1);
+			}
+			if(rising_edge) {
+				if(block_device_avail) {
+					if(core->read_block) {
+						size_t len;
+
+						memset(core->block_data, 0, 512);
+						fseek(block_device, core->block_adrs*512, SEEK_SET);
+						len = fread(buf, sizeof(uint8_t), 512, block_device);
+						memcpy(core->block_data, buf, 512);
+						core->block_data_valid = 1;
+					} else {
+						core->block_data_valid = 0;
+					}
+				}
 			}
 			eval();
 			dump();

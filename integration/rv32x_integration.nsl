@@ -6,6 +6,7 @@
 #include "clint.h"
 #include "mmio_dev.h"
 #include "plic.h"
+#include "sdspi.h"
 
 module rv32x_integration {
 	rv32x_core core;
@@ -13,11 +14,13 @@ module rv32x_integration {
 	clint rv32x_clint;
 	mmio_dev rv32x_mmio_dev;
 	plic rv32x_plic;
+	sdspi rv32x_sdspi;
 
 	func reset {
 		core.reset();
 		rom.reset();
 		rv32x_mmio_dev.reset();
+		rv32x_sdspi.reset();
 	}
 	func dmem_valid {
 		core.rdata = rdata;
@@ -43,6 +46,7 @@ module rv32x_integration {
 		any {
 			CLINT_BASE <= core.daddr && core.daddr < CLINT_BASE + CLINT_LENGTH:	rv32x_clint.read((core.daddr - CLINT_BASE)[15:0]);
 			AHB_LITE_IO0_BASE <= core.daddr && core.daddr < AHB_LITE_IO0_BASE + AHB_LITE_IO0_LENGTH: rv32x_mmio_dev.read((core.daddr - AHB_LITE_IO0_BASE)[15:0]);
+			AHB_LITE_IO1_BASE <= core.daddr && core.daddr < AHB_LITE_IO1_BASE + AHB_LITE_IO1_LENGTH: rv32x_sdspi.read((core.daddr - AHB_LITE_IO1_BASE)[11:0], core.dbyteen);
 			PLIC_BASE <= core.daddr && core.daddr < PLIC_BASE + PLIC_LENGTH: rv32x_plic.read((core.daddr - PLIC_BASE)[23:0]);
 			else: dmem_read(core.daddr, core.dbyteen);
 		}
@@ -51,6 +55,7 @@ module rv32x_integration {
 		any {
 			CLINT_BASE <= core.daddr && core.daddr < CLINT_BASE + CLINT_LENGTH:	rv32x_clint.write((core.daddr - CLINT_BASE)[15:0], core.wdata);
 			AHB_LITE_IO0_BASE <= core.daddr && core.daddr < AHB_LITE_IO0_BASE + AHB_LITE_IO0_LENGTH: rv32x_mmio_dev.write((core.daddr - AHB_LITE_IO0_BASE)[15:0], core.wdata);
+			AHB_LITE_IO1_BASE <= core.daddr && core.daddr < AHB_LITE_IO1_BASE + AHB_LITE_IO1_LENGTH: rv32x_sdspi.write((core.daddr - AHB_LITE_IO1_BASE)[11:0], core.dbyteen, core.wdata);
 			PLIC_BASE <= core.daddr && core.daddr < PLIC_BASE + PLIC_LENGTH: rv32x_plic.write((core.daddr - PLIC_BASE)[23:0], core.wdata);
 			else: dmem_write(core.daddr, core.dbyteen, core.wdata);
 		}
@@ -60,6 +65,7 @@ module rv32x_integration {
 		any {
 			CLINT_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < CLINT_BASE + CLINT_LENGTH: ;	
 			AHB_LITE_IO0_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < AHB_LITE_IO0_BASE + AHB_LITE_IO0_LENGTH: ;
+			AHB_LITE_IO1_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < AHB_LITE_IO1_BASE + AHB_LITE_IO1_LENGTH: ;
 			PLIC_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < PLIC_BASE + PLIC_LENGTH: ;
 			TCM_IMEM_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < TCM_DMEM_BASE + TCM_DMEM_LENGTH: core.dmem_cacheable();
 			else: core.dmem_empty();
@@ -73,6 +79,10 @@ module rv32x_integration {
 		core.rdata = rv32x_clint.rdata;
 		core.dmem_valid();
 	}
+	func rv32x_sdspi.valid {
+		core.rdata = rv32x_sdspi.rdata;
+		core.dmem_valid();
+	}
 	func rv32x_clint.timer_interrupt {
 		core.machine_timer_interrupt_req();
 	}
@@ -81,6 +91,10 @@ module rv32x_integration {
 	}
 	func rv32x_plic.machine_external_interrupt {
 		core.machine_external_interrupt_req();
+	}
+	func rv32x_sdspi.store_amo_access_fault {
+	}
+	func rv32x_sdspi.load_access_fault {
 	}
 	func rv32x_clint.store_access_fault {
 		//rv32x.not_mapped();
@@ -100,6 +114,10 @@ module rv32x_integration {
 	}
 	TXD = rv32x_mmio_dev.TXD;
 	rv32x_mmio_dev.RXD = RXD;
+	MOSI = rv32x_sdspi.MOSI;
+	SCLK = rv32x_sdspi.SCLK;
+	CS = rv32x_sdspi.CS;
+	rv32x_sdspi.MISO = MISO;
 #ifdef DEBUG
 	debug_x0  = core.debug_x0;
 	debug_x1  = core.debug_x1;

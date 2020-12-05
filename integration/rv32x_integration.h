@@ -17,6 +17,10 @@ declare rv32x_integration {
 
 	input RXD;
 	output TXD;
+	output SCLK;
+	output CS;
+	output MOSI;
+	input MISO;
 #ifdef DEBUG
 	output tohost[32];
 	func_out sim_done(tohost);
