@@ -10,3 +10,6 @@
 [submodule "docs/xv6-riscv-book"]
 	path = docs/xv6-riscv-book
 	url = https://github.com/mit-pdos/xv6-riscv-book
+[submodule "integration/sdspi"]
+	path = integration/sdspi
+	url = git@github.com:/koyamanX/sdspi.git
