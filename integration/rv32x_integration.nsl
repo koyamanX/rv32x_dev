@@ -96,7 +96,7 @@ module rv32x_integration {
 		rv32x_plic.interrupt_req2();
 	}
 	func rv32x_mmio_dev.uart_receiver_interrupt_req {
-		rv32x_plic.interrupt_req1();
+		rv32x_plic.interrupt_req10();
 	}
 	TXD = rv32x_mmio_dev.TXD;
 	rv32x_mmio_dev.RXD = RXD;

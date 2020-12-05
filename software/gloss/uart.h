@@ -1,9 +1,9 @@
 #ifndef UART_H
-#define UART_TX_BUF ((volatile unsigned int *) 0x40000000)
-#define UART_TX_STAT ((volatile unsigned int *) 0x40000004)
+#define UART_TX_BUF ((volatile unsigned int *) 0x10000000)
+#define UART_TX_STAT ((volatile unsigned int *) 0x10000004)
 
-#define UART_RX_BUF ((volatile unsigned int *) 0x40000010)
-#define UART_RX_STAT ((volatile unsigned int *) 0x40000014)
+#define UART_RX_BUF ((volatile unsigned int *) 0x10000010)
+#define UART_RX_STAT ((volatile unsigned int *) 0x10000014)
 
 #define UART_TX_GET_STAT_FULL() (((*(UART_TX_STAT)) & 0x00000008) >> 3)
 #define UART_TX_GET_STAT_EMPTY() (((*(UART_TX_STAT)) & 0x00000004) >> 2)
