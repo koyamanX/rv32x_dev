@@ -52,6 +52,18 @@ const char *abi_reg_strs[] = {
 
 void sim_exit(int status, void *p);
 
+static void cpy(void *dest, void *src, size_t n) {
+	uint8_t *d, *s;
+
+	d = (uint8_t *)dest, s = (uint8_t *)src;
+	for(size_t i = 0; i < n; i += 4) {
+		d[i+0]	= s[i+2];
+		d[i+1]	= s[i+3];
+		d[i+2]	= s[i+0];
+		d[i+3]	= s[i+1];
+	}
+}
+
 class processor_t {
 private:
 	const char *vcdfilename = "rv32x_simulation.vcd";
@@ -248,10 +260,9 @@ public:
 					if(core->read_block) {
 						size_t len;
 
-						memset(core->block_data, 0, 512);
 						fseek(block_device, core->block_adrs*512, SEEK_SET);
 						len = fread(buf, sizeof(uint8_t), 512, block_device);
-						memcpy(core->block_data, buf, 512);
+						cpy(core->block_data, buf, 512);
 						core->block_data_valid = 1;
 					} else {
 						core->block_data_valid = 0;
