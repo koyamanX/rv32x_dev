@@ -27,8 +27,8 @@ int main(void) {
 		asm volatile("nop");
 	}
 	
-	printf("0x%03x:%08x\n", 0, *((volatile unsigned int *)SD_DATA_BASE+0));
-	printf("0x%03x:%08x\n", 0, *((volatile unsigned int *)SD_DATA_BASE+127));
+	for(int i = 0; i < 128; i++)
+		printf("%08x:%08x\n", i*4, ((volatile unsigned int *)SD_DATA_BASE)[127-i]);
 
 	return 0;
 }
