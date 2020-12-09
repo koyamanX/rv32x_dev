@@ -143,12 +143,12 @@ module rv32x_simulation {
 		core.rdata = rdata;
 		core.dmem_valid();
 	}
-	func sdsim.read_block {
+	func sdsim.read {
 		read_block(sdsim.adrs);
 	}
 	func block_data_valid {
-		sdsim.block_valid();
-		sdsim.block_data = block_data;
+		sdsim.block_data_valid();
+		sdsim.read_block_data = block_data;
 	}
 #ifdef DEBUG
 	func core.sim_done {
