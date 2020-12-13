@@ -107,7 +107,6 @@ public:
 		procname = name;
 		memory = init_mem_list();
 		insert_new_mem(memory, "RAM0", 0x80000000, (0x84008000-0x80000000), 0);
-		print_mem_list(memory);
 		core = new Vrv32x_simulation;	
 		if(access(BLOCK_DEVICE_FILENAME, F_OK) == 0) {
 			block_device_avail = 1;
