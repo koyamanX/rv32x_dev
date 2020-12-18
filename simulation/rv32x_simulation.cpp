@@ -11,8 +11,8 @@
 #include "Vrv32x_simulation.h"
 #include "elfloader/elfloader.h"
 
-#define IMEM_WAIT 5
-#define DMEM_WAIT 5
+#define IMEM_WAIT 1
+#define DMEM_WAIT 1
 
 #define INSTRUCTION_ADDRESS_MISALIGNED 0
 #define INSTRUCTION_ACCESS_FAULT        1
