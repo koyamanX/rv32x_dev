@@ -13,3 +13,6 @@
 [submodule "integration/sdspi"]
 	path = integration/sdspi
 	url = git@github.com:/koyamanX/sdspi.git
+[submodule "docs/riscv-debug-spec"]
+	path = docs/riscv-debug-spec
+	url = https://github.com/riscv/riscv-debug-spec
