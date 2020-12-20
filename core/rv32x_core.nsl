@@ -18,6 +18,7 @@ module rv32x_core {
 	reg ic_tlb_flush_done = 0;
 	reg lsu_cache_flush_done = 0;
 	reg lsu_tlb_flush_done = 0;
+	reg in_memory_operation = 0;
 	reg priv_mode[2];						/* Current priv mode */
 	
 	/* Trap */
@@ -167,10 +168,10 @@ module rv32x_core {
 		many times. So check if currently handling interrupts(in trap state)
 		or not.
 	*/
-	if(((priv_mode < MACHINE) || ((priv_mode == MACHINE) && mstatus.mie)) && !trap) {
+	if(((priv_mode < MACHINE) || ((priv_mode == MACHINE) && mstatus.mie)) && !trap && !in_memory_operation) {
 		machine_interrupt_enabled();
 	}
-	if(((priv_mode < SUPERVISOR) || ((priv_mode == SUPERVISOR) && mstatus.sie)) && !trap) {
+	if(((priv_mode < SUPERVISOR) || ((priv_mode == SUPERVISOR) && mstatus.sie)) && !trap && !in_memory_operation) {
 		supervisor_interrupt_enabled();
 	}
 	if(meip && mie.meie) {
@@ -1035,7 +1036,10 @@ module rv32x_core {
 		if(lsu_cache_flush_done && ic_invalidate_done) {
 			ic_invalidate_done := 0;
 			lsu_cache_flush_done := 0;
+			in_memory_operation := 0;
 			rv32x.dmem_valid();
+		} else {
+			in_memory_operation := 1;
 		}
 	}
 	func rv32x.fence {
@@ -1049,7 +1053,10 @@ module rv32x_core {
 				ic_tlb_flush_done := 0;
 				ic_invalidate_done := 0;
 				lsu_tlb_flush_done := 0;
+				in_memory_operation := 0;
 				rv32x.dmem_valid();
+			} else {
+				in_memory_operation := 1;
 			}
 			if(!ic_tlb_flush_done) {
 				ic.tlb_flush();
@@ -1120,12 +1127,15 @@ module rv32x_core {
 		rv32x.imem_valid();
 	}
 	func rv32x.dmem_read {
+		in_memory_operation := 1;
 		lsu.load(rv32x.daddr, rv32x.dbyteen);
 	}
 	func rv32x.load_reserved {
+		in_memory_operation := 1;
 		lsu.load_reserved();
 	}
 	func rv32x.amo_exe {
+		in_memory_operation := 1;
 		lsu.amo_exe(rv32x.amo_src, rv32x.amo_addr, rv32x.amo_funct5, rv32x.amo_aq, rv32x.amo_rl, rv32x.amo_width);
 	}
 	func lsu.pma_check {
@@ -1177,9 +1187,11 @@ module rv32x_core {
 	}
 	func rv32x.dmem_write {
 		lsu.store(rv32x.daddr, rv32x.dbyteen, rv32x.wdata);
+		in_memory_operation := 1;
 	}
 	func rv32x.store_conditional {
 		lsu.store_conditional();
+		in_memory_operation := 1;
 	}
 	func lsu.mem_write {
 		reg lsu_write_cnt[3] = 0;
@@ -1216,6 +1228,7 @@ module rv32x_core {
 	}
 	func lsu.valid {
 		rv32x.rdata = lsu.load_data;
+		in_memory_operation := 0;
 		rv32x.dmem_valid();
 	}
 #ifdef DEBUG
