@@ -170,7 +170,7 @@ module rv32x_core {
 	if(((priv_mode < MACHINE) || ((priv_mode == MACHINE) && mstatus.mie)) && !trap) {
 		machine_interrupt_enabled();
 	}
-	if(((priv_mode < SUPERVISOR) || mstatus.sie) && !trap) {
+	if(((priv_mode < SUPERVISOR) || ((priv_mode == SUPERVISOR) && mstatus.sie)) && !trap) {
 		supervisor_interrupt_enabled();
 	}
 	if(meip && mie.meie) {
@@ -621,17 +621,17 @@ module rv32x_core {
 		machine_interrupt_enabled && machine_external_interrupt_pending:		machine_external_interrupt();
 		machine_interrupt_enabled && machine_software_interrupt_pending:		machine_software_interrupt();
 		machine_interrupt_enabled && machine_timer_interrupt_pending:			machine_timer_interrupt();
-		machine_interrupt_enabled 
+		machine_interrupt_enabled
 					&& supervisor_external_interrupt_pending && ~mideleg.seip:	supervisor_external_interrupt();
-		machine_interrupt_enabled 
+		machine_interrupt_enabled
 					&& supervisor_software_interrupt_pending && ~mideleg.ssip:	supervisor_software_interrupt();
-		machine_interrupt_enabled 
+		machine_interrupt_enabled
 					&& supervisor_timer_interrupt_pending && ~mideleg.stip:		supervisor_timer_interrupt();
-		supervisor_interrupt_enabled 
+		supervisor_interrupt_enabled && !machine_interrupt_enabled
 					&& supervisor_external_interrupt_pending && mideleg.seip:	supervisor_external_interrupt();
-		supervisor_interrupt_enabled 
+		supervisor_interrupt_enabled && !machine_interrupt_enabled
 					&& supervisor_software_interrupt_pending && mideleg.ssip:	supervisor_software_interrupt();
-		supervisor_interrupt_enabled 
+		supervisor_interrupt_enabled && !machine_interrupt_enabled
 					&& supervisor_timer_interrupt_pending && mideleg.stip:		supervisor_timer_interrupt();
 		/* Process exception in preceeding instruction in pipeline */	
 		/* Memory stage */
