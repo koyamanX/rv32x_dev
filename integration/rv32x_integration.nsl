@@ -67,7 +67,7 @@ module rv32x_integration {
 			AHB_LITE_IO0_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < AHB_LITE_IO0_BASE + AHB_LITE_IO0_LENGTH: ;
 			AHB_LITE_IO1_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < AHB_LITE_IO1_BASE + AHB_LITE_IO1_LENGTH: ;
 			PLIC_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < PLIC_BASE + PLIC_LENGTH: ;
-			TCM_IMEM_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < TCM_DMEM_BASE + TCM_DMEM_LENGTH: core.dmem_cacheable();
+			TCM_IMEM_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < TCM_DMEM_BASE + TCM_DMEM_LENGTH: ; /*core.dmem_cacheable(); */
 			else: core.dmem_empty();
 		}
 	}
