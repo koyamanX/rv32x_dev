@@ -16,3 +16,6 @@
 [submodule "docs/riscv-debug-spec"]
 	path = docs/riscv-debug-spec
 	url = https://github.com/riscv/riscv-debug-spec
+[submodule "software/xv6-riscv"]
+	path = software/xv6-riscv
+	url = https://github.com/koyamanX/xv6-riscv
