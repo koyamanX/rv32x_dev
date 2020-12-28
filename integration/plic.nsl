@@ -18,7 +18,7 @@ module plic {
 	func_self complete_op(complete);
 
 	proc interrupt_request_hart0 {
-		machine_external_interrupt();
+		hart0_interrupt_reqeust();
 		if(claim_op) {
 			gateway := gateway & ~(0x1<<claim);
 			interrupt_in_service(claim);	

@@ -1,12 +1,15 @@
 #ifndef PLIC_H
 #define PLIC_H
 declare plic {
+	/* To/from memory bus */
 	input adrs[24];
 	output rdata[32];
 	input wdata[32];
 	func_in read(adrs) : rdata;
 	func_in write(adrs, wdata);
 	func_out valid();
+	
+	/* interrupt request lines */
 	func_in interrupt_req1;
 	func_in interrupt_req2;
 	func_in interrupt_req3;
@@ -38,7 +41,10 @@ declare plic {
 	func_in interrupt_req29;
 	func_in interrupt_req30;
 	func_in interrupt_req31;
-	func_out machine_external_interrupt();
+
+	/* interrupt request to hart */
+	func_out hart0_interrupt_reqeust();
+	func_out hart1_interrupt_reqeust();
 }
 
 struct priority_t {

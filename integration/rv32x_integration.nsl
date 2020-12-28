@@ -89,8 +89,9 @@ module rv32x_integration {
 	func rv32x_clint.software_interrupt {
 		core.machine_software_interrupt_req();
 	}
-	func rv32x_plic.machine_external_interrupt {
-		core.machine_external_interrupt_req();
+	func rv32x_plic.hart0_interrupt_reqeust {
+		// !FIXME: redirect plic machine external interrput to cpu's supervisor external interrput
+		core.supervisor_external_interrupt_req();
 	}
 	func rv32x_sdspi.store_amo_access_fault {
 	}
