@@ -8,8 +8,8 @@ declare shifter32 {
 	input a[32];
 	input b[5];
 	input c;
-	input flag; /* 1 for arithmetic, 0 for logical */
+	input arithmetic; /* 1 for arithmetic, 0 for logical */
 	output q[32];
-	func_in exe(a, b, c, flag) : q;
+	func_in exe(a, b, c, arithmetic) : q;
 }
 #endif

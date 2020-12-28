@@ -7,9 +7,9 @@ module shifter32 {
 		ext_a = 64#(a);
 		if(c == SHIFTER_SL) {
 			return (a << b)[31:0];
-		} else if(c == SHIFTER_SR && flag) {
+		} else if(c == SHIFTER_SR && arithmetic) {
 			return (ext_a >> b)[31:0];
-		} else if(c == SHIFTER_SR && !flag) {
+		} else if(c == SHIFTER_SR && !arithmetic) {
 			return (a >> b)[31:0];
 		}
 	}
