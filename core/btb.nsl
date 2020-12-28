@@ -43,7 +43,7 @@ module btb {
 		}
 	}
 
-	func regist {
+	func update {
 		if(!flush) {
 			if((btb_branch_instruction_address[reg_index] == reg_branch_instruction_address)) {
 				/* hit */

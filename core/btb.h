@@ -16,12 +16,12 @@ declare btb {
 	/* register branch instruction' address and target address */
 	input reg_branch_instruction_address[32];
 	input reg_branch_target_address[32];
-	func_in regist(reg_branch_instruction_address, reg_branch_target_address);
-	/* actual branch result is taken or not_taken */
+	func_in update(reg_branch_instruction_address, reg_branch_target_address);
+	/* actual branch result */
 	func_in taken();
 	func_in not_taken();
 	/* flush btb contents and branch prediction(takes one cycle to appear result), 
-		regist on same cycle is just ignored  */
+		`regist` on same cycle is just ignored  */
 	func_in flush();
 }
 #endif

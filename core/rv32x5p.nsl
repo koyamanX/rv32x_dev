@@ -507,7 +507,7 @@ module rv32x5p {
 		}
 	}
 	func miss_prediction {
-		rv32x_btb.regist(DEREG.pc, target_address);
+		rv32x_btb.update(DEREG.pc, target_address);
 	}
 	func condcheck {
 		wire eq, lt;
