@@ -5,6 +5,6 @@ declare adder32 {
 	input b[32];				/* addend */
 	output q[32];				/* sum */
 	output cout;				/* carry-out */
-	func_in exe(a, b) : q;	/* carry-out is also set */
+	func_in exe(a, b) : q;		/* carry-out is also set */
 }
 #endif
