@@ -12,6 +12,9 @@ module inst_dec {
 	wire funct12_[12];
 	wire alu_fn_[4];
 	wire imm_[32];
+	func_self rd_is_zero;
+	func_self rs1_is_zero;
+	func_self rs2_is_zero;
 	imm_gen inst_dec_imm_gen;
 
 	func exe {
@@ -24,21 +27,11 @@ module inst_dec {
 		funct12_ = inst[31:20];
 		imm_ = if(opcode == JALR) {inst_dec_imm_gen.imm[31:1], 1'b0} else inst_dec_imm_gen.imm;
 
-		rd = if(opcode == STORE || opcode == BRANCH) 5'b00000 else rd_;
-		wb = if(opcode == STORE || opcode == BRANCH || rd_ == 5'b00000) 1'b0 else 1'b1;
-		funct3 = funct3_;
-		funct12 = funct12_;
-		rs1 = rs1_;
-		rs2 = rs2_;
-		funct7 = funct7_;
-		beq = (funct3_ == CC_BEQ);
-		bne = (funct3_ == CC_BNE);
-		blt = (funct3_ == CC_BLT);
-		bltu = (funct3_ == CC_BLTU);
-		bge = (funct3_ == CC_BGE);
-		bgeu = (funct3_ == CC_BGEU);
-		imm = imm_;
-		alu_fn = alu_fn_;
+		any {
+			rd_ == 5'b00000: 	rd_is_zero();
+			rs1_ == 5'b00000: 	rs1_is_zero();
+			rs2_ == 5'b00000: 	rs2_is_zero();
+		}
 
 		any {
 			opcode == LOAD: {
@@ -64,6 +57,15 @@ module inst_dec {
 			opcode == MISC_MEM: {
 				misc_mem();
 			}
+			opcode == MISC_MEM && (funct3_ == FENCE): {
+				misc_mem_fence();
+			}
+			opcode == MISC_MEM && (funct3_ == FENCEI): {
+				misc_mem_fencei();
+				any {
+					(!rs1_is_zero || !rd_is_zero || (imm_[11:0] != 12'b0000_0000_0000)): illegal_instruction();
+				}
+			}
 			opcode == JAL: {
 				jal();
 				inst_dec_imm_gen.j_type(inst);
@@ -72,11 +74,32 @@ module inst_dec {
 			opcode == OP_IMM: {
 				op_imm();
 				inst_dec_imm_gen.i_type(inst);
-				alu_fn_ = {if(funct3_ == ALU_SRL||funct3_ == ALU_SLL || funct3_ == ALU_SRA) funct7_[5] else 1'b0, funct3_};
+				alu_fn_ = {if(funct3_ == ALU_SRL || funct3_ == ALU_SLL || funct3_ == ALU_SRA) funct7_[5] else 1'b0, funct3_};
+
+				any {
+					(funct3_ == ALU_SLL) && (imm_[11:5] != 7'b0000000): illegal_instruction();
+					((funct3_ == ALU_SRA) || (funct3_ == ALU_SRL)) && ((imm_[11] != 1'b0) || (imm_[9:5] != 5'b00000)): illegal_instruction();
+				}
 			}
 			opcode == SYSTEM: {
 				system();
 				alu_fn_ = {1'b0, ALU_ADD};
+				any {
+					(funct3_ == CSRRW):																{system_csrrw();}
+					(funct3_ == CSRRC):																{system_csrrc();}
+					(funct3_ == CSRRS):																{system_csrrs();}
+					(funct3_ == CSRRWI):															{system_csrrw(); uimm();}
+					(funct3_ == CSRRCI):															{system_csrrc(); uimm();}
+					(funct3_ == CSRRSI):															{system_csrrs(); uimm();}
+					(funct3_ == PRIV) && (funct12_ == ECALL) && (rd_is_zero && rs1_is_zero): 		{system_ecall();}
+					(funct3_ == PRIV) && (funct12_ == EBREAK) && (rd_is_zero && rs1_is_zero):		{system_ebreak();}
+					(funct3_ == PRIV) && (funct12_ == MRET) && (rd_is_zero && rs1_is_zero): 		{system_mret();}
+					(funct3_ == PRIV) && (funct12_ == SRET) && (rd_is_zero && rs1_is_zero): 		{system_sret();}
+					(funct3_ == PRIV) && (funct12_ == URET) && (rd_is_zero && rs1_is_zero): 		{system_uret();}
+					(funct3_ == PRIV) && (funct12_ == WFI) && (rd_is_zero && rs1_is_zero):			{system_wfi();}
+					(funct3_ == PRIV) && (funct7_ == SFENCE_VMA):									{system_sfence_vma();}
+					else: illegal_instruction();
+				}
 			}
 			opcode == LUI: {
 				lui();
@@ -91,14 +114,49 @@ module inst_dec {
 			opcode == OP: {
 				op();
 				alu_fn_ = {funct7_[5], funct3_};
-				if(funct7_ == M_EXT) m_ext();
+				any {
+					(funct7_ == M_EXT): m_ext();
+				}
+				any {
+					((funct7_ != 7'b0000000) && (funct7_ != 7'b0100000) && (funct7_ != M_EXT)): illegal_instruction();
+				}
 			}
-			opcode == AMO: {
+			opcode == AMO && (funct3_ == 3'b010): {
 				amo();
+				any {
+					(funct7_[6:2] == LR_W) && rs2_is_zero: ;
+					(funct7_[6:2] == SC_W): ;
+					(funct7_[6:2] == AMOADD_W): ;
+					(funct7_[6:2] == AMOOR_W): ;
+					(funct7_[6:2] == AMOXOR_W): ;
+					(funct7_[6:2] == AMOAND_W): ;
+					(funct7_[6:2] == AMOSWAP_W): ;
+					(funct7_[6:2] == AMOMIN_W): ;
+					(funct7_[6:2] == AMOMINU_W): ;
+					(funct7_[6:2] == AMOMAX_W): ;
+					(funct7_[6:2] == AMOMAXU_W): ;
+					else: illegal_instruction();
+				}
 			}
 			else: {
 				illegal_instruction(); 
 			}
-		}
-	}
-}
+		}	/* any */
+
+		rd = if(opcode == STORE || opcode == BRANCH) 5'b00000 else rd_;
+		wb = if(opcode == STORE || opcode == BRANCH || rd_ == 5'b00000) 1'b0 else 1'b1;
+		funct3 = funct3_;
+		funct12 = funct12_;
+		rs1 = rs1_;
+		rs2 = rs2_;
+		funct7 = funct7_;
+		beq = (funct3_ == CC_BEQ);
+		bne = (funct3_ == CC_BNE);
+		blt = (funct3_ == CC_BLT);
+		bltu = (funct3_ == CC_BLTU);
+		bge = (funct3_ == CC_BGE);
+		bgeu = (funct3_ == CC_BGEU);
+		imm = imm_;
+		alu_fn = alu_fn_;
+	}	/* func exe */
+}	/* module inst_dec */
