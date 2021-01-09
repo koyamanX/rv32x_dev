@@ -39,19 +39,64 @@ module inst_dec {
 		alu_fn = alu_fn_;
 
 		any {
-			opcode == LOAD:         {load(); inst_dec_imm_gen.i_type(inst); alu_fn_ = {1'b0, ALU_ADD};}
-			opcode == STORE:        {store(); inst_dec_imm_gen.s_type(inst); alu_fn_ = {1'b0, ALU_ADD};}
-			opcode == BRANCH:       {branch(); inst_dec_imm_gen.b_type(inst); alu_fn_ = if(funct3_ == CC_BLTU || funct3_ == CC_BGEU) {1'b0, ALU_SLTU} else {1'b0, ALU_SLT};}
-			opcode == JALR:         {jalr(); inst_dec_imm_gen.i_type(inst); alu_fn_ = {1'b0, ALU_ADD};}
-			opcode == MISC_MEM:     {misc_mem();}
-			opcode == JAL:          {jal(); inst_dec_imm_gen.j_type(inst); alu_fn_ = {1'b0, ALU_ADD};}
-			opcode == OP_IMM:       {op_imm(); inst_dec_imm_gen.i_type(inst); alu_fn_ = {if(funct3_ == ALU_SRL||funct3_ == ALU_SLL || funct3_ == ALU_SRA) funct7_[5] else 1'b0, funct3_};}
-			opcode == SYSTEM:       {system(); alu_fn_ = {1'b0, ALU_ADD};}
-			opcode == LUI:          {lui();	inst_dec_imm_gen.u_type(inst); alu_fn_ = {1'b0, ALU_OR};}
-			opcode == AUIPC:        {auipc(); inst_dec_imm_gen.u_type(inst); alu_fn_ = {1'b0, ALU_ADD};}
-			opcode == OP:           {op(); if(funct7_ == M_EXT) m_ext(); alu_fn_ = {funct7_[5], funct3_};}
-			opcode == AMO:			{amo();}
-			else:                   illegal_instruction(); 
+			opcode == LOAD: {
+				load();
+				inst_dec_imm_gen.i_type(inst);
+				alu_fn_ = {1'b0, ALU_ADD};
+			}
+			opcode == STORE: {
+				store();
+				inst_dec_imm_gen.s_type(inst);
+				alu_fn_ = {1'b0, ALU_ADD};
+			}
+			opcode == BRANCH: {
+				branch();
+				inst_dec_imm_gen.b_type(inst);
+				alu_fn_ = if(funct3_ == CC_BLTU || funct3_ == CC_BGEU) {1'b0, ALU_SLTU} else {1'b0, ALU_SLT};
+			}
+			opcode == JALR: {
+				jalr();
+				inst_dec_imm_gen.i_type(inst);
+				alu_fn_ = {1'b0, ALU_ADD};
+			}
+			opcode == MISC_MEM: {
+				misc_mem();
+			}
+			opcode == JAL: {
+				jal();
+				inst_dec_imm_gen.j_type(inst);
+				alu_fn_ = {1'b0, ALU_ADD};
+			}
+			opcode == OP_IMM: {
+				op_imm();
+				inst_dec_imm_gen.i_type(inst);
+				alu_fn_ = {if(funct3_ == ALU_SRL||funct3_ == ALU_SLL || funct3_ == ALU_SRA) funct7_[5] else 1'b0, funct3_};
+			}
+			opcode == SYSTEM: {
+				system();
+				alu_fn_ = {1'b0, ALU_ADD};
+			}
+			opcode == LUI: {
+				lui();
+				inst_dec_imm_gen.u_type(inst);
+				alu_fn_ = {1'b0, ALU_OR};
+			}
+			opcode == AUIPC: {
+				auipc();
+				inst_dec_imm_gen.u_type(inst);
+				alu_fn_ = {1'b0, ALU_ADD};
+			}
+			opcode == OP: {
+				op();
+				alu_fn_ = {funct7_[5], funct3_};
+				if(funct7_ == M_EXT) m_ext();
+			}
+			opcode == AMO: {
+				amo();
+			}
+			else: {
+				illegal_instruction(); 
+			}
 		}
 	}
 }
