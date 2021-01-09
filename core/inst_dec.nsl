@@ -4,52 +4,52 @@
 
 module inst_dec {
 	wire opcode[7];
-	wire d[5];
-	wire s1[5];
-	wire s2[5];
-	wire f3[3];
-	wire f7[7];
-	wire f12[12];
-	wire fn[4];
+	wire rd_[5];
+	wire rs1_[5];
+	wire rs2_[5];
+	wire funct3_[3];
+	wire funct7_[7];
+	wire funct12_[12];
+	wire alu_fn_[4];
 	imm_gen inst_dec_imm_gen;
 
 	opcode = inst[6:0];
-	d = inst[11:7];
-	s1 = inst[19:15];
-	s2 = inst[24:20];
-	f3 = inst[14:12];
-	f7 = inst[31:25];
-	f12 = inst[31:20];
+	rd_ = inst[11:7];
+	rs1_ = inst[19:15];
+	rs2_ = inst[24:20];
+	funct3_ = inst[14:12];
+	funct7_ = inst[31:25];
+	funct12_ = inst[31:20];
 
 	func exe {
-		rd = if(opcode == STORE || opcode == BRANCH) 5'b00000 else d;
-		wb = if(opcode == STORE || opcode == BRANCH || d == 5'b00000) 1'b0 else 1'b1;
-		funct3 = f3;
-		funct12 = f12;
-		rs1 = s1;
-		rs2 = s2;
-		funct7 = f7;
-		beq = (f3 == CC_BEQ);
-		bne = (f3 == CC_BNE);
-		blt = (f3 == CC_BLT);
-		bltu = (f3 == CC_BLTU);
-		bge = (f3 == CC_BGE);
-		bgeu = (f3 == CC_BGEU);
+		rd = if(opcode == STORE || opcode == BRANCH) 5'b00000 else rd_;
+		wb = if(opcode == STORE || opcode == BRANCH || rd_ == 5'b00000) 1'b0 else 1'b1;
+		funct3 = funct3_;
+		funct12 = funct12_;
+		rs1 = rs1_;
+		rs2 = rs2_;
+		funct7 = funct7_;
+		beq = (funct3_ == CC_BEQ);
+		bne = (funct3_ == CC_BNE);
+		blt = (funct3_ == CC_BLT);
+		bltu = (funct3_ == CC_BLTU);
+		bge = (funct3_ == CC_BGE);
+		bgeu = (funct3_ == CC_BGEU);
 		imm = if(opcode == JALR) {inst_dec_imm_gen.imm[31:1], 1'b0} else inst_dec_imm_gen.imm;
-		alu_fn = fn;
+		alu_fn = alu_fn_;
 
 		any {
-			opcode == LOAD:         {load(); inst_dec_imm_gen.i_type(inst); fn = {1'b0, ALU_ADD};}
-			opcode == STORE:        {store(); inst_dec_imm_gen.s_type(inst); fn = {1'b0, ALU_ADD};}
-			opcode == BRANCH:       {branch(); inst_dec_imm_gen.b_type(inst); fn = if(f3 == CC_BLTU || f3 == CC_BGEU) {1'b0, ALU_SLTU} else {1'b0, ALU_SLT};}
-			opcode == JALR:         {jalr(); inst_dec_imm_gen.i_type(inst); fn = {1'b0, ALU_ADD};}
+			opcode == LOAD:         {load(); inst_dec_imm_gen.i_type(inst); alu_fn_ = {1'b0, ALU_ADD};}
+			opcode == STORE:        {store(); inst_dec_imm_gen.s_type(inst); alu_fn_ = {1'b0, ALU_ADD};}
+			opcode == BRANCH:       {branch(); inst_dec_imm_gen.b_type(inst); alu_fn_ = if(funct3_ == CC_BLTU || funct3_ == CC_BGEU) {1'b0, ALU_SLTU} else {1'b0, ALU_SLT};}
+			opcode == JALR:         {jalr(); inst_dec_imm_gen.i_type(inst); alu_fn_ = {1'b0, ALU_ADD};}
 			opcode == MISC_MEM:     {misc_mem();}
-			opcode == JAL:          {jal(); inst_dec_imm_gen.j_type(inst); fn = {1'b0, ALU_ADD};}
-			opcode == OP_IMM:       {op_imm(); inst_dec_imm_gen.i_type(inst); fn = {if(f3 == ALU_SRL||f3 == ALU_SLL || f3 == ALU_SRA) f7[5] else 1'b0, f3};}
-			opcode == SYSTEM:       {system(); fn = {1'b0, ALU_ADD};}
-			opcode == LUI:          {lui();	inst_dec_imm_gen.u_type(inst); fn = {1'b0, ALU_OR};}
-			opcode == AUIPC:        {auipc(); inst_dec_imm_gen.u_type(inst); fn = {1'b0, ALU_ADD};}
-			opcode == OP:           {op(); if(f7 == M_EXT) m_ext(); fn = {f7[5], f3};}
+			opcode == JAL:          {jal(); inst_dec_imm_gen.j_type(inst); alu_fn_ = {1'b0, ALU_ADD};}
+			opcode == OP_IMM:       {op_imm(); inst_dec_imm_gen.i_type(inst); alu_fn_ = {if(funct3_ == ALU_SRL||funct3_ == ALU_SLL || funct3_ == ALU_SRA) funct7_[5] else 1'b0, funct3_};}
+			opcode == SYSTEM:       {system(); alu_fn_ = {1'b0, ALU_ADD};}
+			opcode == LUI:          {lui();	inst_dec_imm_gen.u_type(inst); alu_fn_ = {1'b0, ALU_OR};}
+			opcode == AUIPC:        {auipc(); inst_dec_imm_gen.u_type(inst); alu_fn_ = {1'b0, ALU_ADD};}
+			opcode == OP:           {op(); if(funct7_ == M_EXT) m_ext(); alu_fn_ = {funct7_[5], funct3_};}
 			opcode == AMO:			{amo();}
 			else:                   illegal_instruction(); 
 		}
