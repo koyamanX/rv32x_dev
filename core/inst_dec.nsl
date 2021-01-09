@@ -11,6 +11,7 @@ module inst_dec {
 	wire funct7_[7];
 	wire funct12_[12];
 	wire alu_fn_[4];
+	wire imm_[32];
 	imm_gen inst_dec_imm_gen;
 
 	func exe {
@@ -21,6 +22,7 @@ module inst_dec {
 		funct3_ = inst[14:12];
 		funct7_ = inst[31:25];
 		funct12_ = inst[31:20];
+		imm_ = if(opcode == JALR) {inst_dec_imm_gen.imm[31:1], 1'b0} else inst_dec_imm_gen.imm;
 
 		rd = if(opcode == STORE || opcode == BRANCH) 5'b00000 else rd_;
 		wb = if(opcode == STORE || opcode == BRANCH || rd_ == 5'b00000) 1'b0 else 1'b1;
@@ -35,7 +37,7 @@ module inst_dec {
 		bltu = (funct3_ == CC_BLTU);
 		bge = (funct3_ == CC_BGE);
 		bgeu = (funct3_ == CC_BGEU);
-		imm = if(opcode == JALR) {inst_dec_imm_gen.imm[31:1], 1'b0} else inst_dec_imm_gen.imm;
+		imm = imm_;
 		alu_fn = alu_fn_;
 
 		any {
