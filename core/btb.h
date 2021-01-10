@@ -14,9 +14,9 @@ declare btb {
 	output predicted_new_pc[32];
 
 	/* register branch instruction' address and target address */
-	input reg_branch_instruction_address[32];
-	input reg_branch_target_address[32];
-	func_in update(reg_branch_instruction_address, reg_branch_target_address);
+	input update_branch_instruction_address[32];
+	input update_branch_target_address[32];
+	func_in update(update_branch_instruction_address, update_branch_target_address);
 	/* actual branch result */
 	func_in taken();
 	func_in not_taken();

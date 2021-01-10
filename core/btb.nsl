@@ -20,12 +20,12 @@ module btb {
 	wire branch_prediction_state[2];
 
 	wire predict_index[5];
-	wire reg_index[5];
 	wire update_index[5];
-	func_self update_prediction(update_index);
+	wire update_prediction_state_index[5];
+	func_self update_prediction_state(update_prediction_state_index);
 
 	predict_index = pc[4:0];
-	reg_index = reg_branch_instruction_address[4:0];
+	update_index = update_branch_instruction_address[4:0];
 
 	branch_instruction_address = btb_branch_instruction_address[predict_index];
 	branch_target_address = btb_branch_target_address[predict_index];
@@ -45,29 +45,29 @@ module btb {
 
 	func update {
 		if(!flush) {
-			if((btb_branch_instruction_address[reg_index] == reg_branch_instruction_address)) {
+			if((btb_branch_instruction_address[update_index] == update_branch_instruction_address)) {
 				/* hit */
-				update_prediction(reg_index);
+				update_prediction_state(update_index);
 			} else {
 				/* miss */
-				btb_branch_prediction_state[reg_index] := 2'b00;	/* reset state */
+				btb_branch_prediction_state[update_index] := 2'b00;	/* reset state */
 			}
-			btb_branch_instruction_address[reg_index] := reg_branch_instruction_address;
-			btb_branch_target_address[reg_index] := reg_branch_target_address;
+			btb_branch_instruction_address[update_index] := update_branch_instruction_address;
+			btb_branch_target_address[update_index] := update_branch_target_address;
 		}
 	}
-	func update_prediction {
-		wire prediction_bit[2];
-		wire new_prediction_bit[2];
+	func update_prediction_state {
+		wire prediction_state[2];
+		wire new_prediction_state[2];
 
-		prediction_bit = btb_branch_prediction_state[update_index];
+		prediction_state = btb_branch_prediction_state[update_prediction_state_index];
 		any {
-			prediction_bit == 2'b00: new_prediction_bit = if(taken) 2'b01 else if(not_taken) 2'b00 else prediction_bit; 
-			prediction_bit == 2'b01: new_prediction_bit = if(taken) 2'b10 else if(not_taken) 2'b00 else prediction_bit; 
-			prediction_bit == 2'b10: new_prediction_bit = if(taken) 2'b11 else if(not_taken) 2'b01 else prediction_bit; 
-			prediction_bit == 2'b11: new_prediction_bit = if(taken) 2'b11 else if(not_taken) 2'b10 else prediction_bit; 
+			prediction_state == 2'b00: new_prediction_state = if(taken) 2'b01 else if(not_taken) 2'b00 else prediction_state; 
+			prediction_state == 2'b01: new_prediction_state = if(taken) 2'b10 else if(not_taken) 2'b00 else prediction_state; 
+			prediction_state == 2'b10: new_prediction_state = if(taken) 2'b11 else if(not_taken) 2'b01 else prediction_state; 
+			prediction_state == 2'b11: new_prediction_state = if(taken) 2'b11 else if(not_taken) 2'b10 else prediction_state; 
 		}
-		btb_branch_prediction_state[update_index] := new_prediction_bit;
+		btb_branch_prediction_state[update_prediction_state_index] := new_prediction_state;
 	}
 	func flush {
 		integer i;
