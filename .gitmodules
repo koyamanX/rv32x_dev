@@ -22,3 +22,6 @@
 [submodule "software/opensbi"]
 	path = software/opensbi
 	url = https://github.com/koyamanX/opensbi.git
+[submodule "docs/riscv-sbi-doc"]
+	path = docs/riscv-sbi-doc
+	url = https://github.com/riscv/riscv-sbi-doc.git
