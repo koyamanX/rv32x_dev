@@ -25,3 +25,6 @@
 [submodule "docs/riscv-sbi-doc"]
 	path = docs/riscv-sbi-doc
 	url = https://github.com/riscv/riscv-sbi-doc.git
+[submodule "docs/devicetree-specification"]
+	path = docs/devicetree-specification
+	url = https://github.com/devicetree-org/devicetree-specification.git
