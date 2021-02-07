@@ -12,6 +12,7 @@ simulation/rv32x_simulation
 simulation/rv32x_simulation.vcd
 simulation/*.log
 software/tests
+software/bootrom/*.dtb
 *.a
 *.o
 *.elf

@@ -44,7 +44,7 @@
 		interrupts = <10>;
 		interrupt-parent = <&PLIC>;
 	};
-	sdchctr@40001000 {
+	sdhcctr@40001000 {
 		compatible = "ck,sdhc0";
 		reg = <0x40001000 0x1000>;
 		clock-frequency = <25000000>;
