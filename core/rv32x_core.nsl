@@ -1037,13 +1037,13 @@ module rv32x_core {
 			ic_invalidate_done := 0;
 			lsu_cache_flush_done := 0;
 			in_memory_operation := 0;
-			rv32x.dmem_valid();
+			rv32x.dmem_ready();
 		} else {
 			in_memory_operation := 1;
 		}
 	}
 	func rv32x.fence {
-		rv32x.dmem_valid();
+		rv32x.dmem_ready();
 	}
 	func rv32x.sfence_vma {
 		if(((priv_mode == SUPERVISOR) && mstatus.tvm)) {
@@ -1054,7 +1054,7 @@ module rv32x_core {
 				ic_invalidate_done := 0;
 				lsu_tlb_flush_done := 0;
 				in_memory_operation := 0;
-				rv32x.dmem_valid();
+				rv32x.dmem_ready();
 			} else {
 				in_memory_operation := 1;
 			}
@@ -1124,7 +1124,7 @@ module rv32x_core {
 	}
 	func ic.valid {
 		rv32x.inst = ic.rdata;
-		rv32x.imem_valid();
+		rv32x.imem_ready();
 	}
 	func rv32x.dmem_read {
 		in_memory_operation := 1;
@@ -1229,7 +1229,7 @@ module rv32x_core {
 	func lsu.valid {
 		rv32x.rdata = lsu.load_data;
 		in_memory_operation := 0;
-		rv32x.dmem_valid();
+		rv32x.dmem_ready();
 	}
 #ifdef DEBUG
 	debug_x0  = rv32x.debug_x0;

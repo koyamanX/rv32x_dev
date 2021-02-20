@@ -72,7 +72,7 @@ module rv32x5p {
 			predicted_new_pc = pc4;
 		}
 
-		if(imem_valid) {
+		if(imem_ready) {
 			if(!stall_ifetch) {	
 #define NOP (0x00000013)
 				ifetch(predicted_new_pc);
@@ -593,19 +593,19 @@ module rv32x5p {
 			(!EMREG.store && !EMREG.load && !EMREG.fencei && !EMREG.fence && !EMREG.sfence_vma && !EMREG.amo && !stall_memory): {
 				writeback(mwreg);
 			}
-			(dmem_valid && !stall_memory && !EMREG.fencei && !EMREG.fence && !EMREG.sfence_vma): {
+			(dmem_ready && !stall_memory && !EMREG.fencei && !EMREG.fence && !EMREG.sfence_vma): {
 				ext();
 				writeback(mwreg);
 			}
-			(dmem_valid && !stall_memory && EMREG.sfence_vma): {
+			(dmem_ready && !stall_memory && EMREG.sfence_vma): {
 				ifetch(EMREG.pc4);
 				writeback(mwreg);
 			}
-			(dmem_valid && !stall_memory && EMREG.fence): {
+			(dmem_ready && !stall_memory && EMREG.fence): {
 				ifetch(EMREG.pc4);
 				writeback(mwreg);
 			}
-			(dmem_valid && !stall_memory && EMREG.fencei): {
+			(dmem_ready && !stall_memory && EMREG.fencei): {
 				ifetch(EMREG.pc4);
 				writeback(mwreg);
 			}

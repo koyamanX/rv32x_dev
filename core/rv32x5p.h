@@ -15,8 +15,8 @@ declare rv32x5p {
 	output cwadrs[12];                          /* CSR address for write */
 	input  crdata[32];                          /* Data read  */
 	output cwdata[32];                          /* Data to be written */
-	func_in dmem_valid;                         /* Indication of completation of current dmem transfer */
-	func_in imem_valid;                         /* Indication of completation of current imem transfer */
+	func_in dmem_ready;                         /* Indication of completation of current dmem transfer */
+	func_in imem_ready;                         /* Indication of completation of current imem transfer */
 	func_out imem_read(iaddr, ibyteen);         /* When data is ready on 'inst', imem_valid is asserted */
 	func_out dmem_read(daddr, dbyteen);         /* When data is ready on 'rdata', dmem_valid is asserted */
 	func_out dmem_write(daddr, dbyteen, wdata); /* When data is written, dmem_valid is asserted */
