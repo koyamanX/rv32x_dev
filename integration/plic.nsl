@@ -101,63 +101,63 @@ module plic {
 
 	func read {
 		any {
-			adrs == PLIC_PRIORITY_REGISTER_BASE: return 0x0000_0000;
-			PLIC_PRIORITY_REGISTER_BASE + 0x00_0004 <= adrs
-				&& adrs < PLIC_PRIORITY_REGISTER_BASE + PLIC_PRIORITY_REGISTER_SIZE:  {
+			addr == PLIC_PRIORITY_REGISTER_BASE: rdata = 0x0000_0000;
+			PLIC_PRIORITY_REGISTER_BASE + 0x00_0004 <= addr
+				&& addr < PLIC_PRIORITY_REGISTER_BASE + PLIC_PRIORITY_REGISTER_SIZE:  {
 						j = 4;
 						generate(i = 1; i < PLIC_PRIORITY_REGISTER_LEN; i++) {
-							if(adrs-PLIC_PRIORITY_REGISTER_BASE == j) return 32'(priority[i].priority);
+							if(addr-PLIC_PRIORITY_REGISTER_BASE == j) rdata = 32'(priority[i].priority);
 							j = j + 4;
 						}
 					}
-			PLIC_PENDING_REGISTER_BASE <= adrs
-				&& adrs < PLIC_PENDING_REGISTER_BASE + PLIC_PENDING_REGISTER_SIZE:  {
-						return pending;
+			PLIC_PENDING_REGISTER_BASE <= addr
+				&& addr < PLIC_PENDING_REGISTER_BASE + PLIC_PENDING_REGISTER_SIZE:  {
+						rdata = pending;
 					}
-			PLIC_ENABLE_REGISTER_BASE <= adrs
-				&& adrs < PLIC_ENABLE_REGISTER_BASE + PLIC_ENABLE_REGISTER_SIZE:  {
-						return enable;
+			PLIC_ENABLE_REGISTER_BASE <= addr
+				&& addr < PLIC_ENABLE_REGISTER_BASE + PLIC_ENABLE_REGISTER_SIZE:  {
+						rdata = enable;
 					}
-			PLIC_THRESHOLD_REGISTER_BASE <= adrs
-				&& adrs < PLIC_THRESHOLD_REGISTER_BASE + PLIC_THRESHOLD_REGISTER_SIZE:  {
-						return 32'(threshold);
+			PLIC_THRESHOLD_REGISTER_BASE <= addr
+				&& addr < PLIC_THRESHOLD_REGISTER_BASE + PLIC_THRESHOLD_REGISTER_SIZE:  {
+						rdata = 32'(threshold);
 					}
-			PLIC_CLAIM_REGISTER_BASE <= adrs
-				&& adrs < PLIC_CLAIM_REGISTER_BASE + PLIC_CLAIM_REGISTER_SIZE:  {
+			PLIC_CLAIM_REGISTER_BASE <= addr
+				&& addr < PLIC_CLAIM_REGISTER_BASE + PLIC_CLAIM_REGISTER_SIZE:  {
 						claim_op();
-						return claim;
+						rdata = claim;
 					}
-			else: return 0x0000_0000;
+			else: rdata = 0x0000_0000;
 
 		}
-		valid();
+		ready();
 	}
 	func write {
 		any {
-			adrs == PLIC_PRIORITY_REGISTER_BASE: ;
-			PLIC_PRIORITY_REGISTER_BASE + 0x00_0004 <= adrs
-				&& adrs < PLIC_PRIORITY_REGISTER_BASE + PLIC_PRIORITY_REGISTER_SIZE:  {
+			addr == PLIC_PRIORITY_REGISTER_BASE: ;
+			PLIC_PRIORITY_REGISTER_BASE + 0x00_0004 <= addr
+				&& addr < PLIC_PRIORITY_REGISTER_BASE + PLIC_PRIORITY_REGISTER_SIZE:  {
 						j = 4;
 						generate(i = 1; i < PLIC_PRIORITY_REGISTER_LEN; i++) {
-							if(adrs-PLIC_PRIORITY_REGISTER_BASE == j) priority[i].priority := wdata[2:0];
+							if(addr-PLIC_PRIORITY_REGISTER_BASE == j) priority[i].priority := wdata[2:0];
 							j = j + 4;
 						}
 					}
-			PLIC_ENABLE_REGISTER_BASE <= adrs
-				&& adrs < PLIC_ENABLE_REGISTER_BASE + PLIC_ENABLE_REGISTER_SIZE:  {
+			PLIC_ENABLE_REGISTER_BASE <= addr
+				&& addr < PLIC_ENABLE_REGISTER_BASE + PLIC_ENABLE_REGISTER_SIZE:  {
 						enable := wdata;
 					}
-			PLIC_THRESHOLD_REGISTER_BASE <= adrs
-				&& adrs < PLIC_THRESHOLD_REGISTER_BASE + PLIC_THRESHOLD_REGISTER_SIZE:  {
+			PLIC_THRESHOLD_REGISTER_BASE <= addr
+				&& addr < PLIC_THRESHOLD_REGISTER_BASE + PLIC_THRESHOLD_REGISTER_SIZE:  {
 						threshold := wdata[2:0];
 					}
-			PLIC_CLAIM_REGISTER_BASE <= adrs
-				&& adrs < PLIC_CLAIM_REGISTER_BASE + PLIC_CLAIM_REGISTER_SIZE:  {
+			PLIC_CLAIM_REGISTER_BASE <= addr
+				&& addr < PLIC_CLAIM_REGISTER_BASE + PLIC_CLAIM_REGISTER_SIZE:  {
 						claim := if(in_service_claim == wdata) 0x0000_0000 else in_service_claim;
 						complete_op(wdata);
 					}
 
 		}
-		valid();
+		ready();
 	}
 }

@@ -2,12 +2,12 @@
 #define PLIC_H
 declare plic {
 	/* To/from memory bus */
-	input adrs[24];
+	input addr[24];
 	output rdata[32];
 	input wdata[32];
-	func_in read(adrs) : rdata;
-	func_in write(adrs, wdata);
-	func_out valid();
+	func_in read(addr);
+	func_in write(addr, wdata);
+	func_out ready();
 	
 	/* interrupt request lines */
 	func_in interrupt_req1;

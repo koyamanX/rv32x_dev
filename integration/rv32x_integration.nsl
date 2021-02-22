@@ -71,11 +71,11 @@ module rv32x_integration {
 			else: core.dmem_empty();
 		}
 	}
-	func rv32x_plic.valid {
+	func rv32x_plic.ready {
 		core.rdata = rv32x_plic.rdata;
 		core.dmem_valid();
 	}
-	func rv32x_clint.valid {
+	func rv32x_clint.ready {
 		core.rdata = rv32x_clint.rdata;
 		core.dmem_valid();
 	}

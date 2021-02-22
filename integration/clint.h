@@ -1,12 +1,12 @@
 #ifndef CLINT_H
 #define CLINT_H
 declare clint {
-	input adrs[16];
+	input addr[16];
 	input wdata[32];
 	output rdata[32];
-	func_in read(adrs) : rdata;
-	func_in write(adrs, wdata);
-	func_out valid();
+	func_in read(addr) : rdata;
+	func_in write(addr, wdata);
+	func_out ready();
 
 	func_out software_interrupt();
 	func_out timer_interrupt();

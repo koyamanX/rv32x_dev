@@ -16,29 +16,29 @@ module clint {
 
 	func read {
 		any {
-			adrs == CLINT_MSIP_ADDR_OFFSET:		return 32'(msip);
-			adrs == CLINT_MTIMECMP_ADDR_OFFSET:	return mtimecmp_lo;
-			adrs == CLINT_MTIMECMP_ADDR_OFFSET
-						+0x0004:				return mtimecmp_hi;
-			adrs == CLINT_MTIME_ADDR_OFFSET:	return mtime_lo;
-			adrs == CLINT_MTIME_ADDR_OFFSET
-						+ 0x0004:				return mtime_hi;
+			addr == CLINT_MSIP_ADDR_OFFSET:		rdata = 32'(msip);
+			addr == CLINT_MTIMECMP_ADDR_OFFSET:	rdata = mtimecmp_lo;
+			addr == CLINT_MTIMECMP_ADDR_OFFSET
+						+0x0004:				rdata = mtimecmp_hi;
+			addr == CLINT_MTIME_ADDR_OFFSET:	rdata = mtime_lo;
+			addr == CLINT_MTIME_ADDR_OFFSET
+						+ 0x0004:				rdata = mtime_hi;
 			else: load_access_fault();
 		}
-		valid();
+		ready();
 	}
 	func write {
 		any {
-			adrs == CLINT_MSIP_ADDR_OFFSET:		msip := wdata[0];
-			adrs == CLINT_MTIMECMP_ADDR_OFFSET:	{mtimecmp_lo := wdata;}
-			adrs == CLINT_MTIMECMP_ADDR_OFFSET
+			addr == CLINT_MSIP_ADDR_OFFSET:		msip := wdata[0];
+			addr == CLINT_MTIMECMP_ADDR_OFFSET:	{mtimecmp_lo := wdata;}
+			addr == CLINT_MTIMECMP_ADDR_OFFSET
 						+0x0004:				{mtimecmp_hi := wdata;}
-			adrs == CLINT_MTIME_ADDR_OFFSET: 	{mtime_lo := wdata;}
-			adrs == CLINT_MTIME_ADDR_OFFSET
+			addr == CLINT_MTIME_ADDR_OFFSET: 	{mtime_lo := wdata;}
+			addr == CLINT_MTIME_ADDR_OFFSET
 						+ 0x0004: 				{mtime_hi := wdata;}
 			else: store_access_fault();
 		}
-		valid();
+		ready();
 	}
 	if(msip) {
 		software_interrupt();
@@ -46,7 +46,7 @@ module clint {
 	if(mtime >= mtimecmp) {
 		timer_interrupt();
 	}
-	if(!write) {	/* Precisely !(write && adrs == CLINT_MTIME_ADDR_OFFSET && adrs == CLINT_MTIME_ADDR_OFFSET+0x0004) */
+	if(!write) {	/* Precisely !(write && addr == CLINT_MTIME_ADDR_OFFSET && addr == CLINT_MTIME_ADDR_OFFSET+0x0004) */
 		mtime_n = mtime + 0x00000000_00000001;
 		mtime_hi := mtime_n[63:32];
 		mtime_lo := mtime_n[31:0];
