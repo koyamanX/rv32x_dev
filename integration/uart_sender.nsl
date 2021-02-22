@@ -77,16 +77,16 @@ module uart_sender {
 	
 	func read {
 		any {
-			adrs == 10'(0x0): return 32'(readbuffer);
-			adrs == 10'(0x4): return 32'(status);
+			addr == 10'(0x0): rdata = 32'(readbuffer);
+			addr == 10'(0x4): rdata =  32'(status);
 		}
-		valid();
+		ready();
 	}
 	func write {
 		any {
-			adrs == 10'(0x0): fifo.write(wdata[7:0]);
-			adrs == 10'(0x4): status.en := wdata[0];
+			addr == 10'(0x0): fifo.write(wdata[7:0]);
+			addr == 10'(0x4): status.en := wdata[0];
 		}
-		valid();
+		ready();
 	}
 }

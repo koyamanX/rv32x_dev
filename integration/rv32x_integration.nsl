@@ -103,7 +103,7 @@ module rv32x_integration {
 	func rv32x_clint.load_access_fault {
 		//rv32x.not_mapped();
 	}
-	func rv32x_mmio_dev.valid {
+	func rv32x_mmio_dev.ready {
 		core.rdata = rv32x_mmio_dev.rdata;
 		core.dmem_valid();
 	}

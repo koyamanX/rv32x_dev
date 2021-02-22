@@ -7,19 +7,18 @@
 #define RX_BAUD_RATE_115200 434
 #define RX_BAUD_RATE_CNT (RX_BAUD_RATE_38400/8)
 
-declare uart_receiver
-{
-	input RXD;
-	input adrs[10];
-	input wdata[32];
+declare uart_receiver {
+	input addr[10];
 	output rdata[32];
-	output received_char[8];
-	func_in read(adrs) : rdata;
-	func_in write(adrs, wdata);
+	input wdata[32];
+	func_in read(addr);
+	func_in write(addr, wdata);
 	func_in reset();
+	func_out ready();
 	func_out done();
-	func_out valid();
 	func_out interrupt_req;
+	output received_char[8];
+	input RXD;
 }
 
 struct uart_rx_stat_t {

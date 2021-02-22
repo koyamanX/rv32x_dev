@@ -8,16 +8,16 @@
 #define TX_BAUD_RATE_CNT TX_BAUD_RATE_38400
 
 declare uart_sender {
-	input adrs[10];
-	input wdata[32];
+	input addr[10];
 	output rdata[32];
-	output TXD;
-	func_in read(adrs) : rdata;
-	func_in write(adrs, wdata);
-	func_out valid();
+	input wdata[32];
+	func_in read(addr);
+	func_in write(addr, wdata);
+	func_out ready();
 	func_in reset();
 	func_out done();
 	func_out interrupt_req();
+	output TXD;
 }
 
 struct uart_tx_stat_t {
