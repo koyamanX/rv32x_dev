@@ -1,10 +1,12 @@
 #ifndef BOOTROM_H
 #define BOOTROM_H
+
 declare bootrom {
-	input port1_radrs[12];
-	output port1_rdata[32];
-	func_in port1_read(port1_radrs);
-	func_out port1_valid();
+	input addr[12];
+	output rdata[32];
+	func_in read(addr);
+	func_out ready();
 	func_in reset();
 }
+
 #endif

@@ -30,15 +30,15 @@ module rv32x_integration {
 		core.inst = inst;
 		core.imem_valid();
 	}
-	func rom.port1_valid {
-		core.inst = rom.port1_rdata;
+	func rom.ready {
+		core.inst = rom.rdata;
 		core.imem_valid();
 	}
 	func core.imem_read {
 		any {
 			/* BOOTROM_BASE <= rv32x.iaddr && */
 			core.iaddr < BOOTROM_BASE+BOOTROM_LENGTH:
-				rom.port1_read((core.iaddr-BOOTROM_BASE)[11:0]);
+				rom.read((core.iaddr-BOOTROM_BASE)[11:0]);
 			else: imem_read(core.iaddr, core.ibyteen);
 		}
 	}
