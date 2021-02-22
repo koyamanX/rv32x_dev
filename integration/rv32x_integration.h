@@ -9,11 +9,11 @@ declare rv32x_integration {
 	output ibyteen[3];
 	output dbyteen[3];
 	func_in reset();
-	func_in dmem_valid;
-	func_in imem_valid;
-	func_out imem_read(iaddr, ibyteen);  /* When data is ready on 'inst', imem_valid is asserted */
-	func_out dmem_read(daddr, dbyteen);  /* When data is ready on 'rdata', dmem_valid is asserted */
-	func_out dmem_write(daddr, dbyteen, wdata); /* When data is written, dmem_valid is asserted */
+	func_in dmem_ready;
+	func_in imem_ready;
+	func_out imem_read(iaddr, ibyteen);  /* When data is ready on 'inst', imem_ready is asserted */
+	func_out dmem_read(daddr, dbyteen);  /* When data is ready on 'rdata', dmem_ready is asserted */
+	func_out dmem_write(daddr, dbyteen, wdata); /* When data is written, dmem_ready is asserted */
 
 	input RXD;
 	output TXD;

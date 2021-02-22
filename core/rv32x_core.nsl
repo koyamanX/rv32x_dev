@@ -1093,13 +1093,13 @@ module rv32x_core {
 		
 		imem_read({ic.mem_adrs[31:4], 4'({ic_read_cnt, 2'b00})}, MEM_WORD);
 		if(ic_read_cnt == 4) {
-			if(imem_valid) {
+			if(imem_ready) {
 				ic_read_cnt := 0;
 				ic.mem_rdata = {ic_read_data[3], ic_read_data[2], ic_read_data[1], ic_read_data[0]};
 				ic.mem_valid();
 			}
 		} else {
-			if(imem_valid) {
+			if(imem_ready) {
 				ic_read_cnt++;
 				ic_read_data[ic_read_cnt] := inst;
 			}
@@ -1166,20 +1166,20 @@ module rv32x_core {
 		if(lsu.mem_size == MEM_QUADWORD) {
 			dmem_read({lsu.mem_adrs[31:4], 4'({lsu_read_cnt, 2'b00})}, MEM_WORD);
 			if(lsu_read_cnt == 4) {
-				if(dmem_valid) {
+				if(dmem_ready) {
 					lsu_read_cnt := 0;
 					lsu.mem_rdata = {lsu_read_data[3], lsu_read_data[2], lsu_read_data[1], lsu_read_data[0]};
 					lsu.mem_valid();
 				}
 			} else {
-				if(dmem_valid) {
+				if(dmem_ready) {
 					lsu_read_cnt++;
 					lsu_read_data[lsu_read_cnt] := rdata;
 				}
 			}
 		} else {
 			dmem_read(lsu.mem_adrs, lsu.mem_size);
-			if(dmem_valid) {
+			if(dmem_ready) {
 				lsu.mem_rdata = 128'(rdata);
 				lsu.mem_valid();
 			}
@@ -1208,20 +1208,20 @@ module rv32x_core {
 					lsu_write_cnt++;
 				}
 				lsu_write_cnt == 4: {
-					if(dmem_valid) {
+					if(dmem_ready) {
 						lsu_write_cnt := 0;
 						lsu.mem_valid();
 					}
 				}
 				else: {
-					if(dmem_valid) {
+					if(dmem_ready) {
 						lsu_write_cnt++;
 					}
 				}
 			}
 		} else {
 			dmem_write(lsu.mem_adrs, lsu.mem_size, lsu.mem_wdata[31:0]);
-			if(dmem_valid) {
+			if(dmem_ready) {
 				lsu.mem_valid();
 			}
 		}

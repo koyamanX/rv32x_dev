@@ -22,17 +22,17 @@ module rv32x_integration {
 		rv32x_mmio_dev.reset();
 		rv32x_sdspi.reset();
 	}
-	func dmem_valid {
+	func dmem_ready {
 		core.rdata = rdata;
-		core.dmem_valid();
+		core.dmem_ready();
 	}
-	func imem_valid {
+	func imem_ready {
 		core.inst = inst;
-		core.imem_valid();
+		core.imem_ready();
 	}
 	func rom.ready {
 		core.inst = rom.rdata;
-		core.imem_valid();
+		core.imem_ready();
 	}
 	func core.imem_read {
 		any {
@@ -73,15 +73,15 @@ module rv32x_integration {
 	}
 	func rv32x_plic.ready {
 		core.rdata = rv32x_plic.rdata;
-		core.dmem_valid();
+		core.dmem_ready();
 	}
 	func rv32x_clint.ready {
 		core.rdata = rv32x_clint.rdata;
-		core.dmem_valid();
+		core.dmem_ready();
 	}
 	func rv32x_sdspi.valid {
 		core.rdata = rv32x_sdspi.rdata;
-		core.dmem_valid();
+		core.dmem_ready();
 	}
 	func rv32x_clint.timer_interrupt {
 		core.machine_timer_interrupt_req();
@@ -105,7 +105,7 @@ module rv32x_integration {
 	}
 	func rv32x_mmio_dev.ready {
 		core.rdata = rv32x_mmio_dev.rdata;
-		core.dmem_valid();
+		core.dmem_ready();
 	}
 	func rv32x_mmio_dev.uart_sender_interrupt_req {
 		rv32x_plic.interrupt_req2();

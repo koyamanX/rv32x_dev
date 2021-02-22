@@ -202,14 +202,14 @@ public:
 			if(core->imem_read) {
 				if(imem_wait == IMEM_WAIT) {
 					imem_stat = read_word(memory, core->iaddr, (uint32_t *)&core->inst);
-					core->imem_valid = 1;
+					core->imem_ready = 1;
 					imem_wait = 0;
 				} else {
-					core->imem_valid = 0;
+					core->imem_ready = 0;
 					imem_wait++;
 				}
 			} else {
-				core->imem_valid = 0;
+				core->imem_ready = 0;
 			}
 			core->rdata = 0;
 			if(core->dmem_read || core->dmem_write) {
@@ -233,14 +233,14 @@ public:
 							dmem_stat = write_word(memory, core->daddr, core->wdata);
 						}
 					}
-					core->dmem_valid = 1;
+					core->dmem_ready = 1;
 					dmem_wait = 0;
 				} else {
-					core->dmem_valid = 0;
+					core->dmem_ready = 0;
 					dmem_wait++;
 				}
 			} else {
-				core->dmem_valid = 0;
+				core->dmem_ready = 0;
 			}
 			if(imem_stat == -1) {
 				fprintf(stderr, "Instruction Memory violation occuries at address of %08x, byteen %02x\n", core->iaddr, core->ibyteen);

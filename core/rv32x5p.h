@@ -4,8 +4,8 @@ declare rv32x5p {
 	input resetvector[32];                      /* Initial PC value on reset */
 	func_in reset(resetvector);                 /* Reset processor */
 	input ialign[2];							/* ialign (32==2'b00, 16==2'b10) */
-	input inst[32];                             /* Irnstruction read on imem_read, only valid during imem_valid */
-	input rdata[32];                            /* Data read on dmem_read, only valid during dmem_valid */
+	input inst[32];                             /* Irnstruction read on imem_read, only valid during imem_ready */
+	input rdata[32];                            /* Data read on dmem_read, only valid during dmem_ready */
 	output wdata[32];                           /* Write data to dmem */
 	output daddr[32];                           /* Address to dmem */
 	output iaddr[32];                           /* Address to imem */
@@ -18,8 +18,8 @@ declare rv32x5p {
 	func_in dmem_ready;                         /* Indication of completation of current dmem transfer */
 	func_in imem_ready;                         /* Indication of completation of current imem transfer */
 	func_out imem_read(iaddr, ibyteen);         /* When data is ready on 'inst', imem_valid is asserted */
-	func_out dmem_read(daddr, dbyteen);         /* When data is ready on 'rdata', dmem_valid is asserted */
-	func_out dmem_write(daddr, dbyteen, wdata); /* When data is written, dmem_valid is asserted */
+	func_out dmem_read(daddr, dbyteen);         /* When data is ready on 'rdata', dmem_ready is asserted */
+	func_out dmem_write(daddr, dbyteen, wdata); /* When data is written, dmem_ready is asserted */
 	func_out csr_write_uimm();
 	func_out csr_read(cradrs) : crdata;         /* CSR read */
 	func_out csr_write(cwadrs, cwdata);         /* CSR write */
