@@ -83,10 +83,10 @@ module rv32x_integration {
 		core.rdata = rv32x_sdspi.rdata;
 		core.dmem_ready();
 	}
-	func rv32x_clint.timer_interrupt {
+	func rv32x_clint.timer_interrupt_hart0 {
 		core.machine_timer_interrupt_req();
 	}
-	func rv32x_clint.software_interrupt {
+	func rv32x_clint.software_interrupt_hart0 {
 		core.machine_software_interrupt_req();
 	}
 	func rv32x_plic.hart0_interrupt_reqeust {
