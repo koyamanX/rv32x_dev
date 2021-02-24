@@ -41,10 +41,10 @@ module clint {
 		ready();
 	}
 	if(msip) {
-		software_interrupt();
+		software_interrupt_hart0();
 	}
 	if(mtime >= mtimecmp) {
-		timer_interrupt();
+		timer_interrupt_hart0();
 	}
 	if(!write) {	/* Precisely !(write && addr == CLINT_MTIME_ADDR_OFFSET && addr == CLINT_MTIME_ADDR_OFFSET+0x0004) */
 		mtime_n = mtime + 0x00000000_00000001;
