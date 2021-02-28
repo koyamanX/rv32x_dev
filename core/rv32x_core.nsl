@@ -1091,12 +1091,12 @@ module rv32x_core {
 		reg ic_read_cnt[3] = 0;
 		mem ic_read_data[4][32];
 		
-		imem_read({ic.mem_adrs[31:4], 4'({ic_read_cnt, 2'b00})}, MEM_WORD);
+		imem_read({ic.mem_addr[31:4], 4'({ic_read_cnt, 2'b00})}, MEM_WORD);
 		if(ic_read_cnt == 4) {
 			if(imem_ready) {
 				ic_read_cnt := 0;
 				ic.mem_rdata = {ic_read_data[3], ic_read_data[2], ic_read_data[1], ic_read_data[0]};
-				ic.mem_valid();
+				ic.mem_ready();
 			}
 		} else {
 			if(imem_ready) {
@@ -1106,7 +1106,7 @@ module rv32x_core {
 		}
 	}
 	func ic.walk {
-		lsu.read_utlb(ic.vadrs);
+		lsu.read_utlb(ic.vaddr);
 	}
 	func lsu.utlb_pte_valid {
 		ic.pte = lsu.utlb_pte;
@@ -1122,8 +1122,8 @@ module rv32x_core {
 	func rv32x.imem_read {
 		ic.read(rv32x.iaddr);
 	}
-	func ic.valid {
-		rv32x.inst = ic.rdata;
+	func ic.ready {
+		rv32x.inst = ic.inst;
 		rv32x.imem_ready();
 	}
 	func rv32x.dmem_read {

@@ -14,10 +14,10 @@ module ifetch_unit {
 	reg cache_tag_accessing[20];	/* physical tag, if no paging, then virtual tag == physical tag */
 	reg cache_index_accessing[8];
 	proc_name compare_tag(cache_data_entry, cache_tag_entry, cache_valid_entry, cache_tag_accessing, cache_index_accessing);
-	reg allocate_adrs[32];
-	proc_name allocate(allocate_adrs); 
-	reg ptw_vadrs[32];	/* virtual address used for page_table_walk */
-	proc_name page_table_walk(ptw_vadrs);
+	reg allocate_addr[32];
+	proc_name allocate(allocate_addr); 
+	reg ptw_vaddr[32];	/* virtual address used for page_table_walk */
+	proc_name page_table_walk(ptw_vaddr);
 	proc_name flush_tlb();
 	proc_name invalidate_cache();
 
@@ -52,7 +52,7 @@ module ifetch_unit {
 
 	integer i_;	/* only used by `generate` construct and re-used in this module */
 
-	.{tag, index, blockoffset, byteoffset} = adrs;
+	.{tag, index, blockoffset, byteoffset} = addr;
 	tlb_random_replace_pos++;
 
 	sv32 = (satp_mode && (priv_mode != MACHINE));
@@ -68,7 +68,7 @@ module ifetch_unit {
 		} else if(tlb_flush) {
 			flush_tlb();
 		} else if(read && sv32) {
-			access_tlb(adrs);
+			access_tlb(addr);
 			if(tlb_hit) {
 				sv32_pte = tlb_hit_data;
 				if(sv32_pte.v && sv32_pte.x && sv32_pte.a
@@ -76,13 +76,13 @@ module ifetch_unit {
 					/* map 32 bits virtual address to 32 bits physical address on sv32, not 34 bit physical address for now */
 					any {
 						tlb_hit_levels == 0:	compare_tag(cache_data[index], cache_tag[index], cache_valid[index], ({sv32_pte.ppn1, sv32_pte.ppn0})[19:0], index);
-						tlb_hit_levels == 1:	compare_tag(cache_data[index], cache_tag[index], cache_valid[index], ({sv32_pte.ppn1, adrs[21:12]})[19:0], index);
+						tlb_hit_levels == 1:	compare_tag(cache_data[index], cache_tag[index], cache_valid[index], ({sv32_pte.ppn1, addr[21:12]})[19:0], index);
 					}
 				} else {
 					instruction_page_fault();
 				}
 			} else if(tlb_miss) {
-				page_table_walk(adrs);
+				page_table_walk(addr);
 			}
 		} else if(read && !sv32) {
 			compare_tag(cache_data[index], cache_tag[index], cache_valid[index], tag, index);
@@ -106,10 +106,10 @@ module ifetch_unit {
 		}
 	}
 	proc page_table_walk {
-		walk({satp_mode, satp_asid, satp_ppn}, ptw_vadrs);
+		walk({satp_mode, satp_asid, satp_ppn}, ptw_vaddr);
 		if(pte_valid) {
 			tlb_data[tlb_random_replace_pos] := pte;
-			tlb_tag[tlb_random_replace_pos] := ptw_vadrs[31:12];
+			tlb_tag[tlb_random_replace_pos] := ptw_vaddr[31:12];
 			tlb_valid[tlb_random_replace_pos] := VALID;
 			tlb_levels[tlb_random_replace_pos] := pte_levels;
 			idle();
@@ -122,7 +122,7 @@ module ifetch_unit {
 	}
 	proc compare_tag {
 		/* checking (cache_index_accessing == index) is required, to support cancellation of read operation in this stage 
-			if not above equation holds, then read is cancelled implicitly by changing `adrs` during `read` (in the case of
+			if not above equation holds, then read is cancelled implicitly by changing `addr` during `read` (in the case of
 			branch, jump and trap), so restart from idle();
 		*/
 		if(cache_valid_entry && (cache_tag_entry == cache_tag_accessing) && (cache_index_accessing == index)) {
@@ -132,10 +132,10 @@ module ifetch_unit {
 			idle();
 		} else {
 			cache_miss();
-			/* use physical tag and page_offset(untranslated part of adrs(lower 12 bits))
+			/* use physical tag and page_offset(untranslated part of addr(lower 12 bits))
 				to form address for allocate cache block 
 				again, if sv32 is not enabled, physical tag maps to virtual tag */
-			allocate({cache_tag_accessing, adrs[11:0]});
+			allocate({cache_tag_accessing, addr[11:0]});
 		}
 	}
 	func cache_hit {
@@ -150,8 +150,8 @@ module ifetch_unit {
 			blockoffset == 2'b11: cache_word = cache_block[127:96];
 		}
 		if(read) {
-			rdata = cache_word;
-			valid();
+			inst = cache_word;
+			ready();
 		}
 	}
 	proc allocate {
@@ -159,11 +159,11 @@ module ifetch_unit {
 		wire allocate_index[8];
 		wire allocate_blockoffset[2];
 		wire allocate_byteoffset[2];
-		.{allocate_tag, allocate_index, allocate_blockoffset, allocate_byteoffset} = allocate_adrs;
+		.{allocate_tag, allocate_index, allocate_blockoffset, allocate_byteoffset} = allocate_addr;
 
 		/* mem_read with physical address */
 		mem_read({allocate_tag, allocate_index, 4'b0000});
-		if(mem_valid) {
+		if(mem_ready) {
 			refill(allocate_tag, allocate_index);
 			idle();
 		}

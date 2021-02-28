@@ -9,13 +9,13 @@
 declare ifetch_unit {
 	func_in reset();
 	/* CPU <-> Cache Unit */
-	input adrs[32];
-	output rdata[32];
+	input addr[32];
+	output inst[32];
 	/* Always word access */
 	/* if need to cancel operation, then deassert these signals before valid 
 		however contents of cache will be updated even with cancelation */
-	func_in read(adrs);				/* must be asserted until valid */
-	func_out valid;					/* hit */
+	func_in read(addr);				/* must be asserted until valid */
+	func_out ready;					/* hit */
 
 	/* invalidate all cache entries */
 	func_in invalidate;
@@ -40,8 +40,8 @@ declare ifetch_unit {
 	/* Cache Unit <-> Page table walker Interface */
 	/* satp for page table walk to page table walker */
 	output satp[32];
-	output vadrs[32];
-	func_out walk(satp, vadrs);
+	output vaddr[32];
+	func_out walk(satp, vaddr);
 	input pte[32];
 	input pte_levels[2];
 	func_in pte_valid();
@@ -51,9 +51,9 @@ declare ifetch_unit {
 	input priv_mode[2];
 
 	/* Cache Unit <-> Memory Interface */
-	output mem_adrs[32];
+	output mem_addr[32];
 	input mem_rdata[128];
-	func_out mem_read(mem_adrs);
-	func_in mem_valid;
+	func_out mem_read(mem_addr);
+	func_in mem_ready;
 }
 #endif
