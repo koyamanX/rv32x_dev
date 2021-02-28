@@ -1,11 +1,11 @@
-#include "icache_unit.h"
+#include "ifetch_unit.h"
 #include "csr.h"
 #include "priv.h"
 #define MEM_WORD        3'b010
 #define MEM_HALFWORD    3'b001
 #define MEM_BYTE        3'b000
 
-module icache_unit {
+module ifetch_unit {
 	proc_name idle();
 	/* registering output of mem block is required to infer bram */
 	reg cache_data_entry[128];

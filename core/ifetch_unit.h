@@ -1,12 +1,12 @@
-#ifndef ICACHE_UNIT_H
-#define ICACHE_UNIT_H
+#ifndef IFETCH_UNIT_H
+#define IFETCH_UNIT_H
 
 #define CLEAN 1'b0
 #define DIRTY 1'b1
 #define VALID 1'b1
 #define INVALID 1'b0
 
-declare icache_unit {
+declare ifetch_unit {
 	func_in reset();
 	/* CPU <-> Cache Unit */
 	input adrs[32];
