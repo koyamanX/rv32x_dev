@@ -291,11 +291,11 @@ module load_store_unit {
 		}
 	}
 	func walker.mem_read {
-		dcache.read(walker.mem_adrs[31:0], MEM_WORD);	
+		dcache.read(walker.mem_addr[31:0], MEM_WORD);	
 
 		if(dcache.valid) {
 			walker.mem_rdata = dcache.rdata[31:0];
-			walker.mem_valid();
+			walker.mem_ready();
 		}
 	}
 	func access_tlb {
