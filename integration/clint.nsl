@@ -1,54 +1,37 @@
 #include "clint.h"
-#include "csr.h"
-
 module clint {
-	reg msip = 0;
-	reg mtimecmp_lo[32] = 0;
-	reg mtimecmp_hi[32] = 0;
-	reg mtime_lo[32] = 0;
+	reg mtimecmp_0_hi[32] = 0;
+	reg mtimecmp_0_lo[32] = 0;
+	wire mtimecmp_0[64];
+	reg msip_0 = 0;
 	reg mtime_hi[32] = 0;
-	wire mtimecmp[64];
+	reg mtime_lo[32] = 0;
 	wire mtime[64];
 	wire mtime_n[64];
-
-	mtime = {mtime_hi, mtime_lo};
-	mtimecmp = {mtimecmp_hi, mtimecmp_lo};
-
 	func read {
 		any {
-			addr == CLINT_MSIP_ADDR_OFFSET:		rdata = 32'(msip);
-			addr == CLINT_MTIMECMP_ADDR_OFFSET:	rdata = mtimecmp_lo;
-			addr == CLINT_MTIMECMP_ADDR_OFFSET
-						+0x0004:				rdata = mtimecmp_hi;
-			addr == CLINT_MTIME_ADDR_OFFSET:	rdata = mtime_lo;
-			addr == CLINT_MTIME_ADDR_OFFSET
-						+ 0x0004:				rdata = mtime_hi;
+			addr == 16'(CLINT_MSIP_ADDR_OFFSET + 0x0000): {rdata = 32'(msip_0); ready();}
+			addr == 16'(CLINT_MTIMECMP_ADDR_OFFSET + 0x0000 + 0x0000): {rdata = mtimecmp_0_lo; ready();}
+			addr == 16'(CLINT_MTIMECMP_ADDR_OFFSET + 0x0000 + 0x0004): {rdata = mtimecmp_0_hi; ready();}
+			addr == 16'(CLINT_MTIME_ADDR_OFFSET + 0x0000): {{rdata = mtime_lo; ready();}}
+			addr == 16'(CLINT_MTIME_ADDR_OFFSET + 0x0004): {{rdata = mtime_hi; ready();}}
 			else: load_access_fault();
 		}
-		ready();
 	}
 	func write {
 		any {
-			addr == CLINT_MSIP_ADDR_OFFSET:		msip := wdata[0];
-			addr == CLINT_MTIMECMP_ADDR_OFFSET:	{mtimecmp_lo := wdata;}
-			addr == CLINT_MTIMECMP_ADDR_OFFSET
-						+0x0004:				{mtimecmp_hi := wdata;}
-			addr == CLINT_MTIME_ADDR_OFFSET: 	{mtime_lo := wdata;}
-			addr == CLINT_MTIME_ADDR_OFFSET
-						+ 0x0004: 				{mtime_hi := wdata;}
+			addr == 16'(CLINT_MSIP_ADDR_OFFSET + 0x0000): {msip_0 := wdata[0]; ready();}
+			addr == 16'(CLINT_MTIMECMP_ADDR_OFFSET + 000000 + 0x0000): {mtimecmp_0_lo := wdata; ready();}
+			addr == 16'(CLINT_MTIMECMP_ADDR_OFFSET + 000000 + 0x0004): {mtimecmp_0_hi := wdata; ready();}
+			addr == 16'(CLINT_MTIME_ADDR_OFFSET + 0x0000): {{mtime_lo := wdata; ready();}}
+			addr == 16'(CLINT_MTIME_ADDR_OFFSET + 0x0004): {{mtime_hi := wdata; ready();}}
 			else: store_access_fault();
 		}
-		ready();
 	}
-	if(msip) {
-		software_interrupt_hart0();
-	}
-	if(mtime >= mtimecmp) {
-		timer_interrupt_hart0();
-	}
-	if(!write) {	/* Precisely !(write && addr == CLINT_MTIME_ADDR_OFFSET && addr == CLINT_MTIME_ADDR_OFFSET+0x0004) */
-		mtime_n = mtime + 0x00000000_00000001;
-		mtime_hi := mtime_n[63:32];
-		mtime_lo := mtime_n[31:0];
-	}
+	mtime = {mtime_hi, mtime_lo};
+	mtime_n = mtime + 0x0000000000000001;
+	if(!write) {mtime_hi := mtime_n[63:32]; mtime_lo := mtime_n[31:0];}
+	mtimecmp_0 = {mtimecmp_0_hi, mtimecmp_0_lo};
+	if(mtime >= mtimecmp_0) timer_interrupt_hart0();
+	if(msip_0) software_interrupt_hart0();
 }
