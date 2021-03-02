@@ -70,12 +70,12 @@ def gen_nsl(filename):
 
 		for i in range(irq // 32):
 			f.write('\tpending_{}_w = {{'.format(i))
-			for j in range(irq-1):
-				f.write('pending_{}[{}].pending, '.format(i, j))
-			f.write('pending_{}[{}].pending}};\n'.format(i, j+1))
+			for j in range(32-1):
+				f.write('pending_{}[{}].pending, '.format(i, (i*32)+j))
+			f.write('pending_{}[{}].pending}};\n'.format(i, (i*32)+j+1))
 
 		for i in range(irq // 32):
-			for j in range(irq):
+			for j in range(32):
 				f.write('\tpending_{}[{}].pending := ((gateway_{}[{}].gateway & irq_{}) | pending_{}[{}].pending);\n'.format(i, j, i, j, j, i, j))
 
 		for i in range(hart):
@@ -83,8 +83,8 @@ def gen_nsl(filename):
 			f.write('\t\tif(!hart_{}_inservice && !hart_{}_in_intreq) {{\n'.format(i, i))
 			f.write('\t\t\talt {\n')
 			for j in range(irq // 32):
-				for k in range(irq):
-					f.write('\t\t\t\t(enable_{}_hart_{}[{}] && pending_{}[{}].pending && (irq_{}_priority > threshold_hart_{})): {{hart_{}_in_intreq := 1; hart_{}_inservice_claim := {}; gateway_{}[{}].gateway := 0;}}\n'.format(j, i, k, j, k, k, i, i, i, k, j, k))
+				for k in range(32):
+					f.write('\t\t\t\t(enable_{}_hart_{}[{}] && pending_{}[{}].pending && (irq_{}_priority > threshold_hart_{})): {{hart_{}_in_intreq := 1; hart_{}_inservice_claim := {}; gateway_{}[{}].gateway := 0;}}\n'.format(j, i, k, j, k, k, i, i, i, j*32+k, j, k))
 			f.write('\t\t\t}\n')
 			f.write('\t\t}\n')
 
