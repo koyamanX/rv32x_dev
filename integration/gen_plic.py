@@ -52,8 +52,8 @@ def gen_nsl(filename):
 		f.write('#include "{}"\n'.format(os.path.splitext(filename)[0]+'.h'))
 		f.write('module {} {{\n'.format(module))
 		for i in range(irq // 32):
-			f.write('\tgateway_t reg gateway_{}[32] = 0xffffffff;\n'.format(i))
-			f.write('\tpending_t reg pending_{}[32] = 0;\n'.format(i))
+			f.write('\treg gateway_{}[32] = 0xffffffff;\n'.format(i))
+			f.write('\tpending_t wire pending_{}[32];\n'.format(i))
 			f.write('\twire pending_{}_w[32];\n'.format(i))
 			for j in range(hart):
 				f.write('\treg enable_{}_hart_{}[32] = 0;\n'.format(i, j))
@@ -61,12 +61,24 @@ def gen_nsl(filename):
 			f.write('\treg irq_{}_priority[{}] = 0;\n'.format(i, int(math.log2(pri_level+1))))
 		for i in range(hart):
 			f.write('\treg threshold_hart_{}[{}] = 0;\n'.format(i, int(math.log2(pri_level+1))))
-			f.write('\treg claim_complete_hart_{}[32] = 0;\n'.format(i))
-			f.write('\treg hart_{}_inservice = 0;\n'.format(i))
-			f.write('\treg hart_{}_inservice_claim[32] = 0;\n'.format(i))
-			f.write('\treg hart_{}_in_intreq = 0;\n'.format(i))
-			f.write('\tproc_name hart_{};\n'.format(i))
-		f.write('\twire irq_0;\n\tirq_0 = 0;\n')
+			f.write('\treg hart_{}_claim_num[32] = 0;\n'.format(i))
+			f.write('\treg hart_{}_gateway_mask[32] = 0;\n'.format(i))
+			f.write('\treg hart_{}_gateway_sel[{}] = 0;\n'.format(i, max(int(math.log2(irq//32)), 1)))
+			f.write('\tproc_name hart_{}_claim(hart_{}_claim_num, hart_{}_gateway_mask, hart_{}_gateway_sel);\n'.format(i, i, i, i))
+			f.write('\tproc_name hart_{}_complete(hart_{}_claim_num, hart_{}_gateway_mask, hart_{}_gateway_sel);\n'.format(i, i, i, i))
+			f.write('\twire hart_{}_free;\n'.format(i))
+		f.write('\tproc_name acquire_irq;\n')
+		f.write('\treg irqs[32] = 0;\n')
+		f.write('\treg block_num[{}] = 0;\n'.format(max(int(math.log2(irq//32)), 1)))
+		f.write('\tproc_name int_gen(block_num, irqs);\n')
+		f.write('\treg claim_num[32];\n')
+		f.write('\treg gateway_mask[32];\n')
+		f.write('\treg gateway_sel[{}] = 0;\n'.format(max(int(math.log2(irq//32)), 1)))
+		f.write('\tproc_name intr_hart(claim_num, gateway_mask, gateway_sel);\n')
+		f.write('\twire irq_0;\n')
+		f.write('\tirq_0 = 0;\n')
+		for i in range(hart):
+			f.write('\thart_{}_free = ~(hart_{}_claim || hart_{}_complete);\n'.format(i, i, i))
 
 		for i in range(irq // 32):
 			f.write('\tpending_{}_w = {{'.format(i))
@@ -76,27 +88,70 @@ def gen_nsl(filename):
 
 		for i in range(irq // 32):
 			for j in range(32):
-				f.write('\tpending_{}[{}].pending := ((gateway_{}[{}].gateway & irq_{}) | pending_{}[{}].pending);\n'.format(i, j, i, j, j, i, j))
+				f.write('\tpending_{}[{}].pending = (gateway_{}[{}] & irq_{});\n'.format(i, j, i, j, j))
+
+		f.write('\tproc acquire_irq {\n')
+		f.write('\t\talt {\n')
+		for i in range(irq // 32):
+			f.write('\t\t\t(')
+			for j in range(32-1):
+				f.write('pending_{}[{}].pending|'.format(i, (i*32)+j))
+			f.write("pending_{}[{}].pending): int_gen({}, ".format(i, (i*32)+j+1, i))
+			f.write('{')
+			for j in range(32-1):
+				f.write('pending_{}[{}].pending,'.format(i, (i*32)+j))
+			f.write('pending_{}[{}]}});\n'.format(i, (i*32)+j+1))
+		f.write('\t\t}\n')
+		f.write('\t}\n')
+
+
+		f.write('\tproc int_gen {\n')
+		f.write('\t\twire mask[32];\n')
+		f.write('\t\tif(')
+		for i in range(hart-1):
+			f.write('hart_{}_free|'.format(i))
+		f.write('hart_{}_free) {{\n'.format(i+1))
+		f.write('\t\t\talt {\n')
+		for i in range(32):
+			f.write("\t\t\t\tirqs[{}]: {{intr_hart(32'(5'b{:05b} << block_num), mask, block_num); mask = {:#010x};}}\n".format(i, i, 0x1<<i))
+		f.write('\t\t\t}\n')
+
+		f.write('\t\t\tany {\n')
+		for i in range(irq//32):
+			f.write('\t\t\t\t(block_num == {}): gateway_{} := gateway_{} & ~mask;\n'.format(i, i, i))
+		f.write('\t\t\t}\n')
+
+		f.write('\t\t\tacquire_irq();\n')
+		f.write('\t\t}\n')
+		f.write('\t}\n')
+
+		f.write('\tproc intr_hart {\n')
+		f.write('\t\talt {\n')
+		for i in range(hart):
+			f.write('\t\t\thart_{}_free: {{hart_{}_claim(claim_num, gateway_mask, gateway_sel);}}\n'.format(i, i))
+		f.write('\t\t}\n')
+		f.write('\t}\n')
 
 		for i in range(hart):
-			f.write('\tproc hart_{} {{\n'.format(i))
-			f.write('\t\tif(!hart_{}_inservice && !hart_{}_in_intreq) {{\n'.format(i, i))
-			f.write('\t\t\talt {\n')
-			for j in range(irq // 32):
-				for k in range(32):
-					f.write('\t\t\t\t(enable_{}_hart_{}[{}] && pending_{}[{}].pending && (irq_{}_priority > threshold_hart_{})): {{hart_{}_in_intreq := 1; hart_{}_inservice_claim := {}; gateway_{}[{}].gateway := 0;}}\n'.format(j, i, k, j, k, k, i, i, i, j*32+k, j, k))
-			f.write('\t\t\t}\n')
-			f.write('\t\t}\n')
-
-			f.write('\t\tif(!hart_{}_in_intreq && hart_{}_inservice) {{\n'.format(i, i))
-			f.write('\t\t\thart_{}();\n'.format(((hart - i) // hart)))
-			f.write('\t\t}\n')
-			f.write('\t\tif(hart_{}_in_intreq && !hart_{}_inservice) {{\n'.format(i, i))
-			f.write('\t\t\texternal_interrupt_hart_{}();\n'.format(i))
-			f.write('\t\t}\n')
+			f.write('\tproc hart_{}_claim {{\n'.format(i))
+			f.write('\t\texternal_interrupt_hart_{}();\n'.format(i))
+			f.write("\t\tif(read && (addr == 32'(PLIC_CLAIM_COMPLETE_BASE_ADDR + {:#010x}))) {{hart_{}_complete(hart_{}_claim_num, hart_{}_gateway_mask, hart_{}_gateway_sel);}}\n".format(0x1000*i, i, i, i, i))
 			f.write('\t}\n')
 
-		f.write('\tfunc reset {hart_0();}\n')
+		for i in range(hart):
+			f.write('\tproc hart_{}_complete {{\n'.format(i))
+			f.write('\t\tfunc_self hart_{}_open_gateway();\n'.format(i))
+			f.write("\t\tif(write && (addr == 32'(PLIC_CLAIM_COMPLETE_BASE_ADDR + {:#010x}))) {{if(hart_{}_claim_num == wdata) {{finish(); hart_{}_open_gateway(); hart_{}_claim_num := 0x00000000;}}}}\n".format(0x1000*i, i, i, i))
+			f.write('\t}\n')
+
+			f.write('\tfunc hart_{}_open_gateway {{\n'.format(i))
+			f.write('\t\t\tany {\n')
+			for j in range(irq//32):
+				f.write('\t\t\t\t(hart_{}_gateway_sel == {}): gateway_{} := gateway_{} & ~hart_{}_gateway_mask;\n'.format(j, j, j, j, j))
+			f.write('\t\t\t}\n')
+			f.write('\t}\n')
+
+		f.write('\tfunc reset {acquire_irq();}\n')
 
 		f.write('\tfunc read {\n')
 		f.write('\t\tany {\n')
@@ -110,7 +165,7 @@ def gen_nsl(filename):
 
 		for i in range(hart):
 			f.write("\t\t\taddr == 32'(PLIC_THRESHOLD_BASE_ADDR + {:#010x}): {{rdata = 32'(threshold_hart_{}); ready();}}\n".format(0x1000*i, i))
-			f.write("\t\t\taddr == 32'(PLIC_CLAIM_COMPLETE_BASE_ADDR + {:#010x}): {{rdata = claim_complete_hart_{}; ready(); if(hart_{}_in_intreq) {{hart_{}_in_intreq := 0; hart_{}_inservice := 1;}}}}\n".format(0x1000*i, i, i, i, i))
+			f.write("\t\t\taddr == 32'(PLIC_CLAIM_COMPLETE_BASE_ADDR + {:#010x}): {{rdata = hart_{}_claim_num; ready();}}\n".format(0x1000*i, i))
 		f.write('\t\t\telse: load_access_fault();\n')
 		f.write('\t\t}\n')
 		f.write('\t}\n')
@@ -126,7 +181,7 @@ def gen_nsl(filename):
 				f.write("\t\t\taddr == 32'(PLIC_ENABLE_BASE_ADDR + {:#010x} + {:#010x}): {{enable_{}_hart_{} := wdata; ready();}}\n".format(0x80*j, i*4, i, j))
 		for i in range(hart):
 			f.write("\t\t\taddr == 32'(PLIC_THRESHOLD_BASE_ADDR + {:#010x}): {{threshold_hart_{} := wdata[{}:0]; ready();}}\n".format(0x1000*i, i, int(math.log2(pri_level+1))-1))
-			f.write("\t\t\taddr == 32'(PLIC_CLAIM_COMPLETE_BASE_ADDR + {:#010x}): {{claim_complete_hart_{} := wdata; ready(); if(hart_{}_inservice_claim == wdata) hart_{}_inservice := 0;}}\n".format(0x1000*i, i, i, i))
+			f.write("\t\t\taddr == 32'(PLIC_CLAIM_COMPLETE_BASE_ADDR + {:#010x}): {{; ready();}}\n".format(0x1000*i, i))
 		f.write('\t\t\telse: store_access_fault();\n')
 		f.write('\t\t}\n')
 		f.write('\t}\n')
