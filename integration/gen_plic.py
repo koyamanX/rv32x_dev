@@ -83,8 +83,8 @@ def gen_nsl(filename):
 		for i in range(irq // 32):
 			f.write('\tpending_{}_w = {{'.format(i))
 			for j in range(32-1):
-				f.write('pending_{}[{}].pending, '.format(i, (i*32)+j))
-			f.write('pending_{}[{}].pending}};\n'.format(i, (i*32)+j+1))
+				f.write('pending_{}[{}].pending, '.format(i, j))
+			f.write('pending_{}[{}].pending}};\n'.format(i, j+1))
 
 		for i in range(irq // 32):
 			for j in range(32):
@@ -95,12 +95,12 @@ def gen_nsl(filename):
 		for i in range(irq // 32):
 			f.write('\t\t\t(')
 			for j in range(32-1):
-				f.write('pending_{}[{}].pending|'.format(i, (i*32)+j))
-			f.write("pending_{}[{}].pending): int_gen({}, ".format(i, (i*32)+j+1, i))
+				f.write('pending_{}[{}].pending|'.format(i, j))
+			f.write("pending_{}[{}].pending): int_gen({}, ".format(i, j+1, i))
 			f.write('{')
 			for j in range(32-1):
-				f.write('pending_{}[{}].pending,'.format(i, (i*32)+j))
-			f.write('pending_{}[{}]}});\n'.format(i, (i*32)+j+1))
+				f.write('pending_{}[{}].pending,'.format(i, j))
+			f.write('pending_{}[{}]}});\n'.format(i, j+1))
 		f.write('\t\t}\n')
 		f.write('\t}\n')
 
