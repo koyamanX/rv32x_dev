@@ -57,8 +57,7 @@ def gen_nsl(filename):
 			f.write('\twire pending_{}_w[32];\n'.format(i))
 			for j in range(hart):
 				f.write('\treg enable_{}_hart_{}[32] = 0;\n'.format(i, j))
-		for i in range(irq):
-			f.write('\treg irq_{}_priority[{}] = 0;\n'.format(i, int(math.log2(pri_level+1))))
+		f.write('\tmem irq_priority[{}][{}] = {{0}};\n'.format(irq, int(math.log2(pri_level+1))))
 		for i in range(hart):
 			f.write('\treg threshold_hart_{}[{}] = 0;\n'.format(i, int(math.log2(pri_level+1))))
 			f.write('\treg hart_{}_claim_num[32] = 0;\n'.format(i))
@@ -70,7 +69,7 @@ def gen_nsl(filename):
 		f.write('\tproc_name acquire_irq;\n')
 		f.write('\treg irqs[32] = 0;\n')
 		f.write('\treg block_num[{}] = 0;\n'.format(max(int(math.log2(irq//32)), 1)))
-		f.write('\tproc_name int_gen(block_num, irqs);\n')
+		f.write('\tproc_name intr_gen(block_num, irqs);\n')
 		f.write('\treg claim_num[32];\n')
 		f.write('\treg gateway_mask[32];\n')
 		f.write('\treg gateway_sel[{}] = 0;\n'.format(max(int(math.log2(irq//32)), 1)))
@@ -96,7 +95,7 @@ def gen_nsl(filename):
 			f.write('\t\t\t(')
 			for j in range(32-1):
 				f.write('pending_{}[{}].pending|'.format(i, j))
-			f.write("pending_{}[{}].pending): int_gen({}, ".format(i, j+1, i))
+			f.write("pending_{}[{}].pending): intr_gen({}, ".format(i, j+1, i))
 			f.write('{')
 			for j in range(32-1):
 				f.write('pending_{}[{}].pending,'.format(i, j))
@@ -105,7 +104,7 @@ def gen_nsl(filename):
 		f.write('\t}\n')
 
 
-		f.write('\tproc int_gen {\n')
+		f.write('\tproc intr_gen {\n')
 		f.write('\t\twire mask[32];\n')
 		f.write('\t\tif(')
 		for i in range(hart-1):
@@ -116,20 +115,26 @@ def gen_nsl(filename):
 			f.write("\t\t\t\tirqs[{}]: {{intr_hart(32'(5'b{:05b} << block_num), mask, block_num); mask = {:#010x};}}\n".format(31-i, i, 0x1<<i))
 		f.write('\t\t\t}\n')
 
-		f.write('\t\t\tany {\n')
-		for i in range(irq//32):
-			f.write('\t\t\t\t(block_num == {}): gateway_{} := gateway_{} & ~mask;\n'.format(i, i, i))
-		f.write('\t\t\t}\n')
 
-		f.write('\t\t\tacquire_irq();\n')
 		f.write('\t\t}\n')
 		f.write('\t}\n')
 
 		f.write('\tproc intr_hart {\n')
+		for i in range(hart):
+			f.write('\t\twire enable_hart_{}[32];\n'.format(i))
 		f.write('\t\talt {\n')
 		for i in range(hart):
-			f.write('\t\t\thart_{}_free: {{hart_{}_claim(claim_num, gateway_mask, gateway_sel);}}\n'.format(i, i))
+			f.write('\t\t\thart_{}_free && (enable_hart_{}[claim_num[{}:0]] && (irq_priority[claim_num[{}:0]] > threshold_hart_{})): {{hart_{}_claim(claim_num, gateway_mask, gateway_sel); acquire_irq.invoke();}}\n'.format(i, i, int(math.log2(irq)-1), int(math.log2(irq)-1), i, i))
 		f.write('\t\t}\n')
+
+		f.write('\t\tany {\n')
+		for i in range(irq//32):
+			f.write('\t\t\t(gateway_sel == {}): {{gateway_{} := gateway_{} & ~gateway_mask; '.format(i, i, i))
+			for j in range(hart):
+				f.write('enable_hart_{} = enable_{}_hart_{}; '.format(j, i, j))
+			f.write('}\n')
+		f.write('\t\t}\n')
+
 		f.write('\t}\n')
 
 		for i in range(hart):
@@ -157,7 +162,7 @@ def gen_nsl(filename):
 		f.write('\t\tany {\n')
 		f.write("\t\t\taddr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000000): {rdata = 0x00000000; ready();}\n")
 		for i in range(1, irq):
-			f.write("\t\t\taddr == 32'(PLIC_PRIORITY_BASE_ADDR + {:#010x}): {{rdata = 32'(irq_{}_priority); ready();}}\n".format(i*4, i))
+			f.write("\t\t\taddr == 32'(PLIC_PRIORITY_BASE_ADDR + {:#010x}): {{rdata = 32'(irq_priority[{}]); ready();}}\n".format(i*4, i))
 		for i in range(irq // 32):
 			f.write("\t\t\taddr == 32'(PLIC_PENDING_BASE_ADDR + {:#010x}): {{rdata = pending_{}_w; ready();}}\n".format(i*4, i))
 			for j in range(hart):
@@ -174,7 +179,7 @@ def gen_nsl(filename):
 		f.write('\t\tany {\n')
 		f.write("\t\t\taddr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000000): {; ready();}\n")
 		for i in range(1, irq):
-			f.write("\t\t\taddr == 32'(PLIC_PRIORITY_BASE_ADDR + {:#010x}): {{irq_{}_priority := wdata[{}:0]; ready();}}\n".format(i*4, i, int(math.log2(pri_level+1))-1))
+			f.write("\t\t\taddr == 32'(PLIC_PRIORITY_BASE_ADDR + {:#010x}): {{irq_priority[{}] := wdata[{}:0]; ready();}}\n".format(i*4, i, int(math.log2(pri_level+1))-1))
 		for i in range(irq // 32):
 			f.write("\t\t\taddr == 32'(PLIC_PENDING_BASE_ADDR + {:#010x}): {{; ready();}}\n".format(i*4, i))
 			for j in range(hart):
