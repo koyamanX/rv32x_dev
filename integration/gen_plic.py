@@ -112,7 +112,7 @@ def gen_nsl(filename):
 		f.write('hart_{}_free) {{\n'.format(i+1))
 		f.write('\t\t\talt {\n')
 		for i in range(32):
-			f.write("\t\t\t\tirqs[{}]: {{intr_hart(32'(5'b{:05b} << block_num), mask, block_num); mask = {:#010x};}}\n".format(31-i, i, 0x1<<i))
+			f.write("\t\t\t\tirqs[{}]: {{intr_hart(32'(6'b{:06b} << block_num), mask, block_num); mask = {:#010x};}}\n".format(31-i, i+1, 0x1<<i))
 		f.write('\t\t\t}\n')
 
 
