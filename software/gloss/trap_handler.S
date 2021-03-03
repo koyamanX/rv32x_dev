@@ -1,4 +1,5 @@
 .globl trap_handler
+.weak trap_handler
 trap_handler:
 _save_all_register:
 	addi sp, sp, -0x80
