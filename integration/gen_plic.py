@@ -87,7 +87,7 @@ def gen_nsl(filename):
 
 		for i in range(irq // 32):
 			for j in range(32):
-				f.write('\tpending_{}[{}].pending = (gateway_{}[{}] & irq_{});\n'.format(i, j, i, j, j))
+				f.write('\tpending_{}[{}].pending = (gateway_{}[{}] & irq_{});\n'.format(i, j, i, j, (i*32)+j))
 
 		f.write('\tproc acquire_irq {\n')
 		f.write('\t\talt {\n')
