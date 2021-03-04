@@ -82,8 +82,8 @@ def gen_nsl(filename):
 		for i in range(irq // 32):
 			f.write('\tpending_{}_w = {{'.format(i))
 			for j in range(32-1):
-				f.write('pending_{}[{}].pending, '.format(i, j))
-			f.write('pending_{}[{}].pending}};\n'.format(i, j+1))
+				f.write('pending_{}[{}].pending, '.format(i, 31-j))
+			f.write('pending_{}[{}].pending}};\n'.format(i, 31-(j+1)))
 
 		for i in range(irq // 32):
 			for j in range(32):
@@ -94,12 +94,12 @@ def gen_nsl(filename):
 		for i in range(irq // 32):
 			f.write('\t\t\t(')
 			for j in range(32-1):
-				f.write('pending_{}[{}].pending|'.format(i, j))
-			f.write("pending_{}[{}].pending): intr_gen({}, ".format(i, j+1, i))
+				f.write('pending_{}[{}].pending|'.format(i, 31-j))
+			f.write("pending_{}[{}].pending): intr_gen({}, ".format(i, 31-(j+1), i))
 			f.write('{')
 			for j in range(32-1):
-				f.write('pending_{}[{}].pending,'.format(i, j))
-			f.write('pending_{}[{}]}});\n'.format(i, j+1))
+				f.write('pending_{}[{}].pending,'.format(i, 31-j))
+			f.write('pending_{}[{}]}});\n'.format(i, 31-(j+1)))
 		f.write('\t\t}\n')
 		f.write('\t}\n')
 
@@ -112,11 +112,13 @@ def gen_nsl(filename):
 		f.write('hart_{}_free) {{\n'.format(i+1))
 		f.write('\t\t\talt {\n')
 		for i in range(32):
-			f.write("\t\t\t\tirqs[{}]: {{intr_hart(32'(6'b{:06b} << block_num), mask, block_num); mask = {:#010x};}}\n".format(31-i, i+1, 0x1<<i))
+			f.write("\t\t\t\tirqs[{}]: {{intr_hart(32'(6'b{:06b} << block_num), mask, block_num); mask = {:#010x};}}\n".format(i, i+1, 0x1<<i))
 		f.write('\t\t\t}\n')
 
-
+		f.write('\t\t} else {\n')
+		f.write('\t\t\tacquire_irq();\n')
 		f.write('\t\t}\n')
+
 		f.write('\t}\n')
 
 		f.write('\tproc intr_hart {\n')
@@ -124,7 +126,8 @@ def gen_nsl(filename):
 			f.write('\t\twire enable_hart_{}[32];\n'.format(i))
 		f.write('\t\talt {\n')
 		for i in range(hart):
-			f.write('\t\t\thart_{}_free && (enable_hart_{}[claim_num[{}:0]] && (irq_priority[claim_num[{}:0]] > threshold_hart_{})): {{hart_{}_claim(claim_num, gateway_mask, gateway_sel); acquire_irq.invoke();}}\n'.format(i, i, int(math.log2(irq)-1), int(math.log2(irq)-1), i, i))
+			f.write('\t\t\thart_{}_free && (enable_hart_{}[claim_num[{}:0]-1] && (irq_priority[claim_num[{}:0]-1] > threshold_hart_{})): {{hart_{}_claim(claim_num, gateway_mask, gateway_sel); acquire_irq.invoke();}}\n'.format(i, i, int(math.log2(irq)-1)+1, int(math.log2(irq)-1)+1, i, i))
+		f.write('\t\t\telse: acquire_irq();\n')
 		f.write('\t\t}\n')
 
 		f.write('\t\tany {\n')
@@ -152,7 +155,7 @@ def gen_nsl(filename):
 			f.write('\tfunc hart_{}_open_gateway {{\n'.format(i))
 			f.write('\t\t\tany {\n')
 			for j in range(irq//32):
-				f.write('\t\t\t\t(hart_{}_gateway_sel == {}): gateway_{} := gateway_{} & ~hart_{}_gateway_mask;\n'.format(j, j, j, j, j))
+				f.write('\t\t\t\t(hart_{}_gateway_sel == {}): gateway_{} := gateway_{} | hart_{}_gateway_mask;\n'.format(j, j, j, j, j))
 			f.write('\t\t\t}\n')
 			f.write('\t}\n')
 

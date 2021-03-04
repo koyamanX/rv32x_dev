@@ -1,163 +1,241 @@
 #include "plic.h"
-
-/* PLIC only one context of machine mode external interrupt and
-	supports 32 interrupt source with maximum priority level of 7 */
 module plic {
-	priority_t reg priority[32] = 0;
-	reg pending[32] = 0;
-	reg enable[32] = 0;
-	threshold_t reg threshold = 0;
-	reg claim[32] = 0;
-	reg gateway[32] = 0xffff_ffff;
-	integer i, j;
-	proc_name interrupt_request_hart0();
-	reg in_service_claim[32] = 0;
-	proc_name interrupt_in_service(in_service_claim);
-	func_self claim_op;
-	wire complete[32];
-	func_self complete_op(complete);
-
-	proc interrupt_request_hart0 {
-		hart0_interrupt_reqeust();
-		if(claim_op) {
-			gateway := gateway & ~(0x1<<claim);
-			interrupt_in_service(claim);	
+	reg gateway_0[32] = 0xffffffff;
+	pending_t wire pending_0[32];
+	wire pending_0_w[32];
+	reg enable_0_hart_0[32] = 0;
+	reg enable_0_hart_1[32] = 0;
+	mem irq_priority[32][3] = {0};
+	reg threshold_hart_0[3] = 0;
+	reg hart_0_claim_num[32] = 0;
+	reg hart_0_gateway_mask[32] = 0;
+	reg hart_0_gateway_sel[1] = 0;
+	proc_name hart_0_claim(hart_0_claim_num, hart_0_gateway_mask, hart_0_gateway_sel);
+	proc_name hart_0_complete(hart_0_claim_num, hart_0_gateway_mask, hart_0_gateway_sel);
+	wire hart_0_free;
+	reg threshold_hart_1[3] = 0;
+	reg hart_1_claim_num[32] = 0;
+	reg hart_1_gateway_mask[32] = 0;
+	reg hart_1_gateway_sel[1] = 0;
+	proc_name hart_1_claim(hart_1_claim_num, hart_1_gateway_mask, hart_1_gateway_sel);
+	proc_name hart_1_complete(hart_1_claim_num, hart_1_gateway_mask, hart_1_gateway_sel);
+	wire hart_1_free;
+	proc_name acquire_irq;
+	reg irqs[32] = 0;
+	reg block_num[1] = 0;
+	proc_name intr_gen(block_num, irqs);
+	reg claim_num[32];
+	reg gateway_mask[32];
+	reg gateway_sel[1] = 0;
+	proc_name intr_hart(claim_num, gateway_mask, gateway_sel);
+	wire irq_0;
+	irq_0 = 0;
+	hart_0_free = ~(hart_0_claim || hart_0_complete);
+	hart_1_free = ~(hart_1_claim || hart_1_complete);
+	pending_0_w = {pending_0[31].pending, pending_0[30].pending, pending_0[29].pending, pending_0[28].pending, pending_0[27].pending, pending_0[26].pending, pending_0[25].pending, pending_0[24].pending, pending_0[23].pending, pending_0[22].pending, pending_0[21].pending, pending_0[20].pending, pending_0[19].pending, pending_0[18].pending, pending_0[17].pending, pending_0[16].pending, pending_0[15].pending, pending_0[14].pending, pending_0[13].pending, pending_0[12].pending, pending_0[11].pending, pending_0[10].pending, pending_0[9].pending, pending_0[8].pending, pending_0[7].pending, pending_0[6].pending, pending_0[5].pending, pending_0[4].pending, pending_0[3].pending, pending_0[2].pending, pending_0[1].pending, pending_0[0].pending};
+	pending_0[0].pending = (gateway_0[0] & irq_0);
+	pending_0[1].pending = (gateway_0[1] & irq_1);
+	pending_0[2].pending = (gateway_0[2] & irq_2);
+	pending_0[3].pending = (gateway_0[3] & irq_3);
+	pending_0[4].pending = (gateway_0[4] & irq_4);
+	pending_0[5].pending = (gateway_0[5] & irq_5);
+	pending_0[6].pending = (gateway_0[6] & irq_6);
+	pending_0[7].pending = (gateway_0[7] & irq_7);
+	pending_0[8].pending = (gateway_0[8] & irq_8);
+	pending_0[9].pending = (gateway_0[9] & irq_9);
+	pending_0[10].pending = (gateway_0[10] & irq_10);
+	pending_0[11].pending = (gateway_0[11] & irq_11);
+	pending_0[12].pending = (gateway_0[12] & irq_12);
+	pending_0[13].pending = (gateway_0[13] & irq_13);
+	pending_0[14].pending = (gateway_0[14] & irq_14);
+	pending_0[15].pending = (gateway_0[15] & irq_15);
+	pending_0[16].pending = (gateway_0[16] & irq_16);
+	pending_0[17].pending = (gateway_0[17] & irq_17);
+	pending_0[18].pending = (gateway_0[18] & irq_18);
+	pending_0[19].pending = (gateway_0[19] & irq_19);
+	pending_0[20].pending = (gateway_0[20] & irq_20);
+	pending_0[21].pending = (gateway_0[21] & irq_21);
+	pending_0[22].pending = (gateway_0[22] & irq_22);
+	pending_0[23].pending = (gateway_0[23] & irq_23);
+	pending_0[24].pending = (gateway_0[24] & irq_24);
+	pending_0[25].pending = (gateway_0[25] & irq_25);
+	pending_0[26].pending = (gateway_0[26] & irq_26);
+	pending_0[27].pending = (gateway_0[27] & irq_27);
+	pending_0[28].pending = (gateway_0[28] & irq_28);
+	pending_0[29].pending = (gateway_0[29] & irq_29);
+	pending_0[30].pending = (gateway_0[30] & irq_30);
+	pending_0[31].pending = (gateway_0[31] & irq_31);
+	proc acquire_irq {
+		alt {
+			(pending_0[31].pending|pending_0[30].pending|pending_0[29].pending|pending_0[28].pending|pending_0[27].pending|pending_0[26].pending|pending_0[25].pending|pending_0[24].pending|pending_0[23].pending|pending_0[22].pending|pending_0[21].pending|pending_0[20].pending|pending_0[19].pending|pending_0[18].pending|pending_0[17].pending|pending_0[16].pending|pending_0[15].pending|pending_0[14].pending|pending_0[13].pending|pending_0[12].pending|pending_0[11].pending|pending_0[10].pending|pending_0[9].pending|pending_0[8].pending|pending_0[7].pending|pending_0[6].pending|pending_0[5].pending|pending_0[4].pending|pending_0[3].pending|pending_0[2].pending|pending_0[1].pending|pending_0[0].pending): intr_gen(0, {pending_0[31].pending,pending_0[30].pending,pending_0[29].pending,pending_0[28].pending,pending_0[27].pending,pending_0[26].pending,pending_0[25].pending,pending_0[24].pending,pending_0[23].pending,pending_0[22].pending,pending_0[21].pending,pending_0[20].pending,pending_0[19].pending,pending_0[18].pending,pending_0[17].pending,pending_0[16].pending,pending_0[15].pending,pending_0[14].pending,pending_0[13].pending,pending_0[12].pending,pending_0[11].pending,pending_0[10].pending,pending_0[9].pending,pending_0[8].pending,pending_0[7].pending,pending_0[6].pending,pending_0[5].pending,pending_0[4].pending,pending_0[3].pending,pending_0[2].pending,pending_0[1].pending,pending_0[0]});
 		}
 	}
-	proc interrupt_in_service {
-		if(complete_op && (in_service_claim == complete)) {
-			gateway := gateway | (0x1<<claim);
-			finish();
+	proc intr_gen {
+		wire mask[32];
+		if(hart_0_free|hart_1_free) {
+			alt {
+				irqs[0]: {intr_hart(32'(6'b000001 << block_num), mask, block_num); mask = 0x00000001;}
+				irqs[1]: {intr_hart(32'(6'b000010 << block_num), mask, block_num); mask = 0x00000002;}
+				irqs[2]: {intr_hart(32'(6'b000011 << block_num), mask, block_num); mask = 0x00000004;}
+				irqs[3]: {intr_hart(32'(6'b000100 << block_num), mask, block_num); mask = 0x00000008;}
+				irqs[4]: {intr_hart(32'(6'b000101 << block_num), mask, block_num); mask = 0x00000010;}
+				irqs[5]: {intr_hart(32'(6'b000110 << block_num), mask, block_num); mask = 0x00000020;}
+				irqs[6]: {intr_hart(32'(6'b000111 << block_num), mask, block_num); mask = 0x00000040;}
+				irqs[7]: {intr_hart(32'(6'b001000 << block_num), mask, block_num); mask = 0x00000080;}
+				irqs[8]: {intr_hart(32'(6'b001001 << block_num), mask, block_num); mask = 0x00000100;}
+				irqs[9]: {intr_hart(32'(6'b001010 << block_num), mask, block_num); mask = 0x00000200;}
+				irqs[10]: {intr_hart(32'(6'b001011 << block_num), mask, block_num); mask = 0x00000400;}
+				irqs[11]: {intr_hart(32'(6'b001100 << block_num), mask, block_num); mask = 0x00000800;}
+				irqs[12]: {intr_hart(32'(6'b001101 << block_num), mask, block_num); mask = 0x00001000;}
+				irqs[13]: {intr_hart(32'(6'b001110 << block_num), mask, block_num); mask = 0x00002000;}
+				irqs[14]: {intr_hart(32'(6'b001111 << block_num), mask, block_num); mask = 0x00004000;}
+				irqs[15]: {intr_hart(32'(6'b010000 << block_num), mask, block_num); mask = 0x00008000;}
+				irqs[16]: {intr_hart(32'(6'b010001 << block_num), mask, block_num); mask = 0x00010000;}
+				irqs[17]: {intr_hart(32'(6'b010010 << block_num), mask, block_num); mask = 0x00020000;}
+				irqs[18]: {intr_hart(32'(6'b010011 << block_num), mask, block_num); mask = 0x00040000;}
+				irqs[19]: {intr_hart(32'(6'b010100 << block_num), mask, block_num); mask = 0x00080000;}
+				irqs[20]: {intr_hart(32'(6'b010101 << block_num), mask, block_num); mask = 0x00100000;}
+				irqs[21]: {intr_hart(32'(6'b010110 << block_num), mask, block_num); mask = 0x00200000;}
+				irqs[22]: {intr_hart(32'(6'b010111 << block_num), mask, block_num); mask = 0x00400000;}
+				irqs[23]: {intr_hart(32'(6'b011000 << block_num), mask, block_num); mask = 0x00800000;}
+				irqs[24]: {intr_hart(32'(6'b011001 << block_num), mask, block_num); mask = 0x01000000;}
+				irqs[25]: {intr_hart(32'(6'b011010 << block_num), mask, block_num); mask = 0x02000000;}
+				irqs[26]: {intr_hart(32'(6'b011011 << block_num), mask, block_num); mask = 0x04000000;}
+				irqs[27]: {intr_hart(32'(6'b011100 << block_num), mask, block_num); mask = 0x08000000;}
+				irqs[28]: {intr_hart(32'(6'b011101 << block_num), mask, block_num); mask = 0x10000000;}
+				irqs[29]: {intr_hart(32'(6'b011110 << block_num), mask, block_num); mask = 0x20000000;}
+				irqs[30]: {intr_hart(32'(6'b011111 << block_num), mask, block_num); mask = 0x40000000;}
+				irqs[31]: {intr_hart(32'(6'b100000 << block_num), mask, block_num); mask = 0x80000000;}
+			}
+		} else {
+			acquire_irq();
 		}
 	}
-
-	alt {
-		pending[1] && (priority[1].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0001; interrupt_request_hart0();}
-		pending[2] && (priority[2].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0002; interrupt_request_hart0();}
-		pending[3] && (priority[3].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0003; interrupt_request_hart0();}
-		pending[4] && (priority[4].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0004; interrupt_request_hart0();}
-		pending[5] && (priority[5].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0005; interrupt_request_hart0();}
-		pending[6] && (priority[6].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0006; interrupt_request_hart0();}
-		pending[7] && (priority[7].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0007; interrupt_request_hart0();}
-		pending[8] && (priority[8].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0008; interrupt_request_hart0();}
-		pending[9] && (priority[9].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0009; interrupt_request_hart0();}
-		pending[10] && (priority[10].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_000a; interrupt_request_hart0();}
-		pending[11] && (priority[11].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_000b; interrupt_request_hart0();}
-		pending[12] && (priority[12].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_000c; interrupt_request_hart0();}
-		pending[13] && (priority[13].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_000d; interrupt_request_hart0();}
-		pending[14] && (priority[14].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_000e; interrupt_request_hart0();}
-		pending[15] && (priority[15].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_000f; interrupt_request_hart0();}
-		pending[16] && (priority[16].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0010; interrupt_request_hart0();}
-		pending[17] && (priority[17].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0011; interrupt_request_hart0();}
-		pending[18] && (priority[18].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0012; interrupt_request_hart0();}
-		pending[19] && (priority[19].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0013; interrupt_request_hart0();}
-		pending[20] && (priority[20].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0014; interrupt_request_hart0();}
-		pending[21] && (priority[21].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0015; interrupt_request_hart0();}
-		pending[22] && (priority[22].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0016; interrupt_request_hart0();}
-		pending[23] && (priority[23].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0017; interrupt_request_hart0();}
-		pending[24] && (priority[24].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0018; interrupt_request_hart0();}
-		pending[25] && (priority[25].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_0019; interrupt_request_hart0();}
-		pending[26] && (priority[26].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_001a; interrupt_request_hart0();}
-		pending[27] && (priority[27].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_001b; interrupt_request_hart0();}
-		pending[28] && (priority[28].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_001c; interrupt_request_hart0();}
-		pending[29] && (priority[29].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_001d; interrupt_request_hart0();}
-		pending[30] && (priority[30].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_001e; interrupt_request_hart0();}
-		pending[31] && (priority[31].priority > threshold) && (!interrupt_request_hart0 && !interrupt_in_service): {claim := 0x0000_001f; interrupt_request_hart0();}
+	proc intr_hart {
+		wire enable_hart_0[32];
+		wire enable_hart_1[32];
+		alt {
+			hart_0_free && (enable_hart_0[claim_num[5:0]-1] && (irq_priority[claim_num[5:0]-1] > threshold_hart_0)): {hart_0_claim(claim_num, gateway_mask, gateway_sel); acquire_irq.invoke();}
+			hart_1_free && (enable_hart_1[claim_num[5:0]-1] && (irq_priority[claim_num[5:0]-1] > threshold_hart_1)): {hart_1_claim(claim_num, gateway_mask, gateway_sel); acquire_irq.invoke();}
+			else: acquire_irq();
+		}
+		any {
+			(gateway_sel == 0): {gateway_0 := gateway_0 & ~gateway_mask; enable_hart_0 = enable_0_hart_0; enable_hart_1 = enable_0_hart_1; }
+		}
 	}
-		
-	pending := gateway & (pending |
-		{(interrupt_req31 & enable[31]),
-		(interrupt_req30 & enable[30]),
-		(interrupt_req29 & enable[29]),
-		(interrupt_req28 & enable[28]),
-		(interrupt_req27 & enable[27]),
-		(interrupt_req26 & enable[26]),
-		(interrupt_req25 & enable[25]),
-		(interrupt_req24 & enable[24]),
-		(interrupt_req23 & enable[23]),
-		(interrupt_req22 & enable[22]),
-		(interrupt_req21 & enable[21]),
-		(interrupt_req20 & enable[20]),
-		(interrupt_req19 & enable[19]),
-		(interrupt_req18 & enable[18]),
-		(interrupt_req17 & enable[17]),
-		(interrupt_req16 & enable[16]),
-		(interrupt_req15 & enable[15]),
-		(interrupt_req14 & enable[14]),
-		(interrupt_req13 & enable[13]),
-		(interrupt_req12 & enable[12]),
-		(interrupt_req11 & enable[11]),
-		(interrupt_req10 & enable[10]),
-		(interrupt_req9 & enable[9]),
-		(interrupt_req8 & enable[8]),
-		(interrupt_req7 & enable[7]),
-		(interrupt_req6 & enable[6]),
-		(interrupt_req5 & enable[5]),
-		(interrupt_req4 & enable[4]),
-		(interrupt_req3 & enable[3]),
-		(interrupt_req2 & enable[2]),
-		(interrupt_req1 & enable[1]),
-		1'b0});
-
+	proc hart_0_claim {
+		external_interrupt_hart_0();
+		if(read && (addr == 32'(PLIC_CLAIM_COMPLETE_BASE_ADDR + 0x00000000))) {hart_0_complete(hart_0_claim_num, hart_0_gateway_mask, hart_0_gateway_sel);}
+	}
+	proc hart_1_claim {
+		external_interrupt_hart_1();
+		if(read && (addr == 32'(PLIC_CLAIM_COMPLETE_BASE_ADDR + 0x00001000))) {hart_1_complete(hart_1_claim_num, hart_1_gateway_mask, hart_1_gateway_sel);}
+	}
+	proc hart_0_complete {
+		func_self hart_0_open_gateway();
+		if(write && (addr == 32'(PLIC_CLAIM_COMPLETE_BASE_ADDR + 0x00000000))) {if(hart_0_claim_num == wdata) {finish(); hart_0_open_gateway(); hart_0_claim_num := 0x00000000;}}
+	}
+	func hart_0_open_gateway {
+			any {
+				(hart_0_gateway_sel == 0): gateway_0 := gateway_0 | hart_0_gateway_mask;
+			}
+	}
+	proc hart_1_complete {
+		func_self hart_1_open_gateway();
+		if(write && (addr == 32'(PLIC_CLAIM_COMPLETE_BASE_ADDR + 0x00001000))) {if(hart_1_claim_num == wdata) {finish(); hart_1_open_gateway(); hart_1_claim_num := 0x00000000;}}
+	}
+	func hart_1_open_gateway {
+			any {
+				(hart_0_gateway_sel == 0): gateway_0 := gateway_0 | hart_0_gateway_mask;
+			}
+	}
+	func reset {acquire_irq();}
 	func read {
 		any {
-			addr == PLIC_PRIORITY_REGISTER_BASE: rdata = 0x0000_0000;
-			PLIC_PRIORITY_REGISTER_BASE + 0x00_0004 <= addr
-				&& addr < PLIC_PRIORITY_REGISTER_BASE + PLIC_PRIORITY_REGISTER_SIZE:  {
-						j = 4;
-						generate(i = 1; i < PLIC_PRIORITY_REGISTER_LEN; i++) {
-							if(addr-PLIC_PRIORITY_REGISTER_BASE == j) rdata = 32'(priority[i].priority);
-							j = j + 4;
-						}
-					}
-			PLIC_PENDING_REGISTER_BASE <= addr
-				&& addr < PLIC_PENDING_REGISTER_BASE + PLIC_PENDING_REGISTER_SIZE:  {
-						rdata = pending;
-					}
-			PLIC_ENABLE_REGISTER_BASE <= addr
-				&& addr < PLIC_ENABLE_REGISTER_BASE + PLIC_ENABLE_REGISTER_SIZE:  {
-						rdata = enable;
-					}
-			PLIC_THRESHOLD_REGISTER_BASE <= addr
-				&& addr < PLIC_THRESHOLD_REGISTER_BASE + PLIC_THRESHOLD_REGISTER_SIZE:  {
-						rdata = 32'(threshold);
-					}
-			PLIC_CLAIM_REGISTER_BASE <= addr
-				&& addr < PLIC_CLAIM_REGISTER_BASE + PLIC_CLAIM_REGISTER_SIZE:  {
-						claim_op();
-						rdata = claim;
-					}
-			else: rdata = 0x0000_0000;
-
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000000): {rdata = 0x00000000; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000004): {rdata = 32'(irq_priority[1]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000008): {rdata = 32'(irq_priority[2]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x0000000c): {rdata = 32'(irq_priority[3]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000010): {rdata = 32'(irq_priority[4]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000014): {rdata = 32'(irq_priority[5]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000018): {rdata = 32'(irq_priority[6]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x0000001c): {rdata = 32'(irq_priority[7]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000020): {rdata = 32'(irq_priority[8]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000024): {rdata = 32'(irq_priority[9]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000028): {rdata = 32'(irq_priority[10]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x0000002c): {rdata = 32'(irq_priority[11]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000030): {rdata = 32'(irq_priority[12]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000034): {rdata = 32'(irq_priority[13]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000038): {rdata = 32'(irq_priority[14]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x0000003c): {rdata = 32'(irq_priority[15]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000040): {rdata = 32'(irq_priority[16]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000044): {rdata = 32'(irq_priority[17]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000048): {rdata = 32'(irq_priority[18]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x0000004c): {rdata = 32'(irq_priority[19]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000050): {rdata = 32'(irq_priority[20]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000054): {rdata = 32'(irq_priority[21]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000058): {rdata = 32'(irq_priority[22]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x0000005c): {rdata = 32'(irq_priority[23]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000060): {rdata = 32'(irq_priority[24]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000064): {rdata = 32'(irq_priority[25]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000068): {rdata = 32'(irq_priority[26]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x0000006c): {rdata = 32'(irq_priority[27]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000070): {rdata = 32'(irq_priority[28]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000074): {rdata = 32'(irq_priority[29]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000078): {rdata = 32'(irq_priority[30]); ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x0000007c): {rdata = 32'(irq_priority[31]); ready();}
+			addr == 32'(PLIC_PENDING_BASE_ADDR + 0x00000000): {rdata = pending_0_w; ready();}
+			addr == 32'(PLIC_ENABLE_BASE_ADDR + 0x00000000 + 0x00000000): {rdata = enable_0_hart_0; ready();}
+			addr == 32'(PLIC_ENABLE_BASE_ADDR + 0x00000080 + 0x00000000): {rdata = enable_0_hart_1; ready();}
+			addr == 32'(PLIC_THRESHOLD_BASE_ADDR + 0x00000000): {rdata = 32'(threshold_hart_0); ready();}
+			addr == 32'(PLIC_CLAIM_COMPLETE_BASE_ADDR + 0x00000000): {rdata = hart_0_claim_num; ready();}
+			addr == 32'(PLIC_THRESHOLD_BASE_ADDR + 0x00001000): {rdata = 32'(threshold_hart_1); ready();}
+			addr == 32'(PLIC_CLAIM_COMPLETE_BASE_ADDR + 0x00001000): {rdata = hart_1_claim_num; ready();}
+			else: load_access_fault();
 		}
-		ready();
 	}
 	func write {
 		any {
-			addr == PLIC_PRIORITY_REGISTER_BASE: ;
-			PLIC_PRIORITY_REGISTER_BASE + 0x00_0004 <= addr
-				&& addr < PLIC_PRIORITY_REGISTER_BASE + PLIC_PRIORITY_REGISTER_SIZE:  {
-						j = 4;
-						generate(i = 1; i < PLIC_PRIORITY_REGISTER_LEN; i++) {
-							if(addr-PLIC_PRIORITY_REGISTER_BASE == j) priority[i].priority := wdata[2:0];
-							j = j + 4;
-						}
-					}
-			PLIC_ENABLE_REGISTER_BASE <= addr
-				&& addr < PLIC_ENABLE_REGISTER_BASE + PLIC_ENABLE_REGISTER_SIZE:  {
-						enable := wdata;
-					}
-			PLIC_THRESHOLD_REGISTER_BASE <= addr
-				&& addr < PLIC_THRESHOLD_REGISTER_BASE + PLIC_THRESHOLD_REGISTER_SIZE:  {
-						threshold := wdata[2:0];
-					}
-			PLIC_CLAIM_REGISTER_BASE <= addr
-				&& addr < PLIC_CLAIM_REGISTER_BASE + PLIC_CLAIM_REGISTER_SIZE:  {
-						claim := if(in_service_claim == wdata) 0x0000_0000 else in_service_claim;
-						complete_op(wdata);
-					}
-
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000000): {; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000004): {irq_priority[1] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000008): {irq_priority[2] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x0000000c): {irq_priority[3] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000010): {irq_priority[4] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000014): {irq_priority[5] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000018): {irq_priority[6] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x0000001c): {irq_priority[7] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000020): {irq_priority[8] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000024): {irq_priority[9] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000028): {irq_priority[10] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x0000002c): {irq_priority[11] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000030): {irq_priority[12] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000034): {irq_priority[13] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000038): {irq_priority[14] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x0000003c): {irq_priority[15] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000040): {irq_priority[16] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000044): {irq_priority[17] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000048): {irq_priority[18] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x0000004c): {irq_priority[19] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000050): {irq_priority[20] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000054): {irq_priority[21] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000058): {irq_priority[22] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x0000005c): {irq_priority[23] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000060): {irq_priority[24] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000064): {irq_priority[25] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000068): {irq_priority[26] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x0000006c): {irq_priority[27] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000070): {irq_priority[28] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000074): {irq_priority[29] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x00000078): {irq_priority[30] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PRIORITY_BASE_ADDR + 0x0000007c): {irq_priority[31] := wdata[2:0]; ready();}
+			addr == 32'(PLIC_PENDING_BASE_ADDR + 0x00000000): {; ready();}
+			addr == 32'(PLIC_ENABLE_BASE_ADDR + 0x00000000 + 0x00000000): {enable_0_hart_0 := wdata; ready();}
+			addr == 32'(PLIC_ENABLE_BASE_ADDR + 0x00000080 + 0x00000000): {enable_0_hart_1 := wdata; ready();}
+			addr == 32'(PLIC_THRESHOLD_BASE_ADDR + 0x00000000): {threshold_hart_0 := wdata[2:0]; ready();}
+			addr == 32'(PLIC_CLAIM_COMPLETE_BASE_ADDR + 0x00000000): {; ready();}
+			addr == 32'(PLIC_THRESHOLD_BASE_ADDR + 0x00001000): {threshold_hart_1 := wdata[2:0]; ready();}
+			addr == 32'(PLIC_CLAIM_COMPLETE_BASE_ADDR + 0x00001000): {; ready();}
+			else: store_access_fault();
 		}
-		ready();
 	}
 }

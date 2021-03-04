@@ -21,6 +21,7 @@ module rv32x_integration {
 		rom.reset();
 		rv32x_mmio_dev.reset();
 		rv32x_sdspi.reset();
+		rv32x_plic.reset();
 	}
 	func dmem_ready {
 		core.rdata = rdata;
@@ -47,7 +48,7 @@ module rv32x_integration {
 			CLINT_BASE <= core.daddr && core.daddr < CLINT_BASE + CLINT_LENGTH:	rv32x_clint.read((core.daddr - CLINT_BASE)[15:0]);
 			AHB_LITE_IO0_BASE <= core.daddr && core.daddr < AHB_LITE_IO0_BASE + AHB_LITE_IO0_LENGTH: rv32x_mmio_dev.read((core.daddr - AHB_LITE_IO0_BASE)[15:0]);
 			AHB_LITE_IO1_BASE <= core.daddr && core.daddr < AHB_LITE_IO1_BASE + AHB_LITE_IO1_LENGTH: rv32x_sdspi.read((core.daddr - AHB_LITE_IO1_BASE)[11:0], core.dbyteen);
-			PLIC_BASE <= core.daddr && core.daddr < PLIC_BASE + PLIC_LENGTH: rv32x_plic.read((core.daddr - PLIC_BASE)[23:0]);
+			PLIC_BASE <= core.daddr && core.daddr < PLIC_BASE + PLIC_LENGTH: rv32x_plic.read((core.daddr));
 			else: dmem_read(core.daddr, core.dbyteen);
 		}
 	}
@@ -56,7 +57,7 @@ module rv32x_integration {
 			CLINT_BASE <= core.daddr && core.daddr < CLINT_BASE + CLINT_LENGTH:	rv32x_clint.write((core.daddr - CLINT_BASE)[15:0], core.wdata);
 			AHB_LITE_IO0_BASE <= core.daddr && core.daddr < AHB_LITE_IO0_BASE + AHB_LITE_IO0_LENGTH: rv32x_mmio_dev.write((core.daddr - AHB_LITE_IO0_BASE)[15:0], core.wdata);
 			AHB_LITE_IO1_BASE <= core.daddr && core.daddr < AHB_LITE_IO1_BASE + AHB_LITE_IO1_LENGTH: rv32x_sdspi.write((core.daddr - AHB_LITE_IO1_BASE)[11:0], core.dbyteen, core.wdata);
-			PLIC_BASE <= core.daddr && core.daddr < PLIC_BASE + PLIC_LENGTH: rv32x_plic.write((core.daddr - PLIC_BASE)[23:0], core.wdata);
+			PLIC_BASE <= core.daddr && core.daddr < PLIC_BASE + PLIC_LENGTH: rv32x_plic.write(core.daddr, core.wdata);
 			else: dmem_write(core.daddr, core.dbyteen, core.wdata);
 		}
 	}
@@ -89,9 +90,15 @@ module rv32x_integration {
 	func rv32x_clint.software_interrupt_hart0 {
 		core.machine_software_interrupt_req();
 	}
-	func rv32x_plic.hart0_interrupt_reqeust {
-		// !FIXME: redirect plic machine external interrput to cpu's supervisor external interrput
+	func rv32x_plic.external_interrupt_hart_0 {
+		core.machine_external_interrupt_req();
+	}
+	func rv32x_plic.external_interrupt_hart_1 {
 		core.supervisor_external_interrupt_req();
+	}
+	func rv32x_plic.store_access_fault {
+	}
+	func rv32x_plic.load_access_fault {
 	}
 	func rv32x_sdspi.store_amo_access_fault {
 	}
@@ -108,10 +115,10 @@ module rv32x_integration {
 		core.dmem_ready();
 	}
 	func rv32x_mmio_dev.uart_sender_interrupt_req {
-		rv32x_plic.interrupt_req2();
+		rv32x_plic.irq_2();
 	}
 	func rv32x_mmio_dev.uart_receiver_interrupt_req {
-		rv32x_plic.interrupt_req10();
+		rv32x_plic.irq_10();
 	}
 	TXD = rv32x_mmio_dev.TXD;
 	rv32x_mmio_dev.RXD = RXD;
