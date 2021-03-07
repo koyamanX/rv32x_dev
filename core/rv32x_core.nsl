@@ -1144,6 +1144,27 @@ module rv32x_core {
 	}
 
 	/* PMAs */
+	func ic.pma_check {
+		imem_pma_check(ic.pma_addr);
+	}
+	func imem_pma_executable {
+		ic.pma_executable();
+	}
+	func imem_pma_readable {
+		ic.pma_readable();
+	}
+	func imem_pma_word {
+		ic.pma_word();
+	}
+	func imem_pma_halfword {
+		ic.pma_halfword();
+	}
+	func imem_pma_cacheable {
+		ic.pma_cacheable();
+	}
+	func imem_pma_empty {
+		ic.pma_empty();
+	}
 	func lsu.pma_check {
 		dmem_pma_check(lsu.pma_addr);
 	}

@@ -51,6 +51,39 @@ module rv32x_integration {
 	/* End of Interconnect */
 
 	/* PMA settings per hart */
+	func core.imem_pma_check {
+		any {
+			/* BOOTROM_BASE <= rv32x.imem_pma_addr && */ core.imem_pma_addr < BOOTROM_BASE+BOOTROM_LENGTH: {
+				core.imem_pma_executable();
+				core.imem_pma_readable();
+				core.imem_pma_word();
+				core.imem_pma_halfword();
+				core.imem_pma_cacheable();
+			}
+			TCM0_BASE <= core.imem_pma_addr && core.imem_pma_addr < TCM0_BASE + TCM0_LENGTH: {
+				core.imem_pma_executable();
+				core.imem_pma_readable();
+				core.imem_pma_word();
+				core.imem_pma_halfword();
+				core.imem_pma_cacheable();
+			}
+			TCM1_BASE <= core.imem_pma_addr && core.imem_pma_addr < TCM1_BASE + TCM1_LENGTH: {
+				core.imem_pma_executable();
+				core.imem_pma_readable();
+				core.imem_pma_word();
+				core.imem_pma_halfword();
+				core.imem_pma_cacheable();
+			}
+			SDRAM_BASE <= core.imem_pma_addr && core.imem_pma_addr < SDRAM_BASE + SDRAM_LENGTH: {
+				core.imem_pma_executable();
+				core.imem_pma_readable();
+				core.imem_pma_word();
+				core.imem_pma_halfword();
+				core.imem_pma_cacheable();
+			}
+			else: core.imem_pma_empty();
+		}
+	}
 	func core.dmem_pma_check {
 		/* all location are mapped & cacheable for simulation purpose */
 		any {

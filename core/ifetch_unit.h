@@ -55,5 +55,14 @@ declare ifetch_unit {
 	input mem_rdata[128];
 	func_out mem_read(mem_addr);
 	func_in mem_ready;
+
+	output pma_addr[32];
+	func_out pma_check(pma_addr);
+	func_in pma_executable();
+	func_in pma_readable();
+	func_in pma_word();
+	func_in pma_halfword();
+	func_in pma_cacheable();
+	func_in pma_empty();
 }
 #endif
