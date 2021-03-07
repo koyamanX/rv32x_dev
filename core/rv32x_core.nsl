@@ -1130,9 +1130,6 @@ module rv32x_core {
 	func rv32x.amo_exe {
 		lsu.amo_exe(rv32x.amo_src, rv32x.amo_addr, rv32x.amo_funct5, rv32x.amo_aq, rv32x.amo_rl, rv32x.amo_width);
 	}
-	func lsu.pma_check {
-		pma_check_dmem(lsu.pma_adrs);
-	}
 	func lsu.store_amo_access_fault {
 		store_amo_access_fault();
 	}
@@ -1145,12 +1142,36 @@ module rv32x_core {
 	func lsu.store_amo_page_fault {
 		store_amo_page_fault();
 	}
-	func dmem_cacheable {
+
+	/* PMAs */
+	func lsu.pma_check {
+		dmem_pma_check(lsu.pma_addr);
+	}
+	func dmem_pma_writable {
+		lsu.pma_writable();
+	}
+	func dmem_pma_readable {
+		lsu.pma_readable();
+	}
+	func dmem_pma_atomic {
+		lsu.pma_atomic();
+	}
+	func dmem_pma_word {
+		lsu.pma_word();
+	}
+	func dmem_pma_halfword {
+		lsu.pma_halfword();
+	}
+	func dmem_pma_byte {
+		lsu.pma_byte();
+	}
+	func dmem_pma_cacheable {
 		lsu.pma_cacheable();
 	}
-	func dmem_empty {
+	func dmem_pma_empty {
 		lsu.pma_empty();
 	}
+
 	func lsu.mem_read {
 		reg lsu_read_cnt[3] = 0;
 		mem lsu_read_data[4][32];

@@ -65,10 +65,16 @@ declare load_store_unit {
 	func_out utlb_access_fault();
 
 	/* Cache Unit <-> Memory Interface */
-	output pma_adrs[32];
-	func_out pma_check(pma_adrs);
-	func_in pma_empty();
+	output pma_addr[32];
+	func_out pma_check(pma_addr);
+	func_in pma_writable();
+	func_in pma_readable();
+	func_in pma_atomic();
+	func_in pma_word();
+	func_in pma_halfword();
+	func_in pma_byte();
 	func_in pma_cacheable();
+	func_in pma_empty();
 
 	/* use 32 bit physical address even with sv32 enabled */
 	output mem_adrs[32];

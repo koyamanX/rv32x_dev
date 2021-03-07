@@ -53,17 +53,58 @@ module rv32x_integration {
 	/* End of Interconnect */
 
 	/* PMA settings per hart */
-	func core.pma_check_dmem {
+	func core.dmem_pma_check {
 		/* all location are mapped & cacheable for simulation purpose */
 		any {
-			CLINT_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < CLINT_BASE + CLINT_LENGTH: ;	
-			IO0_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < IO0_BASE + IO0_LENGTH: ;
-			IO1_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < IO1_BASE + IO1_LENGTH: ;
-			PLIC_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < PLIC_BASE + PLIC_LENGTH: ;
-			TCM0_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < TCM0_BASE + TCM0_LENGTH: ;
-			TCM1_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < TCM1_BASE + TCM1_LENGTH: ;
-			SDRAM_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < SDRAM_BASE + SDRAM_LENGTH: ;
-			else: core.dmem_empty();
+			CLINT_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < CLINT_BASE + CLINT_LENGTH: {
+				core.dmem_pma_writable();
+				core.dmem_pma_readable();
+				core.dmem_pma_atomic();
+				core.dmem_pma_word();
+			}
+			IO0_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < IO0_BASE + IO0_LENGTH: {
+				core.dmem_pma_writable();
+				core.dmem_pma_readable();
+				core.dmem_pma_atomic();
+				core.dmem_pma_word();
+			}
+			IO1_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < IO1_BASE + IO1_LENGTH: {
+				core.dmem_pma_writable();
+				core.dmem_pma_readable();
+				core.dmem_pma_atomic();
+				core.dmem_pma_word();
+			}
+			PLIC_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < PLIC_BASE + PLIC_LENGTH: {
+				core.dmem_pma_writable();
+				core.dmem_pma_readable();
+				core.dmem_pma_atomic();
+				core.dmem_pma_word();
+			}
+			TCM0_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < TCM0_BASE + TCM0_LENGTH: {
+				core.dmem_pma_writable();
+				core.dmem_pma_readable();
+				core.dmem_pma_atomic();
+				core.dmem_pma_word();
+				core.dmem_pma_halfword();
+				core.dmem_pma_byte();
+			}
+			TCM1_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < TCM1_BASE + TCM1_LENGTH: {
+				core.dmem_pma_writable();
+				core.dmem_pma_readable();
+				core.dmem_pma_atomic();
+				core.dmem_pma_word();
+				core.dmem_pma_halfword();
+				core.dmem_pma_byte();
+			}
+			SDRAM_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < SDRAM_BASE + SDRAM_LENGTH: {
+				core.dmem_pma_writable();
+				core.dmem_pma_readable();
+				core.dmem_pma_atomic();
+				core.dmem_pma_word();
+				core.dmem_pma_halfword();
+				core.dmem_pma_byte();
+			}
+			else: core.dmem_pma_empty();
 		}
 	}
 	/* BUS ready signals */

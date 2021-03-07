@@ -21,9 +21,15 @@ declare rv32x_core {
 
 	/* PMAs */
 	output dmem_pma_addr[32];
-	func_out pma_check_dmem(dmem_pma_addr);
-	func_in dmem_cacheable();
-	func_in dmem_empty();
+	func_out dmem_pma_check(dmem_pma_addr);
+	func_in dmem_pma_writable();
+	func_in dmem_pma_readable();
+	func_in dmem_pma_atomic();
+	func_in dmem_pma_word();
+	func_in dmem_pma_halfword();
+	func_in dmem_pma_byte();
+	func_in dmem_pma_cacheable();
+	func_in dmem_pma_empty();
 
 	/* Interrupts */
 	func_in machine_timer_interrupt_req();
