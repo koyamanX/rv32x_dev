@@ -46,8 +46,8 @@ module rv32x_integration {
 	func core.dmem_read {
 		any {
 			CLINT_BASE <= core.daddr && core.daddr < CLINT_BASE + CLINT_LENGTH:	rv32x_clint.read((core.daddr - CLINT_BASE)[15:0]);
-			AHB_LITE_IO0_BASE <= core.daddr && core.daddr < AHB_LITE_IO0_BASE + AHB_LITE_IO0_LENGTH: rv32x_mmio_dev.read((core.daddr - AHB_LITE_IO0_BASE)[15:0]);
-			AHB_LITE_IO1_BASE <= core.daddr && core.daddr < AHB_LITE_IO1_BASE + AHB_LITE_IO1_LENGTH: rv32x_sdspi.read((core.daddr - AHB_LITE_IO1_BASE)[11:0], core.dbyteen);
+			IO0_BASE <= core.daddr && core.daddr < IO0_BASE + IO0_LENGTH: rv32x_mmio_dev.read((core.daddr - IO0_BASE)[15:0]);
+			IO1_BASE <= core.daddr && core.daddr < IO1_BASE + IO1_LENGTH: rv32x_sdspi.read((core.daddr - IO1_BASE)[11:0], core.dbyteen);
 			PLIC_BASE <= core.daddr && core.daddr < PLIC_BASE + PLIC_LENGTH: rv32x_plic.read((core.daddr));
 			else: dmem_read(core.daddr, core.dbyteen);
 		}
@@ -55,8 +55,8 @@ module rv32x_integration {
 	func core.dmem_write {
 		any {
 			CLINT_BASE <= core.daddr && core.daddr < CLINT_BASE + CLINT_LENGTH:	rv32x_clint.write((core.daddr - CLINT_BASE)[15:0], core.wdata);
-			AHB_LITE_IO0_BASE <= core.daddr && core.daddr < AHB_LITE_IO0_BASE + AHB_LITE_IO0_LENGTH: rv32x_mmio_dev.write((core.daddr - AHB_LITE_IO0_BASE)[15:0], core.wdata);
-			AHB_LITE_IO1_BASE <= core.daddr && core.daddr < AHB_LITE_IO1_BASE + AHB_LITE_IO1_LENGTH: rv32x_sdspi.write((core.daddr - AHB_LITE_IO1_BASE)[11:0], core.dbyteen, core.wdata);
+			IO0_BASE <= core.daddr && core.daddr < IO0_BASE + IO0_LENGTH: rv32x_mmio_dev.write((core.daddr - IO0_BASE)[15:0], core.wdata);
+			IO1_BASE <= core.daddr && core.daddr < IO1_BASE + IO1_LENGTH: rv32x_sdspi.write((core.daddr - IO1_BASE)[11:0], core.dbyteen, core.wdata);
 			PLIC_BASE <= core.daddr && core.daddr < PLIC_BASE + PLIC_LENGTH: rv32x_plic.write(core.daddr, core.wdata);
 			else: dmem_write(core.daddr, core.dbyteen, core.wdata);
 		}
@@ -65,8 +65,8 @@ module rv32x_integration {
 		/* all location are mapped & cacheable for simulation purpose */
 		any {
 			CLINT_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < CLINT_BASE + CLINT_LENGTH: ;	
-			AHB_LITE_IO0_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < AHB_LITE_IO0_BASE + AHB_LITE_IO0_LENGTH: ;
-			AHB_LITE_IO1_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < AHB_LITE_IO1_BASE + AHB_LITE_IO1_LENGTH: ;
+			IO0_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < IO0_BASE + IO0_LENGTH: ;
+			IO1_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < IO1_BASE + IO1_LENGTH: ;
 			PLIC_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < PLIC_BASE + PLIC_LENGTH: ;
 			TCM_IMEM_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < TCM_DMEM_BASE + TCM_DMEM_LENGTH: ; /*core.dmem_cacheable(); */
 			else: core.dmem_empty();
