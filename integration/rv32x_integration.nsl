@@ -23,18 +23,7 @@ module rv32x_integration {
 		rv32x_sdspi.reset();
 		rv32x_plic.reset();
 	}
-	func dmem_ready {
-		core.rdata = rdata;
-		core.dmem_ready();
-	}
-	func imem_ready {
-		core.inst = inst;
-		core.imem_ready();
-	}
-	func rom.ready {
-		core.inst = rom.rdata;
-		core.imem_ready();
-	}
+	/* Interconnect */
 	func core.imem_read {
 		any {
 			/* BOOTROM_BASE <= rv32x.iaddr && */
@@ -61,6 +50,9 @@ module rv32x_integration {
 			else: dmem_write(core.daddr, core.dbyteen, core.wdata);
 		}
 	}
+	/* End of Interconnect */
+
+	/* PMA settings per hart */
 	func core.pma_check_dmem {
 		/* all location are mapped & cacheable for simulation purpose */
 		any {
@@ -74,6 +66,19 @@ module rv32x_integration {
 			else: core.dmem_empty();
 		}
 	}
+	/* BUS ready signals */
+	func dmem_ready {
+		core.rdata = rdata;
+		core.dmem_ready();
+	}
+	func imem_ready {
+		core.inst = inst;
+		core.imem_ready();
+	}
+	func rom.ready {
+		core.inst = rom.rdata;
+		core.imem_ready();
+	}
 	func rv32x_plic.ready {
 		core.rdata = rv32x_plic.rdata;
 		core.dmem_ready();
@@ -86,6 +91,11 @@ module rv32x_integration {
 		core.rdata = rv32x_sdspi.rdata;
 		core.dmem_ready();
 	}
+	func rv32x_mmio_dev.ready {
+		core.rdata = rv32x_mmio_dev.rdata;
+		core.dmem_ready();
+	}
+	/* BUS interrupt signals */
 	func rv32x_clint.timer_interrupt_hart0 {
 		core.machine_timer_interrupt_req();
 	}
@@ -98,6 +108,13 @@ module rv32x_integration {
 	func rv32x_plic.external_interrupt_hart_1 {
 		core.supervisor_external_interrupt_req();
 	}
+	func rv32x_mmio_dev.uart_sender_interrupt_req {
+		rv32x_plic.irq_2();
+	}
+	func rv32x_mmio_dev.uart_receiver_interrupt_req {
+		rv32x_plic.irq_10();
+	}
+	/* BUS error signals */
 	func rv32x_plic.store_access_fault {
 	}
 	func rv32x_plic.load_access_fault {
@@ -107,27 +124,17 @@ module rv32x_integration {
 	func rv32x_sdspi.load_access_fault {
 	}
 	func rv32x_clint.store_access_fault {
-		//rv32x.not_mapped();
 	}
 	func rv32x_clint.load_access_fault {
-		//rv32x.not_mapped();
 	}
-	func rv32x_mmio_dev.ready {
-		core.rdata = rv32x_mmio_dev.rdata;
-		core.dmem_ready();
-	}
-	func rv32x_mmio_dev.uart_sender_interrupt_req {
-		rv32x_plic.irq_2();
-	}
-	func rv32x_mmio_dev.uart_receiver_interrupt_req {
-		rv32x_plic.irq_10();
-	}
+	/* Device connections */
 	TXD = rv32x_mmio_dev.TXD;
 	rv32x_mmio_dev.RXD = RXD;
 	MOSI = rv32x_sdspi.MOSI;
 	SCLK = rv32x_sdspi.SCLK;
 	CS = rv32x_sdspi.CS;
 	rv32x_sdspi.MISO = MISO;
+
 #ifdef DEBUG
 	debug_x0  = core.debug_x0;
 	debug_x1  = core.debug_x1;
