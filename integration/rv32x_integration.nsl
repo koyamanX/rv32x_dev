@@ -68,7 +68,9 @@ module rv32x_integration {
 			IO0_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < IO0_BASE + IO0_LENGTH: ;
 			IO1_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < IO1_BASE + IO1_LENGTH: ;
 			PLIC_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < PLIC_BASE + PLIC_LENGTH: ;
-			TCM_IMEM_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < TCM_DMEM_BASE + TCM_DMEM_LENGTH: ; /*core.dmem_cacheable(); */
+			TCM0_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < TCM0_BASE + TCM0_LENGTH: ;
+			TCM1_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < TCM1_BASE + TCM1_LENGTH: ;
+			SDRAM_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < SDRAM_BASE + SDRAM_LENGTH: ;
 			else: core.dmem_empty();
 		}
 	}
