@@ -18,9 +18,5 @@ SECTIONS
   .bss : { *(.bss) } > ROM
   . = ALIGN(0x4);
   __bss_end = .;
-  .zero : { 
-	  FILL(0x0); 
-	  . = 0x400-__bss_end - 1;
-	  BYTE(0x00);
-   } > ROM
+  .dtb : { *(.dtb) } > ROM
 }
