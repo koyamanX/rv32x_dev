@@ -31,6 +31,11 @@ declare rv32x_core {
 	func_in dmem_pma_cacheable();
 	func_in dmem_pma_empty();
 
+	/* BUS Errors */
+	func_in bus_load_access_fault();
+	func_in bus_store_access_fault();
+	func_in bus_instruction_access_fault();
+
 	/* Interrupts */
 	func_in machine_timer_interrupt_req();
 	func_in machine_software_interrupt_req();
