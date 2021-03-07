@@ -1,4 +1,5 @@
 #include "bootrom.h"
+#include "opcode.h"
 
 module bootrom {
 	mem rom[4096][8];
@@ -7,7 +8,11 @@ module bootrom {
 		_readmemh("bootrom.hex", rom);
 	}
 	func read {
-		rdata = {rom[{addr[11:2],2'b11}], rom[{addr[11:2],2'b10}], rom[{addr[11:2],2'b01}], rom[{addr[11:2],2'b00}]};
+		any {
+			byteen == MEM_WORD: rdata = {rom[{addr[11:2],2'b11}], rom[{addr[11:2],2'b10}], rom[{addr[11:2],2'b01}], rom[{addr[11:2],2'b00}]};
+			byteen == MEM_HALFWORD: rdata = {0x0000, rom[{addr[11:2],2'b01}], rom[{addr[11:2],2'b00}]};
+			byteen == MEM_BYTE: rdata = {0x000000, rom[{addr[11:2],2'b00}]};
+		}
 		ready();
 	}
 }
