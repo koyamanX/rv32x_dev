@@ -4,6 +4,9 @@
 #include "csr.h"
 #include "ptw.h"
 
+#define TLB_SIZE 32
+#include "tlb.inc"
+
 #define MEM_WORD        3'b010
 #define MEM_HALFWORD    3'b001
 #define MEM_BYTE        3'b000
@@ -39,25 +42,8 @@ module load_store_unit {
 	proc_name page_table_walk(ptw_op, ptw_adrs);
 	proc_name amo_op_exe(amo_op_src, amo_op_addr, amo_op_funct5, amo_op_aq, amo_op_rl, amo_op_width);
 	cache dcache;
+	tlb_32 dtlb;
 	ptw walker;
-
-	mem tlb_data[32][32];
-	mem tlb_levels[32][2];
-	mem tlb_valid[32] = {0};
-	mem tlb_tag[32][20] = {0};
-	reg tlb_random_replace_pos[5] = 0;
-
-	wire va_tag[20];
-	func_self access_tlb(va_tag);
-	wire tlb_hit_data[32];
-	wire tlb_hit_levels[2];
-	func_self tlb_hit(tlb_hit_data, tlb_hit_levels);
-	func_self tlb_miss();
-
-	wire refill_tlb_tag[20];
-	wire refill_tlb_data[32];
-	wire refill_tlb_levels[2];
-	func_self refill_tlb(refill_tlb_tag, refill_tlb_data, refill_tlb_levels);
 
 	wire translate_cache_access_type[2];
 	wire translate_valid;
@@ -70,7 +56,6 @@ module load_store_unit {
 
 	integer i_;
 
-	tlb_random_replace_pos++;
 	sv32 = (satp_mode && (priv_mode != MACHINE));
 
 	func reset {
@@ -136,14 +121,13 @@ module load_store_unit {
 				}
 			}
 			read_utlb: {
-				access_tlb(utlb_adrs[31:12]);
+				dtlb.access_tlb(utlb_adrs[31:12]);
 
-				if(tlb_hit) {
-					utlb_pte = tlb_hit_data;
-					utlb_pte_levels = tlb_hit_levels;
+				if(dtlb.tlb_hit) {
+					utlb_pte = dtlb.pte;
+					utlb_pte_levels = dtlb.levels;
 					utlb_pte_valid();
-				}
-				if(tlb_miss) {
+				} else {
 					page_table_walk(PTW_FETCH, utlb_adrs);
 				}
 			}
@@ -153,10 +137,10 @@ module load_store_unit {
 		sv32_pte_t wire sv32_pte;
 
 		if(sv32) {
-			access_tlb(va[31:12]);
-			sv32_pte = tlb_hit_data;	/* valid on (tlb_hit) */
+			dtlb.access_tlb(va[31:12]);
+			sv32_pte = dtlb.pte;	/* valid on (tlb_hit) */
 			any {
-				(translate_cache_access_type == CACHE_LOAD) && tlb_hit: {
+				(translate_cache_access_type == CACHE_LOAD) && dtlb.tlb_hit: {
 					if(sv32_pte.v && (sv32_pte.r || (mstatus_mxr && sv32_pte.x)) && sv32_pte.a
 						&& ((sv32_pte.u && ((priv_mode == USER) || ((priv_mode == SUPERVISOR) && sstatus_sum))) || (!sv32_pte.u && priv_mode != USER))) {
 							return 1;
@@ -165,7 +149,7 @@ module load_store_unit {
 						return 0;
 					}
 				}
-				(translate_cache_access_type == CACHE_STORE) && tlb_hit: {
+				(translate_cache_access_type == CACHE_STORE) && dtlb.tlb_hit: {
 					if(sv32_pte.v && sv32_pte.r && sv32_pte.w && sv32_pte.a && sv32_pte.d
 						&& ((sv32_pte.u && ((priv_mode == USER) || ((priv_mode == SUPERVISOR) && sstatus_sum))) || (!sv32_pte.u && priv_mode != USER))) {
 							return 1;
@@ -179,8 +163,8 @@ module load_store_unit {
 				}
 			}
 			any {
-				tlb_hit_levels == 0:	pa = {sv32_pte.ppn1[9:0], sv32_pte.ppn0, va[11:0]};
-				tlb_hit_levels == 1:	pa = {sv32_pte.ppn1[9:0], va[21:0]};
+				dtlb.levels == 0:	pa = {sv32_pte.ppn1[9:0], sv32_pte.ppn0, va[11:0]};
+				dtlb.levels == 1:	pa = {sv32_pte.ppn1[9:0], va[21:0]};
 			}
 		} else {
 			pa = va;
@@ -196,9 +180,7 @@ module load_store_unit {
 		}
 	}
 	proc flush_tlb {
-		generate(i_ = 0; i_ < 32; i_++) {
-			tlb_valid[i_] := INVALID;
-		}
+		dtlb.flush();
 		tlb_flush_done();
 		idle();
 	}
@@ -231,7 +213,7 @@ module load_store_unit {
 		walker.walk({satp_mode, satp_asid, satp_ppn}, ptw_adrs);
 
 		if(walker.pte_valid) {
-			refill_tlb(ptw_adrs[31:12], walker.pte, walker.pte_levels);
+			dtlb.refill(ptw_adrs[31:12], walker.pte_levels, walker.pte);
 			idle();
 		}
 		if(walker.page_fault) {
@@ -297,22 +279,6 @@ module load_store_unit {
 			walker.mem_rdata = dcache.rdata[31:0];
 			walker.mem_ready();
 		}
-	}
-	func access_tlb {
-		generate(i_ = 0; i_ < 32; i_++) {
-			if(tlb_valid[i_] && (tlb_tag[i_] == va_tag)) {
-				tlb_hit(tlb_data[i_], tlb_levels[i_]);
-			}
-		}
-		if(!tlb_hit) {
-			tlb_miss();
-		}
-	}
-	func refill_tlb {
-		tlb_data[tlb_random_replace_pos] := refill_tlb_data;
-		tlb_tag[tlb_random_replace_pos] := refill_tlb_tag;
-		tlb_levels[tlb_random_replace_pos] := refill_tlb_levels;
-		tlb_valid[tlb_random_replace_pos] := VALID;
 	}
 	func dcache.pma_check {
 		pma_check(dcache.pma_adrs);

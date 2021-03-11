@@ -1,6 +1,9 @@
 #include "ifetch_unit.h"
 #include "csr.h"
 #include "priv.h"
+#define TLB_SIZE 4
+#include "tlb.inc"
+
 #define MEM_WORD        3'b010
 #define MEM_HALFWORD    3'b001
 #define MEM_BYTE        3'b000
@@ -21,6 +24,8 @@ module ifetch_unit {
 	proc_name flush_tlb();
 	proc_name invalidate_cache();
 
+	tlb_4 itlb;
+
 	mem cache_data[256][128];
 	mem cache_valid[256] = {0};
 	mem cache_tag[256][20] = {0};
@@ -31,19 +36,6 @@ module ifetch_unit {
 	wire refill_index[8];
 	func_self refill(refill_tag, refill_index);
 
-	mem tlb_data[4][32];
-	mem tlb_valid[4] = {0};
-	mem tlb_tag[4][20] = {0};
-	mem tlb_levels[4][2];
-	reg tlb_random_replace_pos[2] = 0;
-
-	wire va[32];
-	func_self access_tlb(va);
-	wire tlb_hit_data[32];
-	wire tlb_hit_levels[2];
-	func_self tlb_hit(tlb_hit_data, tlb_hit_levels);
-	func_self tlb_miss();
-
 	wire tag[20];
 	wire index[8];
 	wire blockoffset[2];
@@ -53,7 +45,6 @@ module ifetch_unit {
 	integer i_;	/* only used by `generate` construct and re-used in this module */
 
 	.{tag, index, blockoffset, byteoffset} = addr;
-	tlb_random_replace_pos++;
 
 	sv32 = (satp_mode && (priv_mode != MACHINE));
 
@@ -68,20 +59,20 @@ module ifetch_unit {
 		} else if(tlb_flush) {
 			flush_tlb();
 		} else if(read && sv32) {
-			access_tlb(addr);
-			if(tlb_hit) {
-				sv32_pte = tlb_hit_data;
+			itlb.access_tlb(addr[31:12]);
+			if(itlb.tlb_hit) {
+				sv32_pte = itlb.pte;
 				if(sv32_pte.v && sv32_pte.x && sv32_pte.a
 					&& ((sv32_pte.u && (priv_mode == USER)) || (!sv32_pte.u && priv_mode == SUPERVISOR))) {
 					/* map 32 bits virtual address to 32 bits physical address on sv32, not 34 bit physical address for now */
 					any {
-						tlb_hit_levels == 0:	compare_tag(cache_data[index], cache_tag[index], cache_valid[index], ({sv32_pte.ppn1, sv32_pte.ppn0})[19:0], index);
-						tlb_hit_levels == 1:	compare_tag(cache_data[index], cache_tag[index], cache_valid[index], ({sv32_pte.ppn1, addr[21:12]})[19:0], index);
+						itlb.levels == 0:	compare_tag(cache_data[index], cache_tag[index], cache_valid[index], ({sv32_pte.ppn1, sv32_pte.ppn0})[19:0], index);
+						itlb.levels == 1:	compare_tag(cache_data[index], cache_tag[index], cache_valid[index], ({sv32_pte.ppn1, addr[21:12]})[19:0], index);
 					}
 				} else {
 					instruction_page_fault();
 				}
-			} else if(tlb_miss) {
+			} else {
 				page_table_walk(addr);
 			}
 		} else if(read && !sv32) {
@@ -89,29 +80,14 @@ module ifetch_unit {
 		}
 	}
 	proc flush_tlb {
-		generate(i_ = 0; i_ < 4; i_++) {
-			tlb_valid[i_] := INVALID;
-		}
+		itlb.flush();
 		tlb_flush_done();
 		idle();
-	}
-	func access_tlb {
-		generate(i_ = 0; i_ < 4; i_++) {
-			if(tlb_valid[i_] && (tlb_tag[i_] == va[31:12])) {
-				tlb_hit(tlb_data[i_], tlb_levels[i_]);
-			}
-		}
-		if(!tlb_hit) {
-			tlb_miss();
-		}
 	}
 	proc page_table_walk {
 		walk({satp_mode, satp_asid, satp_ppn}, ptw_vaddr);
 		if(pte_valid) {
-			tlb_data[tlb_random_replace_pos] := pte;
-			tlb_tag[tlb_random_replace_pos] := ptw_vaddr[31:12];
-			tlb_valid[tlb_random_replace_pos] := VALID;
-			tlb_levels[tlb_random_replace_pos] := pte_levels;
+			itlb.refill(ptw_vaddr[31:12], pte_levels, pte);
 			idle();
 		} else if(page_fault) {
 			instruction_page_fault();
