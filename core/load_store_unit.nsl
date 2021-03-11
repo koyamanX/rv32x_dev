@@ -21,12 +21,8 @@
 #define CACHE_AMO		2'b01
 
 module load_store_unit {
-	reg cache_addr[32];
-	reg cache_wdata[32];
-	reg cache_byteen[3];
 	reg ptw_op[2];
 	reg ptw_addr[32];
-	reg cache_sc;
 	reg amo_op_src[32];
 	reg amo_op_addr[32];
 	reg amo_op_funct5[5];
@@ -36,8 +32,14 @@ module load_store_unit {
 
 	proc_name idle();
 	proc_name flush_cache();
-	proc_name cacheable_read(cache_addr, cache_byteen);
-	proc_name cacheable_write(cache_addr, cache_byteen, cache_wdata, cache_sc);
+
+	reg cacheable_addr[32];
+	reg cacheable_wdata[32];
+	reg cacheable_byteen[3];
+	reg cacheable_sc;
+	proc_name cacheable_read(cacheable_addr, cacheable_byteen);
+	proc_name cacheable_write(cacheable_addr, cacheable_byteen, cacheable_wdata, cacheable_sc);
+
 	proc_name flush_tlb();
 	proc_name page_table_walk(ptw_op, ptw_addr);
 	proc_name amo_op_exe(amo_op_src, amo_op_addr, amo_op_funct5, amo_op_aq, amo_op_rl, amo_op_width);
@@ -186,7 +188,7 @@ module load_store_unit {
 		idle();
 	}
 	proc cacheable_read {
-		dcache.read(cache_addr, cache_byteen);	
+		dcache.read(cacheable_addr, cacheable_byteen);	
 
 		if(dcache.valid) {
 			load_data = dcache.rdata;
@@ -198,10 +200,10 @@ module load_store_unit {
 		}
 	}
 	proc cacheable_write {
-		dcache.write(cache_addr, cache_byteen, cache_wdata);	
+		dcache.write(cacheable_addr, cacheable_byteen, cacheable_wdata);	
 
 		if(dcache.valid) {
-			load_data = 32'(~cache_sc);
+			load_data = 32'(~cacheable_sc);
 			valid();
 			idle();
 		}
