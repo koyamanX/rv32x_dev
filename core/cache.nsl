@@ -16,12 +16,12 @@ module cache {
 	reg cache_dirty_entry0;
 	reg cache_dirty_entry1;
 	reg cache_lru_entry;
-	reg cache_adrs[32];
+	reg cache_addr[32];
 	reg cache_byteen[3];
 	reg cache_wdata[32];
 	reg cache_op;
 
-	reg noncacheable_memop_adrs[32];
+	reg noncacheable_memop_addr[32];
 	reg noncacheable_memop_byteen[3];
 	reg noncacheable_memop_wdata[32];
 	reg noncacheable_memop_op;
@@ -32,11 +32,11 @@ module cache {
 	proc_name idle();
 	proc_name compare_tag(cache_data_entry0, cache_tag_entry0, cache_valid_entry0, cache_dirty_entry0,
 							cache_data_entry1, cache_tag_entry1, cache_valid_entry1, cache_dirty_entry1,
-							cache_lru_entry, cache_adrs, cache_byteen, cache_wdata, cache_op);
+							cache_lru_entry, cache_addr, cache_byteen, cache_wdata, cache_op);
 	proc_name flush_cache();
-	proc_name allocate(cache_adrs);
-	proc_name writeback(cache_writeback_entry, cache_lru_entry, cache_adrs, flushing);
-	proc_name noncacheable_memop(noncacheable_memop_adrs, noncacheable_memop_byteen, noncacheable_memop_wdata, noncacheable_memop_op);
+	proc_name allocate(cache_addr);
+	proc_name writeback(cache_writeback_entry, cache_lru_entry, cache_addr, flushing);
+	proc_name noncacheable_memop(noncacheable_memop_addr, noncacheable_memop_byteen, noncacheable_memop_wdata, noncacheable_memop_op);
 
 	wire cache_hit_data[128];
 	wire cache_hit_lru;
@@ -60,7 +60,7 @@ module cache {
 	wire blockoffset[2];
 	wire byteoffset[2];
 
-	. {tag, index, blockoffset, byteoffset} = cache_adrs;
+	. {tag, index, blockoffset, byteoffset} = cache_addr;
 
 	func reset {
 		idle();
@@ -68,20 +68,20 @@ module cache {
 	proc idle {
 		wire i[8];
 
-		i = adrs[11:4];
+		i = addr[11:4];
 		if(cache_flush) {
 			flush_cache();
 		} else if(read || write) {
-			pma_check(adrs);
+			pma_check(addr);
 
 			any {
 				(pma_cacheable && !pma_empty): {
 					compare_tag(cache_data_way0[i], cache_tag_way0[i], cache_valid_way0[i], cache_dirty_way0[i],
 								cache_data_way1[i], cache_tag_way1[i], cache_valid_way1[i], cache_dirty_way1[i],
-								cache_lru[i], adrs, byteen, wdata, write);
+								cache_lru[i], addr, byteen, wdata, write);
 				}
 				(!pma_cacheable && !pma_empty): {
-					noncacheable_memop(adrs, byteen, wdata, write);
+					noncacheable_memop(addr, byteen, wdata, write);
 				}
 				(pma_empty && (read && !write)): {
 					load_access_fault();
@@ -94,8 +94,8 @@ module cache {
 	}
 	proc noncacheable_memop {
 		any {
-			noncacheable_memop_op == CACHE_READ: mem_read(noncacheable_memop_adrs, noncacheable_memop_byteen);
-			noncacheable_memop_op == CACHE_WRITE: mem_write(noncacheable_memop_adrs, noncacheable_memop_byteen, 128'(noncacheable_memop_wdata));
+			noncacheable_memop_op == CACHE_READ: mem_read(noncacheable_memop_addr, noncacheable_memop_byteen);
+			noncacheable_memop_op == CACHE_WRITE: mem_write(noncacheable_memop_addr, noncacheable_memop_byteen, 128'(noncacheable_memop_wdata));
 		}
 
 		if(mem_valid) {
@@ -117,13 +117,13 @@ module cache {
 			else: {
 				any {
 					(cache_lru_entry == 1'b0) && (cache_dirty_entry0 == CLEAN): {
-						allocate(cache_adrs);	
+						allocate(cache_addr);	
 					}
 					(cache_lru_entry == 1'b0) && (cache_dirty_entry0 == DIRTY): {
 						writeback(cache_data_entry0, cache_lru_entry, {cache_tag_entry0, index, 4'b0000}, 0);
 					}
 					(cache_lru_entry == 1'b1) && (cache_dirty_entry1 == CLEAN): {
-						allocate(cache_adrs);	
+						allocate(cache_addr);	
 					}
 					(cache_lru_entry == 1'b1) && (cache_dirty_entry1 == DIRTY): {
 						writeback(cache_data_entry1, cache_lru_entry, {cache_tag_entry1, index, 4'b0000}, 0);
@@ -266,7 +266,7 @@ module cache {
 			if(flushing) {
 				flush_cache();
 			} else {
-				allocate(adrs);
+				allocate(addr);
 			}
 		}
 		any {
@@ -291,12 +291,12 @@ module cache {
 				cache_lru_entry == 1'b0: {
 					compare_tag(refilled_cache_block, tag, VALID, CLEAN,
 								cache_data_entry1, cache_tag_entry1, cache_valid_entry1, cache_dirty_entry1,
-								cache_lru_entry, cache_adrs, cache_byteen, cache_wdata, cache_op);
+								cache_lru_entry, cache_addr, cache_byteen, cache_wdata, cache_op);
 				}
 				cache_lru_entry == 1'b1: {
 					compare_tag(cache_data_entry0, cache_tag_entry0, cache_valid_entry0, cache_dirty_entry0,
 								refilled_cache_block, tag, VALID, CLEAN,
-								cache_lru_entry, cache_adrs, cache_byteen, cache_wdata, cache_op);
+								cache_lru_entry, cache_addr, cache_byteen, cache_wdata, cache_op);
 				}
 			}
 		}
