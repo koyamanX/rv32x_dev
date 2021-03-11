@@ -46,10 +46,10 @@ module load_store_unit {
 	ptw walker;
 
 	wire translate_cache_access_type[2];
-	wire translate_valid;
+	wire translate_ok;
 	wire va[32];
-	wire pa[32];							/* valid on translate_valid */
-	func_self translate(translate_cache_access_type, va) : translate_valid;
+	wire pa[32];							/* valid on translate_ok */
+	func_self translate(translate_cache_access_type, va) : translate_ok;
 	reservation_t reg reservation = 0;
 
 	wire sv32;
