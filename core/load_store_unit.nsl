@@ -21,7 +21,7 @@
 #define CACHE_AMO		2'b01
 
 module load_store_unit {
-	reg cache_adrs[32];
+	reg cache_addr[32];
 	reg cache_wdata[32];
 	reg cache_byteen[3];
 	reg ptw_op[2];
@@ -36,8 +36,8 @@ module load_store_unit {
 
 	proc_name idle();
 	proc_name flush_cache();
-	proc_name read_cache(cache_adrs, cache_byteen);
-	proc_name write_cache(cache_adrs, cache_byteen, cache_wdata, cache_sc);
+	proc_name read_cache(cache_addr, cache_byteen);
+	proc_name write_cache(cache_addr, cache_byteen, cache_wdata, cache_sc);
 	proc_name flush_tlb();
 	proc_name page_table_walk(ptw_op, ptw_adrs);
 	proc_name amo_op_exe(amo_op_src, amo_op_addr, amo_op_funct5, amo_op_aq, amo_op_rl, amo_op_width);
@@ -185,7 +185,7 @@ module load_store_unit {
 		idle();
 	}
 	proc read_cache {
-		dcache.read(cache_adrs, cache_byteen);	
+		dcache.read(cache_addr, cache_byteen);	
 
 		if(dcache.valid) {
 			load_data = dcache.rdata;
@@ -197,7 +197,7 @@ module load_store_unit {
 		}
 	}
 	proc write_cache {
-		dcache.write(cache_adrs, cache_byteen, cache_wdata);	
+		dcache.write(cache_addr, cache_byteen, cache_wdata);	
 
 		if(dcache.valid) {
 			load_data = 32'(~cache_sc);
