@@ -36,8 +36,8 @@ module load_store_unit {
 
 	proc_name idle();
 	proc_name flush_cache();
-	proc_name read_cache(cache_addr, cache_byteen);
-	proc_name write_cache(cache_addr, cache_byteen, cache_wdata, cache_sc);
+	proc_name cacheable_read(cache_addr, cache_byteen);
+	proc_name cacheable_write(cache_addr, cache_byteen, cache_wdata, cache_sc);
 	proc_name flush_tlb();
 	proc_name page_table_walk(ptw_op, ptw_addr);
 	proc_name amo_op_exe(amo_op_src, amo_op_addr, amo_op_funct5, amo_op_aq, amo_op_rl, amo_op_width);
@@ -85,7 +85,7 @@ module load_store_unit {
 			}
 			load: {
 				if(translate(CACHE_LOAD, sv32_va)) {
-					read_cache(sv32_pa, byteen);
+					cacheable_read(sv32_pa, byteen);
 					if(load_reserved) {
 						reservation.valid := 1;
 						reservation.addr := sv32_pa;
@@ -100,7 +100,7 @@ module load_store_unit {
 						load_data = 32'(1'b1);
 						valid();
 					} else {
-						write_cache(sv32_pa, byteen, store_data, store_conditional);
+						cacheable_write(sv32_pa, byteen, store_data, store_conditional);
 					}
 					if(store_conditional) {
 						reservation.valid := 0;
@@ -185,7 +185,7 @@ module load_store_unit {
 		tlb_flush_done();
 		idle();
 	}
-	proc read_cache {
+	proc cacheable_read {
 		dcache.read(cache_addr, cache_byteen);	
 
 		if(dcache.valid) {
@@ -197,7 +197,7 @@ module load_store_unit {
 			idle();
 		}
 	}
-	proc write_cache {
+	proc cacheable_write {
 		dcache.write(cache_addr, cache_byteen, cache_wdata);	
 
 		if(dcache.valid) {
