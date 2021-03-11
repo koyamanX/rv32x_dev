@@ -25,7 +25,7 @@ module load_store_unit {
 	reg cache_wdata[32];
 	reg cache_byteen[3];
 	reg ptw_op[2];
-	reg ptw_adrs[32];
+	reg ptw_addr[32];
 	reg cache_sc;
 	reg amo_op_src[32];
 	reg amo_op_addr[32];
@@ -39,7 +39,7 @@ module load_store_unit {
 	proc_name read_cache(cache_addr, cache_byteen);
 	proc_name write_cache(cache_addr, cache_byteen, cache_wdata, cache_sc);
 	proc_name flush_tlb();
-	proc_name page_table_walk(ptw_op, ptw_adrs);
+	proc_name page_table_walk(ptw_op, ptw_addr);
 	proc_name amo_op_exe(amo_op_src, amo_op_addr, amo_op_funct5, amo_op_aq, amo_op_rl, amo_op_width);
 	cache dcache;
 	tlb_32 dtlb;
@@ -210,10 +210,10 @@ module load_store_unit {
 		}
 	}
 	proc page_table_walk {
-		walker.walk({satp_mode, satp_asid, satp_ppn}, ptw_adrs);
+		walker.walk({satp_mode, satp_asid, satp_ppn}, ptw_addr);
 
 		if(walker.pte_valid) {
-			dtlb.refill(ptw_adrs[31:12], walker.pte_levels, walker.pte);
+			dtlb.refill(ptw_addr[31:12], walker.pte_levels, walker.pte);
 			idle();
 		}
 		if(walker.page_fault) {
