@@ -45,11 +45,12 @@ module load_store_unit {
 	tlb_32 dtlb;
 	ptw walker;
 
-	wire translate_cache_access_type[2];
+	wire translate_type[2];
 	wire translate_ok;
 	wire va[32];
-	wire pa[32];							/* valid on translate_ok */
-	func_self translate(translate_cache_access_type, va) : translate_ok;
+	wire pa[32];
+	func_self translate(translate_type, va) : translate_ok;
+
 	reservation_t reg reservation = 0;
 
 	wire sv32;
@@ -140,7 +141,7 @@ module load_store_unit {
 			dtlb.access_tlb(va[31:12]);
 			sv32_pte = dtlb.pte;	/* valid on (tlb_hit) */
 			any {
-				(translate_cache_access_type == CACHE_LOAD) && dtlb.tlb_hit: {
+				(translate_type == CACHE_LOAD) && dtlb.tlb_hit: {
 					if(sv32_pte.v && (sv32_pte.r || (mstatus_mxr && sv32_pte.x)) && sv32_pte.a
 						&& ((sv32_pte.u && ((priv_mode == USER) || ((priv_mode == SUPERVISOR) && sstatus_sum))) || (!sv32_pte.u && priv_mode != USER))) {
 							return 1;
@@ -149,7 +150,7 @@ module load_store_unit {
 						return 0;
 					}
 				}
-				(translate_cache_access_type == CACHE_STORE) && dtlb.tlb_hit: {
+				(translate_type == CACHE_STORE) && dtlb.tlb_hit: {
 					if(sv32_pte.v && sv32_pte.r && sv32_pte.w && sv32_pte.a && sv32_pte.d
 						&& ((sv32_pte.u && ((priv_mode == USER) || ((priv_mode == SUPERVISOR) && sstatus_sum))) || (!sv32_pte.u && priv_mode != USER))) {
 							return 1;
