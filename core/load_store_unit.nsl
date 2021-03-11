@@ -70,7 +70,7 @@ module load_store_unit {
 		wire amo_addr_va[32];
 		wire amo_addr_pa[32];
 
-		sv32_va = adrs;
+		sv32_va = addr;
 		sv32_pa = pa;
 		amo_addr_va = amo_addr;
 		amo_addr_pa = pa;
@@ -121,14 +121,14 @@ module load_store_unit {
 				}
 			}
 			read_utlb: {
-				dtlb.access_tlb(utlb_adrs[31:12]);
+				dtlb.access_tlb(utlb_addr[31:12]);
 
 				if(dtlb.tlb_hit) {
 					utlb_pte = dtlb.pte;
 					utlb_pte_levels = dtlb.levels;
 					utlb_pte_valid();
 				} else {
-					page_table_walk(PTW_FETCH, utlb_adrs);
+					page_table_walk(PTW_FETCH, utlb_addr);
 				}
 			}
 		}

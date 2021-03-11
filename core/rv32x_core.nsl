@@ -1209,7 +1209,7 @@ module rv32x_core {
 		mem lsu_read_data[4][32];
 
 		if(lsu.mem_size == MEM_QUADWORD) {
-			dmem_read({lsu.mem_adrs[31:4], 4'({lsu_read_cnt, 2'b00})}, MEM_WORD);
+			dmem_read({lsu.mem_addr[31:4], 4'({lsu_read_cnt, 2'b00})}, MEM_WORD);
 			if(lsu_read_cnt == 4) {
 				if(dmem_ready) {
 					lsu_read_cnt := 0;
@@ -1223,7 +1223,7 @@ module rv32x_core {
 				}
 			}
 		} else {
-			dmem_read(lsu.mem_adrs, lsu.mem_size);
+			dmem_read(lsu.mem_addr, lsu.mem_size);
 			if(dmem_ready) {
 				lsu.mem_rdata = 128'(rdata);
 				lsu.mem_valid();
@@ -1241,7 +1241,7 @@ module rv32x_core {
 		mem lsu_write_data[4][32];
 		
 		if(lsu.mem_size == MEM_QUADWORD) {
-			dmem_write({lsu.mem_adrs[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu_write_data[lsu_write_cnt]);
+			dmem_write({lsu.mem_addr[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu_write_data[lsu_write_cnt]);
 			any {
 				lsu_write_cnt == 0: {
 					lsu_write_data[0] := lsu.mem_wdata[31:0];
@@ -1263,7 +1263,7 @@ module rv32x_core {
 				}
 			}
 		} else {
-			dmem_write(lsu.mem_adrs, lsu.mem_size, lsu.mem_wdata[31:0]);
+			dmem_write(lsu.mem_addr, lsu.mem_size, lsu.mem_wdata[31:0]);
 			if(dmem_ready) {
 				lsu.mem_valid();
 			}

@@ -16,14 +16,14 @@ struct reservation_t {
 
 declare load_store_unit {
 	/* CPU <-> Cache Unit */
-	input adrs[32];
+	input addr[32];
 	output load_data[32];
 	input store_data[32];
 	input byteen[3];
 	func_in reset();
 	/* Operations */
-	func_in load(adrs, byteen);					/* must be asserted until valid arrives */
-	func_in store(adrs, byteen, store_data);	/* must be asserted until valid arrives */
+	func_in load(addr, byteen);					/* must be asserted until valid arrives */
+	func_in store(addr, byteen, store_data);	/* must be asserted until valid arrives */
 	func_in load_reserved();					/* This signal is asserted alongside with load */
 	func_in store_conditional();				/* This signal is asserted alongside with store */
 	func_out valid;								/* operation is done */
@@ -56,8 +56,8 @@ declare load_store_unit {
 	func_out load_access_fault();
 
 	/* Cache Unit <-> uTLB interfaces */
-	input utlb_adrs[32];
-	func_in read_utlb(utlb_adrs);
+	input utlb_addr[32];
+	func_in read_utlb(utlb_addr);
 	output utlb_pte[32];
 	output utlb_pte_levels[2];
 	func_out utlb_pte_valid();
@@ -77,12 +77,12 @@ declare load_store_unit {
 	func_in pma_empty();
 
 	/* use 32 bit physical address even with sv32 enabled */
-	output mem_adrs[32];
+	output mem_addr[32];
 	input mem_rdata[128];
 	output mem_wdata[128];
 	output mem_size[3];
-	func_out mem_read(mem_adrs, mem_size);
-	func_out mem_write(mem_adrs, mem_size, mem_wdata);
+	func_out mem_read(mem_addr, mem_size);
+	func_out mem_write(mem_addr, mem_size, mem_wdata);
 	func_in mem_valid;
 #ifdef DEBUG
 	output tohost[32];
