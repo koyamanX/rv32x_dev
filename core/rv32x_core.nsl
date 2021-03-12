@@ -1195,13 +1195,13 @@ module rv32x_core {
 
 	/* BUS errors */
 	func bus_load_access_fault {
-		load_access_fault();
+		lsu.bus_load_access_fault();
 	}
 	func bus_store_access_fault {
-		store_amo_access_fault();
+		lsu.bus_store_amo_access_fault();
 	}
 	func bus_instruction_access_fault {
-		instruction_access_fault();
+		ic.bus_instruction_access_fault();
 	}
 
 	func lsu.mem_read {

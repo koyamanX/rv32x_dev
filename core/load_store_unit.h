@@ -55,6 +55,9 @@ declare load_store_unit {
 	func_out load_page_fault();
 	func_out load_access_fault();
 
+	func_in bus_load_access_fault();
+	func_in bus_store_amo_access_fault();
+
 	/* Cache Unit <-> uTLB interfaces */
 	input utlb_addr[32];
 	func_in read_utlb(utlb_addr);
