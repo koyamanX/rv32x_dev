@@ -293,13 +293,13 @@ module load_store_unit {
 		dcache.pma_cacheable();
 	}
 	func dcache.mem_read {
-		mem_read(dcache.mem_addr, dcache.mem_size);
+		dbus_read(dcache.mem_addr, dcache.mem_size);
 	}
 	func dcache.mem_write {
-		mem_write(dcache.mem_addr, dcache.mem_size, dcache.mem_wdata);
+		dbus_write(dcache.mem_addr, dcache.mem_size, dcache.mem_wdata);
 	}
-	func mem_valid {
-		dcache.mem_rdata = mem_rdata;
+	func dbus_ready {
+		dcache.mem_rdata = dbus_rdata;
 		dcache.mem_valid();
 	}
 	func dcache.store_amo_access_fault {
@@ -319,10 +319,10 @@ module load_store_unit {
 			ptw_op == PTW_LOAD:		load_page_fault();
 		}
 	}
-	func bus_load_access_fault {
+	func dbus_load_access_fault {
 		load_access_fault();
 	}
-	func bus_store_amo_access_fault {
+	func dbus_store_amo_access_fault {
 		store_amo_access_fault();
 	}
 }

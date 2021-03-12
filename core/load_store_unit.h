@@ -77,15 +77,15 @@ declare load_store_unit {
 
 	/* Pysical Address */
 	/* D-BUS(Cacheable, may support burst access with maximum word width of 128 bits) */
-	output mem_addr[32];
-	input mem_rdata[128];
-	output mem_wdata[128];
-	output mem_size[3];
-	func_out mem_read(mem_addr, mem_size);
-	func_out mem_write(mem_addr, mem_size, mem_wdata);
-	func_in mem_valid;
-	func_in bus_load_access_fault();
-	func_in bus_store_amo_access_fault();
+	output dbus_addr[32];
+	input dbus_rdata[128];
+	output dbus_wdata[128];
+	output dbus_size[3];
+	func_out dbus_read(dbus_addr, dbus_size);
+	func_out dbus_write(dbus_addr, dbus_size, dbus_wdata);
+	func_in dbus_ready;
+	func_in dbus_load_access_fault();
+	func_in dbus_store_amo_access_fault();
 
 	/* Pysical Address */
 	/* P-BUS(Noncacheable, no burst access, maximum word width of 32 bits, may support byte, halfword access) */

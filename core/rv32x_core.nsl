@@ -1195,26 +1195,26 @@ module rv32x_core {
 
 	/* BUS errors */
 	func bus_load_access_fault {
-		lsu.bus_load_access_fault();
+		lsu.dbus_load_access_fault();
 	}
 	func bus_store_access_fault {
-		lsu.bus_store_amo_access_fault();
+		lsu.dbus_store_amo_access_fault();
 	}
 	func bus_instruction_access_fault {
 		ic.bus_instruction_access_fault();
 	}
 
-	func lsu.mem_read {
+	func lsu.dbus_read {
 		reg lsu_read_cnt[3] = 0;
 		mem lsu_read_data[4][32];
 
-		if(lsu.mem_size == MEM_QUADWORD) {
-			dmem_read({lsu.mem_addr[31:4], 4'({lsu_read_cnt, 2'b00})}, MEM_WORD);
+		if(lsu.dbus_size == MEM_QUADWORD) {
+			dmem_read({lsu.dbus_addr[31:4], 4'({lsu_read_cnt, 2'b00})}, MEM_WORD);
 			if(lsu_read_cnt == 4) {
 				if(dmem_ready) {
 					lsu_read_cnt := 0;
-					lsu.mem_rdata = {lsu_read_data[3], lsu_read_data[2], lsu_read_data[1], lsu_read_data[0]};
-					lsu.mem_valid();
+					lsu.dbus_rdata = {lsu_read_data[3], lsu_read_data[2], lsu_read_data[1], lsu_read_data[0]};
+					lsu.dbus_ready();
 				}
 			} else {
 				if(dmem_ready) {
@@ -1223,10 +1223,10 @@ module rv32x_core {
 				}
 			}
 		} else {
-			dmem_read(lsu.mem_addr, lsu.mem_size);
+			dmem_read(lsu.dbus_addr, lsu.dbus_size);
 			if(dmem_ready) {
-				lsu.mem_rdata = 128'(rdata);
-				lsu.mem_valid();
+				lsu.dbus_rdata = 128'(rdata);
+				lsu.dbus_ready();
 			}
 		}
 	}
@@ -1236,24 +1236,24 @@ module rv32x_core {
 	func rv32x.store_conditional {
 		lsu.store_conditional();
 	}
-	func lsu.mem_write {
+	func lsu.dbus_write {
 		reg lsu_write_cnt[3] = 0;
 		mem lsu_write_data[4][32];
 		
-		if(lsu.mem_size == MEM_QUADWORD) {
-			dmem_write({lsu.mem_addr[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu_write_data[lsu_write_cnt]);
+		if(lsu.dbus_size == MEM_QUADWORD) {
+			dmem_write({lsu.dbus_addr[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu_write_data[lsu_write_cnt]);
 			any {
 				lsu_write_cnt == 0: {
-					lsu_write_data[0] := lsu.mem_wdata[31:0];
-					lsu_write_data[1] := lsu.mem_wdata[63:32];
-					lsu_write_data[2] := lsu.mem_wdata[95:64];
-					lsu_write_data[3] := lsu.mem_wdata[127:96];
+					lsu_write_data[0] := lsu.dbus_wdata[31:0];
+					lsu_write_data[1] := lsu.dbus_wdata[63:32];
+					lsu_write_data[2] := lsu.dbus_wdata[95:64];
+					lsu_write_data[3] := lsu.dbus_wdata[127:96];
 					lsu_write_cnt++;
 				}
 				lsu_write_cnt == 4: {
 					if(dmem_ready) {
 						lsu_write_cnt := 0;
-						lsu.mem_valid();
+						lsu.dbus_ready();
 					}
 				}
 				else: {
@@ -1263,9 +1263,9 @@ module rv32x_core {
 				}
 			}
 		} else {
-			dmem_write(lsu.mem_addr, lsu.mem_size, lsu.mem_wdata[31:0]);
+			dmem_write(lsu.dbus_addr, lsu.dbus_size, lsu.dbus_wdata[31:0]);
 			if(dmem_ready) {
-				lsu.mem_valid();
+				lsu.dbus_ready();
 			}
 		}
 	}
