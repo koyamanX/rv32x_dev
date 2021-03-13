@@ -55,13 +55,13 @@ declare load_store_unit {
 	func_out load_access_fault();
 
 	/* uTLB I/F */
-	input utlb_addr[32];
-	func_in read_utlb(utlb_addr);
-	output utlb_pte[32];
-	output utlb_pte_levels[2];
-	func_out utlb_pte_valid();
-	func_out utlb_page_fault();
-	func_out utlb_access_fault();
+	input tlb_addr[32];
+	func_in read_tlb(tlb_addr);
+	output pte[32];
+	output pte_levels[2];
+	func_out pte_ready();
+	func_out tlb_page_fault();
+	func_out tlb_access_fault();
 
 	/* PMAs */
 	output pma_addr[32];

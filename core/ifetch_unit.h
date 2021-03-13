@@ -46,9 +46,9 @@ declare ifetch_unit {
 	func_out walk(satp, vaddr);
 	input pte[32];
 	input pte_levels[2];
-	func_in pte_valid();
-	func_in page_fault();
-	func_in access_fault();
+	func_in pte_ready();
+	func_in walk_page_fault();
+	func_in walk_access_fault();
 
 	input priv_mode[2];
 

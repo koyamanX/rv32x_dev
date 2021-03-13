@@ -1101,18 +1101,18 @@ module rv32x_core {
 		}
 	}
 	func ic.walk {
-		lsu.read_utlb(ic.vaddr);
+		lsu.read_tlb(ic.vaddr);
 	}
-	func lsu.utlb_pte_valid {
-		ic.pte = lsu.utlb_pte;
-		ic.pte_levels = lsu.utlb_pte_levels;
-		ic.pte_valid();
+	func lsu.pte_ready {
+		ic.pte = lsu.pte;
+		ic.pte_levels = lsu.pte_levels;
+		ic.pte_ready();
 	}
-	func lsu.utlb_page_fault {
-		ic.page_fault();
+	func lsu.tlb_page_fault {
+		ic.walk_page_fault();
 	}
-	func lsu.utlb_access_fault {
-		ic.access_fault();
+	func lsu.tlb_access_fault {
+		ic.walk_access_fault();
 	}
 	func rv32x.imem_read {
 		ic.read(rv32x.iaddr);

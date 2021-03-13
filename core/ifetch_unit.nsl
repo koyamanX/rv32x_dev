@@ -86,13 +86,13 @@ module ifetch_unit {
 	}
 	proc page_table_walk {
 		walk({satp_mode, satp_asid, satp_ppn}, ptw_vaddr);
-		if(pte_valid) {
+		if(pte_ready) {
 			itlb.refill(ptw_vaddr[31:12], pte_levels, pte);
 			idle();
-		} else if(page_fault) {
+		} else if(walk_page_fault) {
 			instruction_page_fault();
 			idle();
-		} else if(access_fault) {
+		} else if(walk_access_fault) {
 			instruction_access_fault();
 		}
 	}

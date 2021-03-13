@@ -123,15 +123,15 @@ module load_store_unit {
 					page_table_walk(PTW_AMO, amo_addr_va);
 				}
 			}
-			read_utlb: {
-				dtlb.access_tlb(utlb_addr[31:12]);
+			read_tlb: {
+				dtlb.access_tlb(tlb_addr[31:12]);
 
 				if(dtlb.tlb_hit) {
-					utlb_pte = dtlb.pte;
-					utlb_pte_levels = dtlb.levels;
-					utlb_pte_valid();
+					pte = dtlb.pte;
+					pte_levels = dtlb.levels;
+					pte_ready();
 				} else {
-					page_table_walk(PTW_FETCH, utlb_addr);
+					page_table_walk(PTW_FETCH, tlb_addr);
 				}
 			}
 		}
@@ -307,14 +307,14 @@ module load_store_unit {
 	}
 	func dcache.load_access_fault {
 		any {
-			page_table_walk && ptw_op == PTW_FETCH: utlb_access_fault();
+			page_table_walk && ptw_op == PTW_FETCH: tlb_access_fault();
 			amo_op_exe:								store_amo_access_fault();
 			else: 									load_access_fault();
 		}
 	}
 	func walker.page_fault {
 		any {
-			ptw_op == PTW_FETCH:	utlb_page_fault();
+			ptw_op == PTW_FETCH:	tlb_page_fault();
 			ptw_op == PTW_STORE:	store_amo_page_fault();
 			ptw_op == PTW_LOAD:		load_page_fault();
 		}
