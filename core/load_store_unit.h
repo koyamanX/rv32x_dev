@@ -89,10 +89,8 @@ declare load_store_unit {
 	func_in dbus_load_access_fault();
 	func_in dbus_store_amo_access_fault();
 	/* Flush buffer, cache in D-BUS if installed */
-	func_out dbus_flush_buffer();
-	func_in dbus_flush_buffer_done();
-	func_out dbus_flush_cache();
-	func_in dbus_flush_cache_done();
+	func_out dbus_flush();
+	func_in dbus_flush_done();
 
 	/* Pysical Address */
 	/* P-BUS(Noncacheable, no burst access, maximum word width of 32 bits, may support byte, halfword access) */
@@ -108,9 +106,8 @@ declare load_store_unit {
 	func_in pbus_ready();
 	func_in pbus_load_access_fault();
 	func_in pbus_store_access_fault();
-	/* Flush buffer in P-BUS if installed */
-	func_out pbus_flush_buffer();
-	func_in pbus_flush_buffer_done();
+	func_out pbus_flush();
+	func_in pbus_flush_done();
 
 #ifdef DEBUG
 	output tohost[32];
