@@ -458,7 +458,7 @@ module rv32x5p {
 				/* Data address misaligned */
 				((alu_q[1:0] != 2'b00) && ({1'b0, DEREG.funct3[1:0]} == MEM_WORD)):			m_misaligned();
 				((alu_q[0] != 1'b0) && ({1'b0, DEREG.funct3[1:0]} == MEM_HALFWORD)):		m_misaligned();
-				((DEREG.rs1_data[1:0] != 2'b00) && ({1'b0, DEREG.funct3[1:0]} == MEM_WORD)):a_misaligned();
+				((execute_alu_a[1:0] != 2'b00) && ({1'b0, DEREG.funct3[1:0]} == MEM_WORD)):a_misaligned();
 			}
 			/* Exceptions in execute stage */
 			any {
@@ -466,7 +466,7 @@ module rv32x5p {
 				(i_misaligned):					instruction_address_misaligned(target_address);
 				(DEREG.load && m_misaligned):	load_address_misaligned(alu_q);
 				(DEREG.store && m_misaligned):	store_address_misaligned(alu_q);
-				(DEREG.amo && a_misaligned):	store_address_misaligned(DEREG.rs1_data);
+				(DEREG.amo && a_misaligned):	store_address_misaligned(execute_alu_a);
 			}
 			/* Update branch prediction */
 			any {
