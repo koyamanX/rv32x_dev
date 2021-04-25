@@ -21,11 +21,11 @@ declare load_store_unit {
 	input byteen[3];
 	output load_data[32];
 	input store_data[32];
-	func_in load(addr, byteen);					/* must be asserted until valid arrives */
-	func_in store(addr, byteen, store_data);	/* must be asserted until valid arrives */
+	func_in load(addr, byteen);					/* must be asserted until ready arrives */
+	func_in store(addr, byteen, store_data);	/* must be asserted until ready arrives */
 	func_in load_reserved();					/* This signal is asserted alongside with load */
 	func_in store_conditional();				/* This signal is asserted alongside with store */
-	func_out valid;								/* operation is done */
+	func_out ready;								/* operation is done */
 
 	input amo_src[32];
 	input amo_addr[32];

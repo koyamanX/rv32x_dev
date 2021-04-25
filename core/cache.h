@@ -17,7 +17,7 @@ declare cache {
 	func_in reset();
 	func_in read(addr, byteen);
 	func_in write(addr, byteen, wdata);
-	func_out valid;
+	func_out ready;
 
 	func_in cache_flush;
 	func_out cache_flush_done;
@@ -38,6 +38,6 @@ declare cache {
 	output mem_size[3];
 	func_out mem_read(mem_addr, mem_size);
 	func_out mem_write(mem_addr, mem_size, mem_wdata);
-	func_in mem_valid;
+	func_in mem_ready;
 }
 #endif

@@ -98,9 +98,9 @@ module cache {
 			noncacheable_memop_op == CACHE_WRITE: mem_write(noncacheable_memop_addr, noncacheable_memop_byteen, 128'(noncacheable_memop_wdata));
 		}
 
-		if(mem_valid) {
+		if(mem_ready) {
 			rdata = mem_rdata[31:0];
-			valid();
+			ready();
 			idle();
 		}
 	}
@@ -177,7 +177,7 @@ module cache {
 						rdata = {0x000000, cache_word[31:24]};
 					}
 				}
-				valid();
+				ready();
 			}
 			cache_op == CACHE_WRITE: {
 				any {
@@ -255,14 +255,14 @@ module cache {
 						cache_dirty_way1[index] := DIRTY;
 					}
 				}
-				valid();
+				ready();
 			}
 		}
 		cache_lru[index] := ~cache_hit_lru;
 	}
 	proc writeback {
 		mem_write({tag, index, 4'b0000}, MEM_QUADWORD, cache_writeback_entry);
-		if(mem_valid) {
+		if(mem_ready) {
 			if(flushing) {
 				flush_cache();
 			} else {
@@ -284,7 +284,7 @@ module cache {
 		wire refilled_cache_block[128];
 
 		mem_read({tag, index, 4'b0000}, MEM_QUADWORD);
-		if(mem_valid) {
+		if(mem_ready) {
 			refill(mem_rdata);
 			refilled_cache_block = mem_rdata;
 			any {

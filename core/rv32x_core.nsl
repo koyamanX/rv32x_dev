@@ -1269,7 +1269,7 @@ module rv32x_core {
 			}
 		}
 	}
-	func lsu.valid {
+	func lsu.ready {
 		rv32x.rdata = lsu.load_data;
 		rv32x.dmem_ready();
 	}

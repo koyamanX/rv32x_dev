@@ -100,7 +100,7 @@ module load_store_unit {
 				if(translate(CACHE_STORE, sv32_va)) {
 					if(store_conditional && (!(reservation.valid && (reservation.addr == sv32_pa)))) {
 						load_data = 32'(1'b1);
-						valid();
+						ready();
 					} else {
 						cacheable_write(sv32_pa, byteen, store_data, store_conditional);
 					}
@@ -190,9 +190,9 @@ module load_store_unit {
 	proc cacheable_read {
 		dcache.read(cacheable_addr, cacheable_byteen);	
 
-		if(dcache.valid) {
+		if(dcache.ready) {
 			load_data = dcache.rdata;
-			valid();
+			ready();
 			idle();
 		}
 		if(dcache.load_access_fault) {
@@ -202,9 +202,9 @@ module load_store_unit {
 	proc cacheable_write {
 		dcache.write(cacheable_addr, cacheable_byteen, cacheable_wdata);	
 
-		if(dcache.valid) {
+		if(dcache.ready) {
 			load_data = 32'(~cacheable_sc);
-			valid();
+			ready();
 			idle();
 		}
 		if(dcache.store_amo_access_fault) {
@@ -236,7 +236,7 @@ module load_store_unit {
 		state amo_read {
 			dcache.read(amo_op_addr, amo_op_width);
 
-			if(dcache.valid) {
+			if(dcache.ready) {
 				rs1_data := dcache.rdata;
 				goto amo_alu_op;
 			}
@@ -263,9 +263,9 @@ module load_store_unit {
 		state amo_writeback {
 			dcache.write(amo_op_addr, amo_op_width, amo_alu_result);
 
-			if(dcache.valid) {
+			if(dcache.ready) {
 				load_data = rs1_data;
-				valid();
+				ready();
 				goto amo_read;
 				idle();
 			}
@@ -278,7 +278,7 @@ module load_store_unit {
 	func walker.mem_read {
 		dcache.read(walker.mem_addr[31:0], MEM_WORD);	
 
-		if(dcache.valid) {
+		if(dcache.ready) {
 			walker.mem_rdata = dcache.rdata[31:0];
 			walker.mem_ready();
 		}
@@ -300,7 +300,7 @@ module load_store_unit {
 	}
 	func dbus_ready {
 		dcache.mem_rdata = dbus_rdata;
-		dcache.mem_valid();
+		dcache.mem_ready();
 	}
 	func dcache.store_amo_access_fault {
 		store_amo_access_fault();
