@@ -187,12 +187,6 @@ module rv32x_integration {
 		rv32x_plic.irq_10();
 	}
 	/* BUS error signals */
-	func rv32x_plic.store_access_fault {
-		core.bus_store_access_fault();
-	}
-	func rv32x_plic.load_access_fault {
-		core.bus_load_access_fault();
-	}
 	func rv32x_sdspi.store_amo_access_fault {
 		core.bus_store_access_fault();
 	}

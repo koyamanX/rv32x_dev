@@ -15,8 +15,6 @@ declare plic {
 	func_in write(addr, wdata);
 	func_in reset();
 	func_out ready();
-	func_out store_access_fault();
-	func_out load_access_fault();
 	func_out external_interrupt_hart_0();
 	func_out external_interrupt_hart_1();
 	func_in irq_1;

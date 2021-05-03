@@ -35,8 +35,6 @@ def gen_header(filename):
 		f.write('\tfunc_in write(addr, wdata);\n')
 		f.write('\tfunc_in reset();\n')
 		f.write('\tfunc_out ready();\n')
-		f.write('\tfunc_out store_access_fault();\n')
-		f.write('\tfunc_out load_access_fault();\n')
 		for i in range(hart):
 			f.write('\tfunc_out external_interrupt_hart_{}();\n'.format(i))
 		for i in range(1, irq):
