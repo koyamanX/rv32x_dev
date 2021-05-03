@@ -310,10 +310,4 @@ module load_store_unit {
 			ptw_op == PTW_LOAD:		load_page_fault();
 		}
 	}
-	func dbus_load_access_fault {
-		load_access_fault();
-	}
-	func dbus_store_amo_access_fault {
-		store_amo_access_fault();
-	}
 }

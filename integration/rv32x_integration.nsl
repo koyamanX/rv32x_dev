@@ -186,13 +186,6 @@ module rv32x_integration {
 	func rv32x_mmio_dev.uart_receiver_interrupt_req {
 		rv32x_plic.irq_10();
 	}
-	/* BUS error signals */
-	func rv32x_sdspi.store_amo_access_fault {
-		core.bus_store_access_fault();
-	}
-	func rv32x_sdspi.load_access_fault {
-		core.bus_load_access_fault();
-	}
 	/* Device connections */
 	TXD = rv32x_mmio_dev.TXD;
 	rv32x_mmio_dev.RXD = RXD;

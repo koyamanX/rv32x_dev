@@ -86,8 +86,6 @@ declare load_store_unit {
 	/* Locked transfer */
 	func_out dbus_locked();
 	func_in dbus_ready;
-	func_in dbus_load_access_fault();
-	func_in dbus_store_amo_access_fault();
 	/* Flush buffer, cache in D-BUS if installed */
 	func_out dbus_flush();
 	func_in dbus_flush_done();
@@ -104,8 +102,6 @@ declare load_store_unit {
 	func_out pbus_locked();
 	/* P-BUS status */
 	func_in pbus_ready();
-	func_in pbus_load_access_fault();
-	func_in pbus_store_access_fault();
 	func_out pbus_flush();
 	func_in pbus_flush_done();
 

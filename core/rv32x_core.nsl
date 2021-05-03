@@ -1193,17 +1193,6 @@ module rv32x_core {
 		lsu.pma_empty();
 	}
 
-	/* BUS errors */
-	func bus_load_access_fault {
-		lsu.dbus_load_access_fault();
-	}
-	func bus_store_access_fault {
-		lsu.dbus_store_amo_access_fault();
-	}
-	func bus_instruction_access_fault {
-		ic.bus_instruction_access_fault();
-	}
-
 	func lsu.dbus_read {
 		reg lsu_read_cnt[3] = 0;
 		mem lsu_read_data[4][32];

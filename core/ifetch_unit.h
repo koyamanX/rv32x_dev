@@ -37,8 +37,6 @@ declare ifetch_unit {
 	func_out instruction_access_fault();
 	func_out instruction_page_fault();
 
-	func_in bus_instruction_access_fault();
-
 	/* Cache Unit <-> Page table walker Interface */
 	/* satp for page table walk to page table walker */
 	output satp[32];

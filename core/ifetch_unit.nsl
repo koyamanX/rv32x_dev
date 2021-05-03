@@ -163,7 +163,4 @@ module ifetch_unit {
 			idle();
 		}
 	}
-	func bus_instruction_access_fault {
-		instruction_access_fault();
-	}
 }
