@@ -104,20 +104,20 @@ module uart_receiver {
 	}
 	func read {
 		any {
-			addr == 10'(0x0): {rdata = 32'(fifo.read()); bufcnt--;}
-			addr == 10'(0x4): rdata = 32'(status);
-			addr == 10'(0x8): rdata = 32'(threshold);
-			addr == 10'(0xc): rdata = 32'(bufcnt);
+			addr == 10'(0x0): {rdata = 32'(fifo.read()); bufcnt--; ready();}
+			addr == 10'(0x4): {rdata = 32'(status); ready();}
+			addr == 10'(0x8): {rdata = 32'(threshold); ready();}
+			addr == 10'(0xc): {rdata = 32'(bufcnt); ready();}
+			else: {rdata = 0x00000000; ready();}
 		}
-		ready();
 	}
 	func write {
 		any {
-			addr == 10'(0x0): ;
-			addr == 10'(0x4): status.en := wdata[0];
-			addr == 10'(0x8): threshold := wdata[7:0];
-			addr == 10'(0xc): ;
+			addr == 10'(0x0): {ready();}
+			addr == 10'(0x4): {status.en := wdata[0]; ready();}
+			addr == 10'(0x8): {threshold := wdata[7:0]; ready();}
+			addr == 10'(0xc): {ready();}
+			else: {ready();}
 		}
-		ready();
 	}
 }

@@ -14,12 +14,14 @@ module mmio_dev {
 		any {
 			addr < 0x0010: 					 us.read(addr[9:0] - 10'(0x00));
 			0x0010 <= addr && addr < 0x0020: ur.read(addr[9:0] - 10'(0x10));
+			else: {rdata = 0x00000000; ready();}
 		}
 	}
 	func write {
 		any {
 			addr < 0x0010: 					 us.write(addr[9:0] - 10'(0x00), wdata);
 			0x0010 <= addr && addr < 0x0020: ur.write(addr[9:0] - 10'(0x10), wdata);
+			else: ready();
 		}
 	}
 	func us.ready {
