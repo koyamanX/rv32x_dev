@@ -12,8 +12,6 @@ declare clint {
 	func_in read(addr);
 	func_in write(addr, wdata);
 	func_out ready();
-	func_out store_access_fault();
-	func_out load_access_fault();
 	func_out software_interrupt_hart0();
 	func_out timer_interrupt_hart0();
 }

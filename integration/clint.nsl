@@ -15,7 +15,7 @@ module clint {
 			addr == 16'(CLINT_MTIMECMP_ADDR_OFFSET + 0x0000 + 0x0004): {rdata = mtimecmp_0_hi; ready();}
 			addr == 16'(CLINT_MTIME_ADDR_OFFSET + 0x0000): {{rdata = mtime_lo; ready();}}
 			addr == 16'(CLINT_MTIME_ADDR_OFFSET + 0x0004): {{rdata = mtime_hi; ready();}}
-			else: load_access_fault();
+			else: {rdata = 0x00000000; ready();}
 		}
 	}
 	func write {
@@ -25,7 +25,7 @@ module clint {
 			addr == 16'(CLINT_MTIMECMP_ADDR_OFFSET + 000000 + 0x0004): {mtimecmp_0_hi := wdata; ready();}
 			addr == 16'(CLINT_MTIME_ADDR_OFFSET + 0x0000): {{mtime_lo := wdata; ready();}}
 			addr == 16'(CLINT_MTIME_ADDR_OFFSET + 0x0004): {{mtime_hi := wdata; ready();}}
-			else: store_access_fault();
+			else: {ready();}
 		}
 	}
 	mtime = {mtime_hi, mtime_lo};
