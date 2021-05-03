@@ -1,0 +1,19 @@
+#include "amoalu.h"
+#include "opcode.h"
+
+
+module amoalu {
+	func exe {
+		any {
+			funct5 == AMOADD_W:	return rs1_data + rs2_data;
+			funct5 == AMOOR_W:	return rs1_data | rs2_data;
+			funct5 == AMOXOR_W:	return rs1_data ^ rs2_data;
+			funct5 == AMOAND_W:	return rs1_data & rs2_data;
+			funct5 == AMOSWAP_W:	return rs2_data;
+			funct5 == AMOMIN_W:	return if((33#(rs1_data) - 33#(rs2_data))[32]) rs1_data else rs2_data;
+			funct5 == AMOMINU_W:	return if((33'(rs1_data) - 33'(rs2_data))[32]) rs1_data else rs2_data;
+			funct5 == AMOMAX_W:	return if((33#(rs1_data) - 33#(rs2_data))[32]) rs2_data else rs1_data;
+			funct5 == AMOMAXU_W:	return if((33'(rs1_data) - 33'(rs2_data))[32]) rs2_data else rs1_data;
+		}
+	}
+}

@@ -3,6 +3,7 @@
 #include "opcode.h"
 #include "csr.h"
 #include "ptw.h"
+#include "amoalu.h"
 
 #define TLB_SIZE 32
 #include "tlb.inc"
@@ -42,6 +43,7 @@ module load_store_unit {
 
 	proc_name flush_tlb();
 	proc_name page_table_walk(ptw_op, ptw_addr);
+	amoalu rv32x_amoalu;
 	proc_name amo_op_exe(amo_op_src, amo_op_addr, amo_op_funct5, amo_op_aq, amo_op_rl, amo_op_width);
 	cache dcache;
 	tlb_32 dtlb;
@@ -246,18 +248,7 @@ module load_store_unit {
 			}
 		}
 		state amo_alu_op {
-
-			any {
-				amo_op_funct5 == AMOADD_W:	amo_alu_result := rs1_data + rs2_data;
-				amo_op_funct5 == AMOOR_W:	amo_alu_result := rs1_data | rs2_data;
-				amo_op_funct5 == AMOXOR_W:	amo_alu_result := rs1_data ^ rs2_data;
-				amo_op_funct5 == AMOAND_W:	amo_alu_result := rs1_data & rs2_data;
-				amo_op_funct5 == AMOSWAP_W:	amo_alu_result := rs2_data;
-				amo_op_funct5 == AMOMIN_W:	amo_alu_result := if((33#(rs1_data) - 33#(rs2_data))[32]) rs1_data else rs2_data;
-				amo_op_funct5 == AMOMINU_W:	amo_alu_result := if((33'(rs1_data) - 33'(rs2_data))[32]) rs1_data else rs2_data;
-				amo_op_funct5 == AMOMAX_W:	amo_alu_result := if((33#(rs1_data) - 33#(rs2_data))[32]) rs2_data else rs1_data;
-				amo_op_funct5 == AMOMAXU_W:	amo_alu_result := if((33'(rs1_data) - 33'(rs2_data))[32]) rs2_data else rs1_data;
-			}
+			amo_alu_result := rv32x_amoalu.exe(rs1_data, rs2_data, amo_op_funct5);
 			goto amo_writeback;
 		}
 		state amo_writeback {
