@@ -5,11 +5,11 @@ import math
 
 module='plic'
 irq_default=32
-irq=min(irq_default, 32)
+irq=irq_default
 hart_default=2
-hart=min(hart_default, 2)
+hart=hart_default
 pri_level_default=7
-pri_level=min(pri_level_default, 7)
+pri_level=pri_level_default
 
 macro_const = [
 	['PLIC_BASE_ADDR', 0x0c000000],
@@ -174,7 +174,7 @@ def gen_nsl(filename):
 		for i in range(hart):
 			f.write("\t\t\taddr == 32'(PLIC_THRESHOLD_BASE_ADDR + {:#010x}): {{rdata = 32'(threshold_hart_{}); ready();}}\n".format(0x1000*i, i))
 			f.write("\t\t\taddr == 32'(PLIC_CLAIM_COMPLETE_BASE_ADDR + {:#010x}): {{rdata = hart_{}_claim_num; ready();}}\n".format(0x1000*i, i))
-		f.write('\t\t\telse: load_access_fault();\n')
+		f.write('\t\t\telse: {rdata = 0x00000000; ready();}\n')
 		f.write('\t\t}\n')
 		f.write('\t}\n')
 
@@ -190,7 +190,7 @@ def gen_nsl(filename):
 		for i in range(hart):
 			f.write("\t\t\taddr == 32'(PLIC_THRESHOLD_BASE_ADDR + {:#010x}): {{threshold_hart_{} := wdata[{}:0]; ready();}}\n".format(0x1000*i, i, int(math.log2(pri_level+1))-1))
 			f.write("\t\t\taddr == 32'(PLIC_CLAIM_COMPLETE_BASE_ADDR + {:#010x}): {{; ready();}}\n".format(0x1000*i, i))
-		f.write('\t\t\telse: store_access_fault();\n')
+		f.write('\t\t\telse: {ready();}\n')
 		f.write('\t\t}\n')
 		f.write('\t}\n')
 

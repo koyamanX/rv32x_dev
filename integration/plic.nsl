@@ -191,7 +191,7 @@ module plic {
 			addr == 32'(PLIC_CLAIM_COMPLETE_BASE_ADDR + 0x00000000): {rdata = hart_0_claim_num; ready();}
 			addr == 32'(PLIC_THRESHOLD_BASE_ADDR + 0x00001000): {rdata = 32'(threshold_hart_1); ready();}
 			addr == 32'(PLIC_CLAIM_COMPLETE_BASE_ADDR + 0x00001000): {rdata = hart_1_claim_num; ready();}
-			else: load_access_fault();
+			else: {rdata = 0x00000000; ready();}
 		}
 	}
 	func write {
@@ -235,7 +235,7 @@ module plic {
 			addr == 32'(PLIC_CLAIM_COMPLETE_BASE_ADDR + 0x00000000): {; ready();}
 			addr == 32'(PLIC_THRESHOLD_BASE_ADDR + 0x00001000): {threshold_hart_1 := wdata[2:0]; ready();}
 			addr == 32'(PLIC_CLAIM_COMPLETE_BASE_ADDR + 0x00001000): {; ready();}
-			else: store_access_fault();
+			else: {ready();}
 		}
 	}
 }
