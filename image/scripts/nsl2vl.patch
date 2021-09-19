@@ -1,0 +1,13 @@
+--- nsl2vl	2021-07-12 23:00:06.553899532 +0900
++++ nsl2vl.new	2021-07-12 23:01:22.490570592 +0900
+@@ -91,8 +91,8 @@
+ 
+ if [ $supout -eq 0 ]; then
+ echo "${NSLPP} $nestcomment $pparg $name | ${NSLCORE} $exearg -o $outname"
+-${NSLPP} $nestcomment $pparg $name | ${NSLCORE} $exearg -o $outname
++${NSLPP} $nestcomment $pparg $name | sed '/^\s*$/d' | ${NSLCORE} $exearg -o $outname
+ else
+-${NSLPP} $nestcomment $pparg $name | ${NSLCORE} $exearg
++${NSLPP} $nestcomment $pparg $name | sed '/^\s*$/d' | ${NSLCORE} $exearg
+ fi
+ exit $?
