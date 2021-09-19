@@ -1,5 +1,6 @@
 #ifndef AMOALU_H
 #define AMOALU_H
+
 declare amoalu {
 	input funct5[5];
 	input rs1_data[32];
