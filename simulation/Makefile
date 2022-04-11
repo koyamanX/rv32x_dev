@@ -17,7 +17,7 @@ SIMOPT=-ggdb
 .PHONY: clean all obj_dir $(TOP)
 .SUFFIXES: .nsl .v
 
-all:$(TOP)_fast
+all:$(TOP)#_fast
 lint: $(VFILES)
 	verilator --lint-only -Wall -Wno-UNUSED -Wno-UNDRIVEN --Wno-DECLFILENAME --Wno-VARHIDDEN rv32x_simulation -Iout/
 	

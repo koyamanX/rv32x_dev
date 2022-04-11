@@ -10,30 +10,32 @@
 #include "verilated_vcd_c.h"
 #include "Vrv32x_simulation.h"
 #include "elfloader/elfloader.h"
+#include <signal.h>
+#include <string.h>
 
 #define IMEM_WAIT 1
 #define DMEM_WAIT 1
 
 #define INSTRUCTION_ADDRESS_MISALIGNED 0
-#define INSTRUCTION_ACCESS_FAULT        1
-#define ILLEGAL_INSTRUCTION             2
-#define BREAKPOINT                      3
-#define LOAD_ADDRESS_MISALIGNED         4
-#define LOAD_ACCESS_FAULT               5
-#define STORE_AMO_ADDRESS_MISALIGNED    6
-#define STORE_AMO_ACCESS_FAULT          7
-#define ENVIRONMENT_CALL_FROM_U_MODE    8
-#define ENVIRONMENT_CALL_FROM_S_MODE    9
-#define ENVIRONMENT_CALL_FROM_M_MODE    11
-#define INSTRUCTION_PAGE_FAULT          12
-#define LOAD_PAGE_FAULT                 13
-#define STORE_AMO_PAGE_FAULT            15
-#define MACHINE_TIMER_INTERRUPT			0x80000007
-#define MACHINE_SOFTWARE_INTERRUPT		0x80000003
-#define MACHINE_EXTERNAL_INTERRUPT		0x8000000b
-#define SUPERVISOR_TIMER_INTERRUPT		0x80000005
-#define SUPERVISOR_SOFTWARE_INTERRUPT	0x80000001
-#define SUPERVISOR_EXTERNAL_INTERRUPT	0x80000009
+#define INSTRUCTION_ACCESS_FAULT 1
+#define ILLEGAL_INSTRUCTION 2
+#define BREAKPOINT 3
+#define LOAD_ADDRESS_MISALIGNED 4
+#define LOAD_ACCESS_FAULT 5
+#define STORE_AMO_ADDRESS_MISALIGNED 6
+#define STORE_AMO_ACCESS_FAULT 7
+#define ENVIRONMENT_CALL_FROM_U_MODE 8
+#define ENVIRONMENT_CALL_FROM_S_MODE 9
+#define ENVIRONMENT_CALL_FROM_M_MODE 11
+#define INSTRUCTION_PAGE_FAULT 12
+#define LOAD_PAGE_FAULT 13
+#define STORE_AMO_PAGE_FAULT 15
+#define MACHINE_TIMER_INTERRUPT 0x80000007
+#define MACHINE_SOFTWARE_INTERRUPT 0x80000003
+#define MACHINE_EXTERNAL_INTERRUPT 0x8000000b
+#define SUPERVISOR_TIMER_INTERRUPT 0x80000005
+#define SUPERVISOR_SOFTWARE_INTERRUPT 0x80000001
+#define SUPERVISOR_EXTERNAL_INTERRUPT 0x80000009
 
 #define BLOCK_DEVICE_FILENAME "block_device.img"
 
@@ -41,32 +43,34 @@ using namespace std;
 
 const char *abi_reg_strs[] = {
 	"zero", "ra", "sp", "gp",
-	"tp", "t0", "t1", "t2", 
-	"s0", "s1", "a0", "a1", 
+	"tp", "t0", "t1", "t2",
+	"s0", "s1", "a0", "a1",
 	"a2", "a3", "a4", "a5",
 	"a6", "a7", "s2", "s3",
 	"s4", "s5", "s6", "s7",
 	"s8", "s9", "s10", "s11",
-	"t3", "t4", "t5", "t6"
-};
+	"t3", "t4", "t5", "t6"};
 
 void sim_exit(int status, void *p);
 
-static void cpy(void *dest, void *src, size_t n) {
+static void cpy(void *dest, void *src, size_t n)
+{
 	uint8_t *d, *s;
 
 	d = (uint8_t *)dest, s = (uint8_t *)src;
-	for(size_t i = 0; i < n; i += 4) {
-		d[i+0]	= s[i+2];
-		d[i+1]	= s[i+3];
-		d[i+2]	= s[i+0];
-		d[i+3]	= s[i+1];
+	for (size_t i = 0; i < n; i += 4)
+	{
+		d[i + 0] = s[i + 2];
+		d[i + 1] = s[i + 3];
+		d[i + 2] = s[i + 0];
+		d[i + 3] = s[i + 1];
 	}
 }
 
-class processor_t {
+class processor_t
+{
 private:
-	const char *vcdfilename = "rv32x_simulation.vcd";
+	char *vcdfilename;
 	const char *archname = "elf32-littleriscv";
 	const char *exefilename = "a.out";
 	const char *procname = NULL;
@@ -83,7 +87,7 @@ private:
 	int rising_edge = 0;
 	const char **reg_strs = abi_reg_strs;
 	bfd *abfd;
-	Vrv32x_simulation *core; 
+	Vrv32x_simulation *core;
 	VerilatedVcdC *tfp;
 	memlist_t *memory;
 	unsigned char instbuf[4];
@@ -102,48 +106,67 @@ private:
 	uint8_t buf[512];
 	FILE *block_device;
 	int block_device_avail = 0;
+	int inst_counter = 1; //最初0x00000000なので、条件の都合上1
+	int dump_vcd_flag = 0;
+	long start_dump_inst = 0;
+	long end_dump_inst = 0;
+	int print_entry_flag = 0;
+	struct symbol
+	{
+		unsigned int addr;
+		char *name;
+	} * symlist;
+
 public:
-	processor_t(const char *name) {
+	processor_t(const char *name)
+	{
 		procname = name;
-		memory = init_mem_list();
-		insert_new_mem(memory, "RAM0", 0x80000000, (0x84008000-0x80000000), 0);
-		core = new Vrv32x_simulation;	
-		if(access(BLOCK_DEVICE_FILENAME, F_OK) == 0) {
+		memory = init_mem_list();												  // memlistの先頭
+		insert_new_mem(memory, "RAM0", 0x80000000, (0x84008000 - 0x80000000), 0); // memory->nextの指す先に格納
+		core = new Vrv32x_simulation;
+		if (access(BLOCK_DEVICE_FILENAME, F_OK) == 0)
+		{
 			block_device_avail = 1;
 			block_device = fopen(BLOCK_DEVICE_FILENAME, "rb");
 		}
 #ifndef FAST_SIM
-		tfp = new VerilatedVcdC;
-		core->trace(tfp, 99);
-		tfp->open(vcdfilename);
 #endif
-		regs = (uint32_t *) calloc(sizeof(uint32_t), 32);
+		regs = (uint32_t *)calloc(sizeof(uint32_t), 32);
 	};
-	~processor_t(void) {
+	~processor_t(void)
+	{
 #ifndef FAST_SIM
-		tfp->close();
+		if (dump_vcd_flag)
+		{
+			tfp->close();
+		}
 #endif
 		core->final();
 		fclose(logfile);
-		if(block_device_avail) {
+		if (block_device_avail)
+		{
 			fclose(block_device);
 		}
 	};
-	const char *setExeFileName(const char *s) {
+	const char *setExeFileName(const char *s)
+	{
 		exefilename = s;
 		return exefilename;
 	};
-	void load(char *exefilename) {
+	void load(char *exefilename)
+	{
 		exefilename = exefilename;
 		abfd = open_exe(exefilename, archname);
 		load_elf(memory, abfd);
 		print_mem_list(memory);
 	};
-	void resetCore(void) {
-		p_reset = 0;	
+	void resetCore(void)
+	{
+		p_reset = 0;
 		reset = 0;
 
-		while(tick() <= 10) {
+		while (tick() <= 10)
+		{
 			eval();
 			dump();
 		}
@@ -167,7 +190,8 @@ public:
 			dump();
 		}
 	};
-	unsigned long long tick(void) {
+	unsigned long long tick(void)
+	{
 		static int m_clock_prev = 0;
 
 		core->reset = reset;
@@ -178,99 +202,141 @@ public:
 
 		return m_clock_count++;
 	};
-	void eval(void) {
+	void eval(void)
+	{
 		core->eval();
 	};
-	void dump(void) {
+	void dump(void)
+	{
 #ifndef FAST_SIM
-		tfp->dump(m_clock_count);
+		if (dump_vcd_flag && ((start_dump_inst == 0 && end_dump_inst == 0) || (start_dump_inst <= inst_counter && end_dump_inst >= inst_counter)))
+		{
+			tfp->dump(m_clock_count);
+		}
 #endif
 	};
-	unsigned long long getSimTime(void) {
+	unsigned long long getSimTime(void)
+	{
 		return m_clock_count;
 	};
-	uint64_t step(void) {
+	uint64_t step(void)
+	{
 		int imem_stat = 0;
 		int dmem_stat = 0;
 		static uint32_t epc, cause, mtval, einst, got_exception = -1;
 		uint64_t ret = -1;
 
-		while(1) {
+		while (1)
+		{
 			tick();
 			eval();
 			core->inst = 0;
-			if(core->imem_read) {
-				if(imem_wait == IMEM_WAIT) {
+			if (core->imem_read)
+			{
+				if (imem_wait == IMEM_WAIT)
+				{
 					imem_stat = read_word(memory, core->iaddr, (uint32_t *)&core->inst);
 					core->imem_ready = 1;
 					imem_wait = 0;
-				} else {
+				}
+				else
+				{
 					core->imem_ready = 0;
 					imem_wait++;
 				}
-			} else {
+			}
+			else
+			{
 				core->imem_ready = 0;
 			}
 			core->rdata = 0;
-			if(core->dmem_read || core->dmem_write) {
-				if(dmem_wait == DMEM_WAIT) {
-					if((core->dbyteen & 0x3) == 0) {
-						if(core->dmem_read) {
+			if (core->dmem_read || core->dmem_write)
+			{
+				if (dmem_wait == DMEM_WAIT)
+				{
+					if ((core->dbyteen & 0x3) == 0)
+					{
+						if (core->dmem_read)
+						{
 							dmem_stat = read_byte(memory, core->daddr, (uint8_t *)&core->rdata);
-						} else if(core->dmem_write) {
+						}
+						else if (core->dmem_write)
+						{
 							dmem_stat = write_byte(memory, core->daddr, core->wdata);
 						}
-					} else if((core->dbyteen & 0x3) == 1) {
-						if(core->dmem_read) {
+					}
+					else if ((core->dbyteen & 0x3) == 1)
+					{
+						if (core->dmem_read)
+						{
 							dmem_stat = read_halfword(memory, core->daddr, (uint16_t *)&core->rdata);
-						} else if(core->dmem_write) {
+						}
+						else if (core->dmem_write)
+						{
 							dmem_stat = write_halfword(memory, core->daddr, core->wdata);
 						}
-					} else if((core->dbyteen & 0x3) == 2) {
-						if(core->dmem_read) {
+					}
+					else if ((core->dbyteen & 0x3) == 2)
+					{
+						if (core->dmem_read)
+						{
 							dmem_stat = read_word(memory, core->daddr, (uint32_t *)&core->rdata);
-						} else if(core->dmem_write) {
+						}
+						else if (core->dmem_write)
+						{
 							dmem_stat = write_word(memory, core->daddr, core->wdata);
 						}
 					}
 					core->dmem_ready = 1;
 					dmem_wait = 0;
-				} else {
+				}
+				else
+				{
 					core->dmem_ready = 0;
 					dmem_wait++;
 				}
-			} else {
+			}
+			else
+			{
 				core->dmem_ready = 0;
 			}
-			if(imem_stat == -1) {
+			if (imem_stat == -1)
+			{
 				fprintf(stderr, "Instruction Memory violation occuries at address of %08x, byteen %02x\n", core->iaddr, core->ibyteen);
 				fflush(stderr);
 				fflush(stdout);
 				exit(-1);
 			}
-			if(dmem_stat == -1) {
+			if (dmem_stat == -1)
+			{
 				fprintf(stderr, "Data memory violation occuries at address of %08x, byteen %02x\n", core->daddr, core->dbyteen);
 				fflush(stderr);
 				fflush(stdout);
 				exit(-1);
 			}
-			if(rising_edge) {
-				if(block_device_avail) {
-					if(core->read_block) {
+			if (rising_edge)
+			{
+				if (block_device_avail)
+				{
+					if (core->read_block)
+					{
 						size_t len;
 
-						fseek(block_device, core->block_adrs*512, SEEK_SET);
+						fseek(block_device, core->block_adrs * 512, SEEK_SET);
 						len = fread(buf, sizeof(uint8_t), 512, block_device);
 						cpy(core->block_data, buf, 512);
 						core->block_data_valid = 1;
-					} else {
+					}
+					else
+					{
 						core->block_data_valid = 0;
 					}
 				}
 			}
 			eval();
 			dump();
-			if(rising_edge) {
+			if (rising_edge)
+			{
 				ssize_t nr;
 				int ch;
 				/*
@@ -281,115 +347,155 @@ public:
 				*/
 				core->uart_wdata = 0;
 				ch = getchar();
-				if(ch != EOF) {
-					core->uart_wdata = ch;	
+				if (ch != EOF)
+				{
+					core->toggle_status_en = 1;
+					core->uart_wdata = ch;
 					core->uart_write = 1;
-				} else {
+				}
+				else
+				{
 					core->uart_write = 0;
 				}
 			}
-			if(rising_edge) {
-				if(core->sim_done && !no_sim_exit) {
+			if (rising_edge)
+			{
+				if (core->sim_done && !no_sim_exit)
+				{
 					ret = core->tohost;
 				}
-				if(core->debug_raise_exception) {
+				if (core->debug_raise_exception)
+				{
 					epc = core->debug_epc;
 					cause = core->debug_cause;
 					mtval = core->debug_mtval;
 					einst = core->debug_inst;
-					
-					switch(cause) {
-						case INSTRUCTION_ACCESS_FAULT: 
-						case INSTRUCTION_PAGE_FAULT: 
-						case ILLEGAL_INSTRUCTION:
-							got_exception = 0;
-							break;
-						case INSTRUCTION_ADDRESS_MISALIGNED: 
-						case BREAKPOINT: 
-						case ENVIRONMENT_CALL_FROM_U_MODE: 
-						case ENVIRONMENT_CALL_FROM_S_MODE: 
-						case ENVIRONMENT_CALL_FROM_M_MODE: 
-						case LOAD_ADDRESS_MISALIGNED: 
-						case STORE_AMO_ADDRESS_MISALIGNED: 
-							got_exception = 1;
-							break;
-						case LOAD_ACCESS_FAULT: 
-						case STORE_AMO_ACCESS_FAULT: 
-						case LOAD_PAGE_FAULT: 
-						case STORE_AMO_PAGE_FAULT: 
-							got_exception = 0;
-							break;
-						case MACHINE_SOFTWARE_INTERRUPT: 
-						case MACHINE_TIMER_INTERRUPT: 
-						case MACHINE_EXTERNAL_INTERRUPT: 
-						case SUPERVISOR_SOFTWARE_INTERRUPT: 
-						case SUPERVISOR_TIMER_INTERRUPT: 
-						case SUPERVISOR_EXTERNAL_INTERRUPT: 
-						default: 
-							got_exception = 0; break;
+
+					switch (cause)
+					{
+					case INSTRUCTION_ACCESS_FAULT:
+					case INSTRUCTION_PAGE_FAULT:
+					case ILLEGAL_INSTRUCTION:
+						got_exception = 0;
+						break;
+					case INSTRUCTION_ADDRESS_MISALIGNED:
+					case BREAKPOINT:
+					case ENVIRONMENT_CALL_FROM_U_MODE:
+					case ENVIRONMENT_CALL_FROM_S_MODE:
+					case ENVIRONMENT_CALL_FROM_M_MODE:
+					case LOAD_ADDRESS_MISALIGNED:
+					case STORE_AMO_ADDRESS_MISALIGNED:
+						got_exception = 1;
+						break;
+					case LOAD_ACCESS_FAULT:
+					case STORE_AMO_ACCESS_FAULT:
+					case LOAD_PAGE_FAULT:
+					case STORE_AMO_PAGE_FAULT:
+						got_exception = 0;
+						break;
+					case MACHINE_SOFTWARE_INTERRUPT:
+					case MACHINE_TIMER_INTERRUPT:
+					case MACHINE_EXTERNAL_INTERRUPT:
+					case SUPERVISOR_SOFTWARE_INTERRUPT:
+					case SUPERVISOR_TIMER_INTERRUPT:
+					case SUPERVISOR_EXTERNAL_INTERRUPT:
+					default:
+						got_exception = 0;
+						break;
 					}
 				}
-				if(core->debug_retire) {
+				if (core->debug_retire)
+				{
 					break;
 				}
 			}
 		}
+		if (retire_pc != core->debug_retire_pc)
+		{
+			inst_counter++;
+		}
+		// printf("inst_counter = %d\n", inst_counter);
 		retire_pc = core->debug_retire_pc;
 		retire_inst = core->debug_retire_inst;
-		if((got_exception == 0) && exception_output_flag) {
+		if ((got_exception == 0) && exception_output_flag)
+		{
 			printException(epc, cause, mtval);
 			got_exception = -1;
-		} else if(got_exception == -1) {
+		}
+		else if (got_exception == -1)
+		{
 			;
-		} else {
+		}
+		else
+		{
 			got_exception--;
 		}
-		if(got_exception == 0) {
+		if (got_exception == 0)
+		{
 			retire_pc = epc;
 			retire_inst = einst;
 		}
-		if(trace_output_flag) {
+		if (trace_output_flag)
+		{
 			fprintf(logfile, "%s: 0x%016x (0x%08x) ", procname, retire_pc, retire_inst);
 		}
-		if((disasm != NULL) && disasm_output_flag) {
+		if (print_entry_flag)
+		{
+			for (int i = 0; symlist[i].addr != NULL; i++)
+			{
+				if (retire_pc == symlist[i].addr)
+				{
+					fprintf(logfile, "\nentry: %s\n", symlist[i].name);
+				}
+			}
+		}
+		if ((disasm != NULL) && disasm_output_flag)
+		{
 			printDisasm(retire_pc, retire_inst);
+			fprintf(logfile, "\tinst_counter = %d", inst_counter);
 			fprintf(logfile, "\n");
 		}
-		if(core->debug_mem_write && memory_output_flag) {
+		if (core->debug_mem_write && memory_output_flag)
+		{
 			int mask;
-			mask = 0xffffffff >> (32-(core->debug_mem_byteen+1)*8);
+			mask = 0xffffffff >> (32 - (core->debug_mem_byteen + 1) * 8);
 			fprintf(logfile, "\t");
-			printMemWrite(core->debug_mem_adrs, core->debug_mem_data&mask);
+			printMemWrite(core->debug_mem_adrs, core->debug_mem_data & mask);
 		}
-		if(core->debug_wb && writeback_output_flag) {
+		if (core->debug_wb && writeback_output_flag)
+		{
 			fprintf(logfile, "\t");
 			printRegInfo(core->debug_wb_rd, core->debug_wb_data);
 		}
-		if((core->debug_mem_write && memory_output_flag) || (core->debug_wb && writeback_output_flag)) {
+		if ((core->debug_mem_write && memory_output_flag) || (core->debug_wb && writeback_output_flag))
+		{
 			fprintf(logfile, "\n");
 		}
 		dumpRegs();
 
-
-
 		return ret;
 	};
-	void openLogFile(const char *s) {
-		if(no_log) {
+	void openLogFile(const char *s)
+	{
+		if (no_log)
+		{
 			logfilename = (char *)"/dev/null";
-			return ;
+			return;
 		}
-		if(logfilename != NULL) {
+		if (logfilename != NULL)
+		{
 			free(logfilename);
 			logfilename = NULL;
 		}
-		logfilename = (char *)calloc(sizeof(char), strlen(s)+strlen(".log"));
+		logfilename = (char *)calloc(sizeof(char), strlen(s) + strlen(".log"));
 		strcat(logfilename, basename(s));
 		strcat(logfilename, ".log");
 		logfile = fopen(logfilename, "w");
 	};
-	void parseLogOpts(int argc, char **argv) {
+	void parseLogOpts(int argc, char **argv)
+	{
 		int opt, longindex;
+		char *range = NULL, *bar = NULL, *symfile = NULL;
 		struct option longopts[] = {
 			{"print-exception", no_argument, NULL, 'e'},
 			{"print-writeback", no_argument, NULL, 'w'},
@@ -399,64 +505,156 @@ public:
 			{"print-all", no_argument, NULL, 'a'},
 			{"no-log", no_argument, NULL, 'x'},
 			{"no-sim-exit", no_argument, NULL, 'n'},
+			{"dump-vcd", optional_argument, NULL, 'D'},
+			{"print-entry", no_argument, NULL, 'E'},
 			{0, 0, 0, 0},
 		};
-
-		while((opt = getopt_long(argc, argv, "ewdmianx", longopts, &longindex)) != -1) {
-			switch(opt) {
-				case 'e':
-					exception_output_flag = 1;
-					break;
-				case 'w':
-					writeback_output_flag = 1;
-					break;
-				case 'd':
-					disasm_output_flag = 1;
-					break;
-				case 'm':
-					memory_output_flag = 1;
-					break;
-				case 'i':
-					trace_output_flag = 1;
-					break;
-				case 'a':
-					print_all_flag = 1;
-					break;
-				case 'n':
-					no_sim_exit = 1;
-					break;
-				case 'x':
-					no_log = 1;
-					break;
-				default:
-					exit(1);
-					break;
+		while ((opt = getopt_long(argc, argv, "ewdmianxD::E", longopts, &longindex)) != -1)
+		{
+			switch (opt)
+			{
+			case 'e':
+				exception_output_flag = 1;
+				break;
+			case 'w':
+				writeback_output_flag = 1;
+				break;
+			case 'd':
+				disasm_output_flag = 1;
+				break;
+			case 'm':
+				memory_output_flag = 1;
+				break;
+			case 'i':
+				trace_output_flag = 1;
+				break;
+			case 'a':
+				print_all_flag = 1;
+				break;
+			case 'n':
+				no_sim_exit = 1;
+				break;
+			case 'x':
+				no_log = 1;
+				break;
+			case 'D':
+				dump_vcd_flag = 1;
+				range = optarg;
+				break;
+			case 'E':
+				print_entry_flag = 1;
+				break;
+			default:
+				exit(1);
+				break;
 			}
 		}
-		if(print_all_flag) {
+		if (dump_vcd_flag)
+		{
+			if (range != NULL)
+			{
+				bar = strstr(range, "-");
+				if (bar != NULL)
+				{
+					*bar = '\0';
+					start_dump_inst = strtol(range, NULL, 0);
+					end_dump_inst = strtol(bar + 1, NULL, 0);
+					*bar = '-';
+					// printf("start=%ld end=%ld\n", start_dump_inst, end_dump_inst);
+					vcdfilename = strcat(range, ".vcd");
+				}
+			}
+			else
+			{
+				char name[10] = "all";
+				vcdfilename = strcat(name, ".vcd");
+			}
+			tfp = new VerilatedVcdC;
+			core->trace(tfp, 99);
+			tfp->open(vcdfilename);
+		}
+
+		if (print_all_flag)
+		{
 			exception_output_flag = 1;
 			writeback_output_flag = 1;
 			disasm_output_flag = 1;
 			memory_output_flag = 1;
 			trace_output_flag = 1;
+			print_entry_flag = 1;
+		}
+
+		if (print_entry_flag)
+		{
+			long storage_needed;
+			asymbol **symbol_table;
+			long number_of_symbols;
+			int procedureCounter = 0;
+
+			storage_needed = bfd_get_symtab_upper_bound(abfd);
+
+			if (storage_needed < 0)
+			{
+				printf("failed reading symbol\n");
+				exit(1);
+			}
+
+			if (storage_needed == 0)
+			{
+				printf("no symbol\n");
+				exit(1);
+			}
+			symbol_table = (asymbol **)malloc(storage_needed);
+			number_of_symbols = bfd_canonicalize_symtab(abfd, symbol_table);
+
+			if (number_of_symbols < 0)
+			{
+				printf("failed reading symbol\n");
+				exit(1);
+			}
+
+			for (int i = 0; i < number_of_symbols; i++)
+			{
+				if (symbol_table[i]->value != 0 && !(symbol_table[i]->flags & (BSF_FILE | BSF_OBJECT)))
+				{
+					procedureCounter++;
+				}
+			}
+			symlist = (struct symbol *)malloc(sizeof(symbol) * (procedureCounter + 1));
+			procedureCounter = 0;
+			for (int i = 0; i < number_of_symbols; i++)
+			{
+				if (symbol_table[i]->value != 0 && !(symbol_table[i]->flags & (BSF_FILE | BSF_OBJECT)))
+				{
+					symlist[procedureCounter].name = (char *)malloc(sizeof(char) * strlen(symbol_table[i]->name));
+					symlist[procedureCounter].addr = 0x80000000 + symbol_table[i]->value;
+					strcpy(symlist[procedureCounter].name, symbol_table[i]->name);
+					procedureCounter++;
+				}
+				// printf("%d %s 0x%lx flags=%x\n", i, symbol_table[i]->name, symbol_table[i]->value, symbol_table[i]->flags);
+			}
 		}
 	};
-	void openDisasm(void) {
-		init_disassemble_info(&disasm_info, logfile, (fprintf_ftype) fprintf);
-		disasm_info.arch = bfd_arch_riscv; 
-		disasm_info.mach = bfd_mach_riscv32; 
+	void openDisasm(void)
+	{
+		init_disassemble_info(&disasm_info, logfile, (fprintf_ftype)fprintf);
+		disasm_info.arch = bfd_arch_riscv;
+		disasm_info.mach = bfd_mach_riscv32;
 		disasm_info.buffer_length = 0x4;
 		disasm_info.buffer = instbuf;
 		disasm_info.read_memory_func = buffer_read_memory;
 		disassemble_init_for_target(&disasm_info);
-		disasm = disassembler(bfd_arch_riscv, false, bfd_mach_riscv32, NULL);	
+		disasm = disassembler(bfd_arch_riscv, false, bfd_mach_riscv32, NULL);
 	};
-	void printDisasm(uint32_t pc, uint32_t inst) {
+	void printDisasm(uint32_t pc, uint32_t inst)
+	{
 		memcpy(instbuf, &inst, sizeof(uint32_t));
 		disasm_info.buffer_vma = pc;
 		disasm(pc, &disasm_info);
 	};
-	void dumpRegs(void) {
+
+	void dumpRegs(void)
+	{
 		regs[0] = core->debug_pc;
 		regs[1] = core->debug_x1;
 		regs[2] = core->debug_x2;
@@ -490,54 +688,115 @@ public:
 		regs[30] = core->debug_x30;
 		regs[31] = core->debug_x31;
 	};
-	void printRegInfo(uint8_t rd, uint32_t data) {
+	void printRegInfo(uint8_t rd, uint32_t data)
+	{
 		fprintf(logfile, "%4s <- %08x", reg_strs[rd], data);
 	};
-	void printException(uint32_t epc, uint32_t cause, uint32_t mtval) {
+	void printException(uint32_t epc, uint32_t cause, uint32_t mtval)
+	{
 		const char *str;
 
-#define STR(e)	(#e)
-		switch(cause) {
-			case INSTRUCTION_ADDRESS_MISALIGNED: str = STR(INSTRUCTION_ADDRESS_MISALIGNED);break;
-			case INSTRUCTION_ACCESS_FAULT: str = STR(INSTRUCTION_ACCESS_FAULT);break;
-			case ILLEGAL_INSTRUCTION: str = STR(ILLEGAL_INSTRUCTION);break;
-			case BREAKPOINT: str = STR(BREAKPOINT);break;
-			case LOAD_ADDRESS_MISALIGNED: str = STR(LOAD_ADDRESS_MISALIGNED);break;
-			case LOAD_ACCESS_FAULT: str = STR(LOAD_ACCESS_FAULT);break;
-			case STORE_AMO_ADDRESS_MISALIGNED: str = STR(STORE_AMO_ADDRESS_MISALIGNED);break;
-			case STORE_AMO_ACCESS_FAULT: str = STR(STORE_AMO_ACCESS_FAULT);break;
-			case ENVIRONMENT_CALL_FROM_U_MODE: str = STR(ENVIRONMENT_CALL_FROM_U_MODE);break;
-			case ENVIRONMENT_CALL_FROM_S_MODE: str = STR(ENVIRONMENT_CALL_FROM_S_MODE);break;
-			case ENVIRONMENT_CALL_FROM_M_MODE: str = STR(ENVIRONMENT_CALL_FROM_M_MODE);break;
-			case INSTRUCTION_PAGE_FAULT: str = STR(INSTRUCTION_PAGE_FAULT);break;
-			case LOAD_PAGE_FAULT: str = STR(LOAD_PAGE_FAULT);break;
-			case STORE_AMO_PAGE_FAULT: str = STR(STORE_AMO_PAGE_FAULT);break;
-			case MACHINE_SOFTWARE_INTERRUPT: str = STR(MACHINE_SOFTWARE_INTERRUPT);break;
-			case MACHINE_TIMER_INTERRUPT: str = STR(MACHINE_TIMER_INTERRUPT);break;
-			case MACHINE_EXTERNAL_INTERRUPT: str = STR(MACHINE_EXTERNAL_INTERRUPT);break;
-			case SUPERVISOR_SOFTWARE_INTERRUPT: str = STR(SUPERVISOR_SOFTWARE_INTERRUPT);break;
-			case SUPERVISOR_TIMER_INTERRUPT: str = STR(SUPERVISOR_TIMER_INTERRUPT);break;
-			case SUPERVISOR_EXTERNAL_INTERRUPT: str = STR(SUPERVISOR_EXTERNAL_INTERRUPT);break;
-			default: str = "ILLEGAL_EXCEPTION";break;
+#define STR(e) (#e)
+		switch (cause)
+		{
+		case INSTRUCTION_ADDRESS_MISALIGNED:
+			str = STR(INSTRUCTION_ADDRESS_MISALIGNED);
+			break;
+		case INSTRUCTION_ACCESS_FAULT:
+			str = STR(INSTRUCTION_ACCESS_FAULT);
+			break;
+		case ILLEGAL_INSTRUCTION:
+			str = STR(ILLEGAL_INSTRUCTION);
+			break;
+		case BREAKPOINT:
+			str = STR(BREAKPOINT);
+			break;
+		case LOAD_ADDRESS_MISALIGNED:
+			str = STR(LOAD_ADDRESS_MISALIGNED);
+			break;
+		case LOAD_ACCESS_FAULT:
+			str = STR(LOAD_ACCESS_FAULT);
+			break;
+		case STORE_AMO_ADDRESS_MISALIGNED:
+			str = STR(STORE_AMO_ADDRESS_MISALIGNED);
+			break;
+		case STORE_AMO_ACCESS_FAULT:
+			str = STR(STORE_AMO_ACCESS_FAULT);
+			break;
+		case ENVIRONMENT_CALL_FROM_U_MODE:
+			str = STR(ENVIRONMENT_CALL_FROM_U_MODE);
+			break;
+		case ENVIRONMENT_CALL_FROM_S_MODE:
+			str = STR(ENVIRONMENT_CALL_FROM_S_MODE);
+			break;
+		case ENVIRONMENT_CALL_FROM_M_MODE:
+			str = STR(ENVIRONMENT_CALL_FROM_M_MODE);
+			break;
+		case INSTRUCTION_PAGE_FAULT:
+			str = STR(INSTRUCTION_PAGE_FAULT);
+			break;
+		case LOAD_PAGE_FAULT:
+			str = STR(LOAD_PAGE_FAULT);
+			break;
+		case STORE_AMO_PAGE_FAULT:
+			str = STR(STORE_AMO_PAGE_FAULT);
+			break;
+		case MACHINE_SOFTWARE_INTERRUPT:
+			str = STR(MACHINE_SOFTWARE_INTERRUPT);
+			break;
+		case MACHINE_TIMER_INTERRUPT:
+			str = STR(MACHINE_TIMER_INTERRUPT);
+			break;
+		case MACHINE_EXTERNAL_INTERRUPT:
+			str = STR(MACHINE_EXTERNAL_INTERRUPT);
+			break;
+		case SUPERVISOR_SOFTWARE_INTERRUPT:
+			str = STR(SUPERVISOR_SOFTWARE_INTERRUPT);
+			break;
+		case SUPERVISOR_TIMER_INTERRUPT:
+			str = STR(SUPERVISOR_TIMER_INTERRUPT);
+			break;
+		case SUPERVISOR_EXTERNAL_INTERRUPT:
+			str = STR(SUPERVISOR_EXTERNAL_INTERRUPT);
+			break;
+		default:
+			str = "ILLEGAL_EXCEPTION";
+			break;
 		}
 #undef STR
 
 		fprintf(logfile, "%s\tepc <- %08x, mtval <- %08x\n", str, epc, mtval);
+		// printDisasm(epc, mtval);
+		// fprintf(logfile, ")\n");
 	};
-	void printMemWrite(uint32_t adrs, uint32_t data) {
+	void printMemWrite(uint32_t adrs, uint32_t data)
+	{
 		fprintf(logfile, "Memory[%08x] <- %08x", adrs, data);
 	};
-	void flushPipeline(void) {
+	void flushPipeline(void){
 
 	};
 };
 
-typedef struct {
+typedef struct
+{
 	struct termios *tmio;
 	processor_t *procs;
 } env_t;
 
-int main(int argc, char **argv) {
+void gotSigInt(int i)
+{
+	printf("sigint\n");
+	exit(0);
+}
+
+int main(int argc, char **argv)
+{
+	struct sigaction act;
+	memset(&act, 0, sizeof(act));
+	act.sa_handler = gotSigInt;
+	sigaction(SIGINT, &act, NULL);
+
 	int ret = 0;
 	processor_t *proc0;
 	struct termios tmio;
@@ -549,24 +808,28 @@ int main(int argc, char **argv) {
 	on_exit(sim_exit, &env);
 
 	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+	/*
 	tcgetattr(STDIN_FILENO, &tmio);
 	stmio = tmio;
 	tmio.c_lflag &= ~(ECHO | ICANON);
 	tcsetattr(STDIN_FILENO, TCSANOW, &tmio);
+	*/
 
 	Verilated::commandArgs(argc, argv);
 	Verilated::traceEverOn(true);
 
 	proc0 = new processor_t("core\t0");
-	proc0->load(argv[1]);
-	proc0->parseLogOpts(argc-1, argv+1);
+	proc0->load(argv[1]); // elf
+	proc0->parseLogOpts(argc - 1, argv + 1);
 	proc0->openLogFile(argv[1]);
 	proc0->openDisasm();
-	
+
 	proc0->resetCore();
-	while(1) {
+	while (1)
+	{
 		ret = proc0->step();
-		if(ret != -1) {
+		if (ret != -1)
+		{
 			break;
 		}
 	}
@@ -575,11 +838,10 @@ int main(int argc, char **argv) {
 	return (ret == 0x00000001) ? 0 : ret;
 }
 
-void sim_exit(int status, void *p) {
+void sim_exit(int status, void *p)
+{
 	env_t *env;
-
 	env = (env_t *)p;
-	tcsetattr(STDIN_FILENO, TCSANOW, env->tmio);
+	// tcsetattr(STDIN_FILENO, TCSANOW, env->tmio);
 	delete env->procs;
 }
-
