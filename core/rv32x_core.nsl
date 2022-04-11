@@ -663,7 +663,7 @@ module rv32x_core {
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 		rv32x.flush_execute();
-		rv32x.get_pc_execute();
+		rv32x.get_pc_trap();
 	}
 	func machine_external_interrupt {
 		interrupt();
