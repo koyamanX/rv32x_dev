@@ -1,12 +1,12 @@
 [submodule "integration/sdspi"]
 	path = integration/sdspi
 	url = https://github.com/koyamanX/sdspi.git
-[submodule "software/xv6-riscv"]
-	path = software/xv6-riscv
-	url = https://github.com/koyamanX/xv6-riscv
 [submodule "software/opensbi"]
 	path = software/opensbi
 	url = https://github.com/koyamanX/opensbi.git
 [submodule "software/riscv-tests"]
 	path = software/riscv-tests
 	url = git@github.com:twinkletia/riscv-tests
+[submodule "software/xv6-riscv"]
+	path = software/xv6-riscv
+	url = git@github.com:twinkletia/xv6-riscv
