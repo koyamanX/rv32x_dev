@@ -2,7 +2,7 @@
 [*] GTKWave Analyzer v3.3.105 (w)1999-2020 BSI
 [*] Fri Jul 24 19:24:02 2020
 [*]
-[dumpfile] "/home/koyaman/rv32x_dev/simulation/rv32x_simulation.vcd"
+[dumpfile] "/home/koyaman/rv32x_dev/simulation/all.vcd"
 [dumpfile_mtime] "Fri Jul 24 19:23:49 2020"
 [dumpfile_size] 515836
 [savefile] "/home/koyaman/rv32x_dev/simulation/rv32x.gtkw"
@@ -61,5 +61,13 @@ TOP.rv32x_simulation.core.core.rv32x.rv32x_munit32.div.q[31:0]
 TOP.rv32x_simulation.core.core.rv32x.rv32x_munit32.div.exe
 TOP.rv32x_simulation.core.core.rv32x.rv32x_munit32.div.done
 TOP.rv32x_simulation.core.core.rv32x.rv32x_munit32.div.exe_div
+
+TOP.rv32x_simulation.core.core.ic.idle
+TOP.rv32x_simulation.core.core.ic.flush_tlb
+TOP.rv32x_simulation.core.core.ic.page_table_walk
+TOP.rv32x_simulation.core.core.ic.compare_tag
+TOP.rv32x_simulation.core.core.ic.allocate
+TOP.rv32x_simulation.core.core.ic.invalidate_cache
+TOP.rv32x_simulation.core.core.ic.mem_read
 [pattern_trace] 1
 [pattern_trace] 0
