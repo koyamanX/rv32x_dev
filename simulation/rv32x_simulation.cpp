@@ -12,6 +12,7 @@
 #include "elfloader/elfloader.h"
 #include <signal.h>
 #include <string.h>
+#include <byteswap.h>
 
 #define IMEM_WAIT 1
 #define DMEM_WAIT 1
@@ -158,6 +159,7 @@ public:
 		exefilename = exefilename;
 		abfd = open_exe(exefilename, archname);
 		load_elf(memory, abfd);
+		fetchSymboltable();
 		print_mem_list(memory);
 	};
 	void resetCore(void)
@@ -349,6 +351,7 @@ public:
 				ch = getchar();
 				if (ch != EOF)
 				{
+					// dump_vcd_flag = 1; // uart debug
 					core->uart_wdata = ch;
 					core->uart_write = 1;
 				}
@@ -434,24 +437,44 @@ public:
 			retire_pc = epc;
 			retire_inst = einst;
 		}
+
+		core->funcname = 0;
+
+		for (int i = 0; symlist[i].addr != NULL; i++)
+		{
+			if (retire_pc == symlist[i].addr)
+			{
+				char tempstr[8] = {0};
+				uint64_t funcNameAscii = 0;
+				strncpy(tempstr, symlist[i].name, 7);
+				funcNameAscii = bswap_64(*(uint64_t *)tempstr);
+				core->funcname = funcNameAscii;
+				memset(tempstr, 0, 8);
+				if ((!strcmp(symlist[i].name, "push_off")) ||
+					(!strcmp(symlist[i].name, "pop_off")) ||
+					(!strcmp(symlist[i].name, "mycpu")) ||
+					(!strcmp(symlist[i].name, "acquire")) ||
+					(!strcmp(symlist[i].name, "holding")) ||
+					(!strcmp(symlist[i].name, "release"))) // xv6デバッグ用。spinlockの関数で呼ばれまくって可読性を損なうのでログからは除外、波形ダンプには入れる
+				{
+					break;
+				}
+				if (print_entry_flag)
+				{
+					fprintf(logfile, "\nentry: %s", symlist[i].name);
+					fprintf(logfile, "\tinst_counter = %d\n", inst_counter);
+				}
+				break;
+			}
+		}
+
 		if (trace_output_flag)
 		{
 			fprintf(logfile, "%s: 0x%016x (0x%08x) ", procname, retire_pc, retire_inst);
 		}
-		if (print_entry_flag)
-		{
-			for (int i = 0; symlist[i].addr != NULL; i++)
-			{
-				if (retire_pc == symlist[i].addr)
-				{
-					fprintf(logfile, "\nentry: %s\n", symlist[i].name);
-				}
-			}
-		}
 		if ((disasm != NULL) && disasm_output_flag)
 		{
 			printDisasm(retire_pc, retire_inst);
-			fprintf(logfile, "\tinst_counter = %d", inst_counter);
 			fprintf(logfile, "\n");
 		}
 		if (core->debug_mem_write && memory_output_flag)
@@ -571,6 +594,8 @@ public:
 			tfp = new VerilatedVcdC;
 			core->trace(tfp, 99);
 			tfp->open(vcdfilename);
+
+			// dump_vcd_flag = 0; // uart debug
 		}
 
 		if (print_all_flag)
@@ -582,56 +607,52 @@ public:
 			trace_output_flag = 1;
 			print_entry_flag = 1;
 		}
+	};
+	void fetchSymboltable(void)
+	{
+		long storage_needed;
+		asymbol **symbol_table;
+		long number_of_symbols;
+		int procedureCounter = 0;
 
-		if (print_entry_flag)
+		storage_needed = bfd_get_symtab_upper_bound(abfd);
+
+		if (storage_needed < 0) // failed reading symbol
 		{
-			long storage_needed;
-			asymbol **symbol_table;
-			long number_of_symbols;
-			int procedureCounter = 0;
+			return;
+		}
 
-			storage_needed = bfd_get_symtab_upper_bound(abfd);
+		if (storage_needed == 0) // no symbol
+		{
+			return;
+		}
+		symbol_table = (asymbol **)malloc(storage_needed);
+		number_of_symbols = bfd_canonicalize_symtab(abfd, symbol_table);
 
-			if (storage_needed < 0)
-			{
-				printf("failed reading symbol\n");
-				exit(1);
-			}
+		if (number_of_symbols < 0) // failed reading symbol
+		{
+			return;
+		}
 
-			if (storage_needed == 0)
+		for (int i = 0; i < number_of_symbols; i++)
+		{
+			if (symbol_table[i]->value != 0 && !(symbol_table[i]->flags & (BSF_FILE | BSF_OBJECT)))
 			{
-				printf("no symbol\n");
-				exit(1);
+				procedureCounter++;
 			}
-			symbol_table = (asymbol **)malloc(storage_needed);
-			number_of_symbols = bfd_canonicalize_symtab(abfd, symbol_table);
-
-			if (number_of_symbols < 0)
+		}
+		symlist = (struct symbol *)malloc(sizeof(symbol) * (procedureCounter + 1));
+		procedureCounter = 0;
+		for (int i = 0; i < number_of_symbols; i++)
+		{
+			if (symbol_table[i]->value != 0 && !(symbol_table[i]->flags & (BSF_FILE | BSF_OBJECT)))
 			{
-				printf("failed reading symbol\n");
-				exit(1);
+				symlist[procedureCounter].name = (char *)malloc(sizeof(char) * strlen(symbol_table[i]->name));
+				symlist[procedureCounter].addr = 0x80000000 + symbol_table[i]->value;
+				strcpy(symlist[procedureCounter].name, symbol_table[i]->name);
+				procedureCounter++;
 			}
-
-			for (int i = 0; i < number_of_symbols; i++)
-			{
-				if (symbol_table[i]->value != 0 && !(symbol_table[i]->flags & (BSF_FILE | BSF_OBJECT)))
-				{
-					procedureCounter++;
-				}
-			}
-			symlist = (struct symbol *)malloc(sizeof(symbol) * (procedureCounter + 1));
-			procedureCounter = 0;
-			for (int i = 0; i < number_of_symbols; i++)
-			{
-				if (symbol_table[i]->value != 0 && !(symbol_table[i]->flags & (BSF_FILE | BSF_OBJECT)))
-				{
-					symlist[procedureCounter].name = (char *)malloc(sizeof(char) * strlen(symbol_table[i]->name));
-					symlist[procedureCounter].addr = 0x80000000 + symbol_table[i]->value;
-					strcpy(symlist[procedureCounter].name, symbol_table[i]->name);
-					procedureCounter++;
-				}
-				// printf("%d %s 0x%lx flags=%x\n", i, symbol_table[i]->name, symbol_table[i]->value, symbol_table[i]->flags);
-			}
+			// printf("%d %s 0x%lx flags=%x\n", i, symbol_table[i]->name, symbol_table[i]->value, symbol_table[i]->flags);
 		}
 	};
 	void openDisasm(void)

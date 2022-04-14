@@ -94,6 +94,8 @@ declare rv32x_simulation simulation {
 	output debug_mtval[32];
 	output debug_inst[32];
 	func_out debug_raise_exception(debug_cause, debug_epc, debug_mtval, debug_inst);
+	input funcname[64];
+	//func_in debug_disp_funcname(funcname);
 #endif
 }
 
