@@ -8,8 +8,9 @@ simulation/elfloader/libelfloader.a
 simulation/failed/
 simulation/obj_dir/
 simulation/out/
-simulation/rv32x_simulation
-simulation/rv32x_simulation.vcd
+*/rv32x_simulation
+*/*/rv32x_simulation
+*/*/*/rv32x_simulation
 simulation/*.log
 software/tests
 software/bootrom/*.dtb
@@ -19,5 +20,6 @@ software/bootrom/*.dtb
 *.log
 *.hex
 
-
-run.sh
+*.vcd
+.vscode/*.json
+*.out
