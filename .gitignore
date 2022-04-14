@@ -20,3 +20,4 @@ software/bootrom/*.dtb
 *.hex
 
 
+run.sh
