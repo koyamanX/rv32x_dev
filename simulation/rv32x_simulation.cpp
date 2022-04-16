@@ -658,7 +658,7 @@ public:
 		{
 			if (symbol_table[i]->value != 0 && !(symbol_table[i]->flags & (BSF_FILE | BSF_OBJECT)))
 			{
-				symlist[procedureCounter].name = (char *)malloc(sizeof(char) * strlen(symbol_table[i]->name));
+				symlist[procedureCounter].name = (char *)malloc(sizeof(char) * strlen(symbol_table[i]->name) + 1);
 				symlist[procedureCounter].addr = 0x80000000 + symbol_table[i]->value;
 				strcpy(symlist[procedureCounter].name, symbol_table[i]->name);
 				procedureCounter++;
