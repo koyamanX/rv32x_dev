@@ -398,12 +398,12 @@ module rv32x5p {
 				(DEREG.branch): {condcheck();}
 				(DEREG.ecall): {ecall();}
 				(DEREG.ebreak): {ebreak();}
-				(DEREG.mret): {mret();}
-				(DEREG.sret): {sret();}
-				(DEREG.uret): {uret();}
 				(DEREG.wfi): {wfi();}
 			}
 			alt {
+				(DEREG.mret): {emreg.pc4=mret();memory(emreg);	/* for logging and update link register */}
+				(DEREG.sret): {emreg.pc4=sret();memory(emreg);	/* for logging and update link register */}
+				(DEREG.uret): {emreg.pc4=uret();memory(emreg);	/* for logging and update link register */}
 				/* Branch and jump instructions */
 				(DEREG.jump  && !stall_execute): {
 					stall_ifetch();
@@ -454,7 +454,6 @@ module rv32x5p {
 					emreg.pc4=DEREG.pc4;
 					memory(emreg);	/* for logging */
 				}
-				else: emreg.pc4=DEREG.pc4;
 			}
 			if((DEREG.jump || taken) && ((target_address[1:0] & ialign) != 2'b00)) {
 				/* Instruction address misaligned(on target address) */

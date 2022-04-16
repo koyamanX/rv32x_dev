@@ -629,11 +629,17 @@ module rv32x_core {
 					&& supervisor_software_interrupt_pending && ~mideleg.ssip:	supervisor_software_interrupt();
 		machine_interrupt_enabled
 					&& supervisor_timer_interrupt_pending && ~mideleg.stip:		supervisor_timer_interrupt();
-		supervisor_interrupt_enabled && !machine_interrupt_enabled
+		supervisor_interrupt_enabled && !machine_external_interrupt_pending
+										&& !machine_software_interrupt_pending
+										&& !machine_timer_interrupt_pending
 					&& supervisor_external_interrupt_pending && mideleg.seip:	supervisor_external_interrupt();
-		supervisor_interrupt_enabled && !machine_interrupt_enabled
+		supervisor_interrupt_enabled && !machine_external_interrupt_pending
+										&& !machine_software_interrupt_pending
+										&& !machine_timer_interrupt_pending
 					&& supervisor_software_interrupt_pending && mideleg.ssip:	supervisor_software_interrupt();
-		supervisor_interrupt_enabled && !machine_interrupt_enabled
+		supervisor_interrupt_enabled && !machine_external_interrupt_pending
+										&& !machine_software_interrupt_pending
+										&& !machine_timer_interrupt_pending
 					&& supervisor_timer_interrupt_pending && mideleg.stip:		supervisor_timer_interrupt();
 		/* Process exception in preceeding instruction in pipeline */	
 		/* Memory stage */
@@ -909,6 +915,7 @@ module rv32x_core {
 			rv32x.flush_ifetch();
 			rv32x.flush_decode();
 		}
+		return mepc;
 	}
 	func rv32x.sret {
 		if((priv_mode == SUPERVISOR) && mstatus.tsr) {
@@ -921,6 +928,7 @@ module rv32x_core {
 			rv32x.flush_ifetch();
 			rv32x.flush_decode();
 		}
+		return sepc;
 	}
 	func rv32x.uret {
 		if(priv_mode != USER) {
@@ -933,6 +941,7 @@ module rv32x_core {
 			rv32x.flush_ifetch();
 			rv32x.flush_decode();
 		}
+		return uepc;
 	}
 	proc trap_mret {
 		mstatus.mie 	:= mstatus.mpie;
