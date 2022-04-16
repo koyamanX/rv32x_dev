@@ -89,12 +89,14 @@ module uart_receiver {
 			cnt := 0;
 			if(clk_cnt == 7) {
 				clk_cnt := 0;
-				interrupt_req();
 				bufcnt++;
+				received_char = buffer;
+				if(received_char == 8'h0A){	// line feed
+					interrupt_req();
+				}
 				fifo.write(buffer);
 				status.busy := 0;
 				idle();
-				received_char = buffer;
 				done();
 			} else {
 				clk_cnt++;
