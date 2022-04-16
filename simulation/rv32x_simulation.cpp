@@ -340,7 +340,8 @@ public:
 			if (rising_edge)
 			{
 				ssize_t nr;
-				int ch;
+				int ch = -1;
+				// static int temp = 0;
 				/*
 				if(core->uart_done) {
 					fprintf(stdout, "%c", core->uart_data);
@@ -351,8 +352,18 @@ public:
 				ch = getchar();
 				if (ch != EOF)
 				{
-					// dump_vcd_flag = 1; // uart debug
+					/*
+					 if (temp)
+					 {
+						 dump_vcd_flag = 1; // uart debug
+					 }
+					if (ch == '\n')
+					{
+						temp++;
+					}
+					 */
 					core->uart_wdata = ch;
+					// printf("ch:%x,wdata:%x\n", ch, core->uart_wdata);
 					core->uart_write = 1;
 				}
 				else
@@ -806,7 +817,6 @@ typedef struct
 
 void gotSigInt(int i)
 {
-	printf("sigint\n");
 	exit(0);
 }
 
@@ -828,12 +838,10 @@ int main(int argc, char **argv)
 	on_exit(sim_exit, &env);
 
 	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
-	/*
 	tcgetattr(STDIN_FILENO, &tmio);
 	stmio = tmio;
 	tmio.c_lflag &= ~(ECHO | ICANON);
 	tcsetattr(STDIN_FILENO, TCSANOW, &tmio);
-	*/
 
 	Verilated::commandArgs(argc, argv);
 	Verilated::traceEverOn(true);
@@ -862,6 +870,6 @@ void sim_exit(int status, void *p)
 {
 	env_t *env;
 	env = (env_t *)p;
-	// tcsetattr(STDIN_FILENO, TCSANOW, env->tmio);
+	tcsetattr(STDIN_FILENO, TCSANOW, env->tmio);
 	delete env->procs;
 }
