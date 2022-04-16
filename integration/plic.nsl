@@ -67,7 +67,69 @@ module plic {
 	pending_0[31].pending = (gateway_0[31] & irq_31);
 	proc acquire_irq {
 		alt {
-			(pending_0[31].pending|pending_0[30].pending|pending_0[29].pending|pending_0[28].pending|pending_0[27].pending|pending_0[26].pending|pending_0[25].pending|pending_0[24].pending|pending_0[23].pending|pending_0[22].pending|pending_0[21].pending|pending_0[20].pending|pending_0[19].pending|pending_0[18].pending|pending_0[17].pending|pending_0[16].pending|pending_0[15].pending|pending_0[14].pending|pending_0[13].pending|pending_0[12].pending|pending_0[11].pending|pending_0[10].pending|pending_0[9].pending|pending_0[8].pending|pending_0[7].pending|pending_0[6].pending|pending_0[5].pending|pending_0[4].pending|pending_0[3].pending|pending_0[2].pending|pending_0[1].pending|pending_0[0].pending): intr_gen(0, {pending_0[31].pending,pending_0[30].pending,pending_0[29].pending,pending_0[28].pending,pending_0[27].pending,pending_0[26].pending,pending_0[25].pending,pending_0[24].pending,pending_0[23].pending,pending_0[22].pending,pending_0[21].pending,pending_0[20].pending,pending_0[19].pending,pending_0[18].pending,pending_0[17].pending,pending_0[16].pending,pending_0[15].pending,pending_0[14].pending,pending_0[13].pending,pending_0[12].pending,pending_0[11].pending,pending_0[10].pending,pending_0[9].pending,pending_0[8].pending,pending_0[7].pending,pending_0[6].pending,pending_0[5].pending,pending_0[4].pending,pending_0[3].pending,pending_0[2].pending,pending_0[1].pending,pending_0[0]});
+			(pending_0[31].pending|
+			pending_0[30].pending|
+			pending_0[29].pending|
+			pending_0[28].pending|
+			pending_0[27].pending|
+			pending_0[26].pending|
+			pending_0[25].pending|
+			pending_0[24].pending|
+			pending_0[23].pending|
+			pending_0[22].pending|
+			pending_0[21].pending|
+			pending_0[20].pending|
+			pending_0[19].pending|
+			pending_0[18].pending|
+			pending_0[17].pending|
+			pending_0[16].pending|
+			pending_0[15].pending|
+			pending_0[14].pending|
+			pending_0[13].pending|
+			pending_0[12].pending|
+			pending_0[11].pending|
+			pending_0[10].pending|
+			pending_0[9].pending|
+			pending_0[8].pending|
+			pending_0[7].pending|
+			pending_0[6].pending|
+			pending_0[5].pending|
+			pending_0[4].pending|
+			pending_0[3].pending|
+			pending_0[2].pending|
+			pending_0[1].pending|
+			pending_0[0].pending): intr_gen(0, {pending_0[31].pending,
+												pending_0[30].pending,
+												pending_0[29].pending,
+												pending_0[28].pending,
+												pending_0[27].pending,
+												pending_0[26].pending,
+												pending_0[25].pending,
+												pending_0[24].pending,
+												pending_0[23].pending,
+												pending_0[22].pending,
+												pending_0[21].pending,
+												pending_0[20].pending,
+												pending_0[19].pending,
+												pending_0[18].pending,
+												pending_0[17].pending,
+												pending_0[16].pending,
+												pending_0[15].pending,
+												pending_0[14].pending,
+												pending_0[13].pending,
+												pending_0[12].pending,
+												pending_0[11].pending,
+												pending_0[10].pending,
+												pending_0[9].pending,
+												pending_0[8].pending,
+												pending_0[7].pending,
+												pending_0[6].pending,
+												pending_0[5].pending,
+												pending_0[4].pending,
+												pending_0[3].pending,
+												pending_0[2].pending,
+												pending_0[1].pending,
+												pending_0[0]});
 		}
 	}
 	proc intr_gen {
@@ -115,8 +177,8 @@ module plic {
 		wire enable_hart_0[32];
 		wire enable_hart_1[32];
 		alt {
-			hart_0_free && (enable_hart_0[claim_num[5:0]-1] && (irq_priority[claim_num[5:0]-1] > threshold_hart_0)): {hart_0_claim(claim_num, gateway_mask, gateway_sel); acquire_irq.invoke();}
-			hart_1_free && (enable_hart_1[claim_num[5:0]-1] && (irq_priority[claim_num[5:0]-1] > threshold_hart_1)): {hart_1_claim(claim_num, gateway_mask, gateway_sel); acquire_irq.invoke();}
+			hart_0_free && (enable_hart_0[claim_num[5:0]-1] && (irq_priority[claim_num[5:0]-1] > threshold_hart_0)): {hart_0_claim(claim_num-1, gateway_mask, gateway_sel); acquire_irq.invoke();}
+			hart_1_free && (enable_hart_1[claim_num[5:0]-1] && (irq_priority[claim_num[5:0]-1] > threshold_hart_1)): {hart_1_claim(claim_num-1, gateway_mask, gateway_sel); acquire_irq.invoke();}
 			else: acquire_irq();
 		}
 		any {
@@ -146,7 +208,7 @@ module plic {
 	}
 	func hart_1_open_gateway {
 			any {
-				(hart_0_gateway_sel == 0): gateway_0 := gateway_0 | hart_0_gateway_mask;
+				(hart_1_gateway_sel == 0): gateway_0 := gateway_0 | hart_1_gateway_mask;
 			}
 	}
 	func reset {acquire_irq();}
