@@ -566,6 +566,9 @@ module rv32x5p {
 			}
 			EMREG.fencei: {
 				fencei();
+				stall_ifetch();		
+				stall_decode();
+				stall_execute();
 				ifetch.finish();
 				decode.finish();
 				execute.finish();
@@ -573,12 +576,18 @@ module rv32x5p {
 			}
 			EMREG.sfence_vma: {
 				sfence_vma(EMREG.rs1_data, EMREG.rs2_data[8:0]);
+				stall_ifetch();		
+				stall_decode();
+				stall_execute();
 				ifetch.finish();
 				decode.finish();
 				execute.finish();
 				rv32x_btb.flush();
 			}
 			EMREG.fence: {
+				stall_ifetch();		
+				stall_decode();
+				stall_execute();
 				fence();
 			}
 			lr_w: {
