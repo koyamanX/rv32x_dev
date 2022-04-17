@@ -184,13 +184,13 @@ module rv32x_core {
 	if(msip && mie.msie) {
 		machine_software_interrupt_pending();
 	}
-	if(seip && mie.seie) {
+	if(seip && sie.seie) {
 		supervisor_external_interrupt_pending();
 	}
-	if(stip && mie.stie) {
+	if(stip && sie.stie) {
 		supervisor_timer_interrupt_pending();
 	}
-	if(ssip && mie.ssie) {
+	if(ssip && sie.ssie) {
 		supervisor_software_interrupt_pending();
 	}
 
@@ -623,23 +623,19 @@ module rv32x_core {
 		machine_interrupt_enabled && machine_external_interrupt_pending:		machine_external_interrupt();
 		machine_interrupt_enabled && machine_software_interrupt_pending:		machine_software_interrupt();
 		machine_interrupt_enabled && machine_timer_interrupt_pending:			machine_timer_interrupt();
+		/*
 		machine_interrupt_enabled
 					&& supervisor_external_interrupt_pending && ~mideleg.seip:	supervisor_external_interrupt();
 		machine_interrupt_enabled
 					&& supervisor_software_interrupt_pending && ~mideleg.ssip:	supervisor_software_interrupt();
 		machine_interrupt_enabled
 					&& supervisor_timer_interrupt_pending && ~mideleg.stip:		supervisor_timer_interrupt();
-		supervisor_interrupt_enabled && !machine_external_interrupt_pending
-										&& !machine_software_interrupt_pending
-										&& !machine_timer_interrupt_pending
+		*/
+		supervisor_interrupt_enabled
 					&& supervisor_external_interrupt_pending && mideleg.seip:	supervisor_external_interrupt();
-		supervisor_interrupt_enabled && !machine_external_interrupt_pending
-										&& !machine_software_interrupt_pending
-										&& !machine_timer_interrupt_pending
+		supervisor_interrupt_enabled
 					&& supervisor_software_interrupt_pending && mideleg.ssip:	supervisor_software_interrupt();
-		supervisor_interrupt_enabled && !machine_external_interrupt_pending
-										&& !machine_software_interrupt_pending
-										&& !machine_timer_interrupt_pending
+		supervisor_interrupt_enabled
 					&& supervisor_timer_interrupt_pending && mideleg.stip:		supervisor_timer_interrupt();
 		/* Process exception in preceeding instruction in pipeline */	
 		/* Memory stage */
