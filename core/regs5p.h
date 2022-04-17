@@ -83,6 +83,7 @@ struct emreg_t {
 	csrrs;
 	csrrc;
 	amo;
+	nextpc[32];
 };
 struct mwreg_t {
 	pc[32];
