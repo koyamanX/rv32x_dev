@@ -346,7 +346,7 @@ module rv32x5p {
 
 		if(!execute_nop) {
 			emreg.pc = DEREG.pc;
-			//emreg.pc4 = DEREG.pc4;
+			emreg.pc4 = DEREG.pc4;
 			emreg.inst = DEREG.inst;
 			emreg.funct3 = DEREG.funct3;
 			emreg.funct7 = DEREG.funct7;
@@ -401,9 +401,9 @@ module rv32x5p {
 				(DEREG.wfi): {wfi();}
 			}
 			alt {
-				(DEREG.mret): {emreg.pc4=mret();memory(emreg);	/* for logging and update link register */}
-				(DEREG.sret): {emreg.pc4=sret();memory(emreg);	/* for logging and update link register */}
-				(DEREG.uret): {emreg.pc4=uret();memory(emreg);	/* for logging and update link register */}
+				(DEREG.mret): {emreg.nextpc=mret();memory(emreg);	/* for logging and update link register */}
+				(DEREG.sret): {emreg.nextpc=sret();memory(emreg);	/* for logging and update link register */}
+				(DEREG.uret): {emreg.nextpc=uret();memory(emreg);	/* for logging and update link register */}
 				/* Branch and jump instructions */
 				(DEREG.jump  && !stall_execute): {
 					stall_ifetch();
@@ -413,7 +413,7 @@ module rv32x5p {
 					decode_nop();
 					decode.finish();
 					ifetch(target_address);
-					emreg.pc4=target_address;
+					emreg.nextpc=target_address;
 					memory(emreg);	/* for logging and update link register */
 				} 
 				((not_taken && DEREG.predict_as_taken) && !stall_execute): {
@@ -425,7 +425,7 @@ module rv32x5p {
 					decode_nop();
 					decode.finish();
 					ifetch(DEREG.pc4);
-					emreg.pc4=DEREG.pc4;
+					emreg.nextpc=DEREG.pc4;
 					memory(emreg);	/* for logging */
 				}
 				((taken && DEREG.predict_as_not_taken) && !stall_execute): {
@@ -437,21 +437,21 @@ module rv32x5p {
 					decode_nop();
 					decode.finish();
 					ifetch(target_address);
-					emreg.pc4=target_address;
+					emreg.nextpc=target_address;
 					memory(emreg);	/* for logging */
 				}
 				((taken && DEREG.predict_as_taken) || (not_taken && DEREG.predict_as_not_taken)): {
 					correct_prediction();
-					emreg.pc4=DEREG.pc4;
+					emreg.nextpc= if(taken) target_address else DEREG.pc4;
 					memory(emreg);	/* for logging */
 				}
 				/* ALU and M-Ext instructions */
 				((DEREG.alu_sel == ALU) && !stall_execute): {
-					emreg.pc4=DEREG.pc4;
+					emreg.nextpc=DEREG.pc4;
 					memory(emreg);	/* for logging */
 				}
 				((DEREG.alu_sel == MUNIT) && rv32x_munit32.done && !stall_execute): {
-					emreg.pc4=DEREG.pc4;
+					emreg.nextpc=DEREG.pc4;
 					memory(emreg);	/* for logging */
 				}
 			}
@@ -718,7 +718,7 @@ module rv32x5p {
 		return EMREG.inst;
 	}
 	func get_pc_trap{
-		return EMREG.pc4;
+		return EMREG.nextpc;
 	}
 #ifdef DEBUG
 	debug_x0  = rv32x_reg32.debug_x0;
