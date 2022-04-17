@@ -51,7 +51,7 @@ def run_tests(tests_list, tests_assertion):
 			continue
 		try:
 			subprocess.run([simulator, riscv_tests_directory+t, '--print-inst-trace', '--print-exception', '--print-disasm', '--dump-vcd'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=10)
-		except subprocess.CalledProcessError as err:
+		except subprocess.CalledProcessError as err:	
 			if(a == 'should_be_passed'):
 				print('{:20}\t{:20}  and it\'s FAILED\tNG'.format(t, a))
 				failed_tests.append(t)
