@@ -1,7 +1,7 @@
 RISCV=/opt/riscv
 RISCV_PREFIX=riscv32-unknown-elf
-TOOL_VERSION=10.1.0
 CC=$(RISCV_PREFIX)-gcc
+TOOL_VERSION=$(shell $(CC) -dumpversion)
 AS=$(RISCV_PREFIX)-as
 AR=$(RISCV_PREFIX)-ar
 LD=$(RISCV_PREFIX)-ld
