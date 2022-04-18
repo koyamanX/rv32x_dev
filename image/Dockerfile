@@ -6,7 +6,7 @@ ENV USER=root
 ENV HOME=/root
 
 RUN apt update && DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
-	gdb libc6-dbg strace \
+	gdb libc6-dbg strace libncurses-dev \
 	curl git sudo ca-certificates keyboard-configuration console-setup \
 	build-essential cmake perl python3 make autoconf g++ flex bison ccache \
 	libgoogle-perftools-dev numactl perl-doc libfl2 libfl-dev zlib1g \
