@@ -116,7 +116,9 @@ private:
 	{
 		unsigned int addr;
 		char *name;
+		int dumpflag;
 	} * symlist;
+	char *target_symbol = NULL;
 
 public:
 	processor_t(const char *name)
@@ -461,6 +463,7 @@ public:
 				funcNameAscii = bswap_64(*(uint64_t *)tempstr);
 				core->funcname = funcNameAscii;
 				memset(tempstr, 0, 8);
+				/*
 				if ((!strcmp(symlist[i].name, "push_off")) ||
 					(!strcmp(symlist[i].name, "pop_off")) ||
 					(!strcmp(symlist[i].name, "mycpu")) ||
@@ -469,6 +472,13 @@ public:
 					(!strcmp(symlist[i].name, "release"))) // xv6デバッグ用。spinlockの関数で呼ばれまくって可読性を損なうのでログからは除外、波形ダンプには入れる
 				{
 					break;
+				}
+				*/
+				if (symlist[i].dumpflag)
+				{
+					printf("\n\n%s reaches \"%s(%x)\" entry:start dumping %s\n\n", procname, target_symbol, retire_pc, vcdfilename);
+					dump_vcd_flag = 1;
+					symlist[i].dumpflag = 0;
 				}
 				if (print_entry_flag)
 				{
@@ -528,7 +538,7 @@ public:
 	void parseLogOpts(int argc, char **argv)
 	{
 		int opt, longindex;
-		char *range = NULL, *bar = NULL, *symfile = NULL;
+		char *Darg = NULL, *symfile = NULL;
 		struct option longopts[] = {
 			{"print-exception", no_argument, NULL, 'e'},
 			{"print-writeback", no_argument, NULL, 'w'},
@@ -572,7 +582,11 @@ public:
 				break;
 			case 'D':
 				dump_vcd_flag = 1;
-				range = optarg;
+				if (optarg != NULL)
+				{
+					Darg = (char *)malloc(sizeof(char) * strlen(optarg) + 1);
+					strcpy(Darg, optarg);
+				}
 				break;
 			case 'E':
 				print_entry_flag = 1;
@@ -584,18 +598,62 @@ public:
 		}
 		if (dump_vcd_flag)
 		{
-			if (range != NULL)
+			char *filename = NULL;
+			const char *fileExtension = ".vcd";
+			if (Darg != NULL)
 			{
-				bar = strstr(range, "-");
-				if (bar != NULL)
+				char *comma;
+				comma = strstr(Darg, ",");
+				if (comma == NULL || comma != Darg + 1 || *(Darg + 2) == '\0')
 				{
-					*bar = '\0';
-					start_dump_inst = strtol(range, NULL, 0);
-					end_dump_inst = strtol(bar + 1, NULL, 0);
-					*bar = '-';
-					// printf("start=%ld end=%ld\n", start_dump_inst, end_dump_inst);
-					vcdfilename = strcat(range, ".vcd");
+					printf("illegal dump-vcd arg\nexample:\n --dump-vcd=s,<symbol name>\n --dump-vcd=i,<start(option)>-<end(option)>\n --dump-vcd\n");
+					exit(1);
 				}
+				else if (*Darg == 'i')
+				{
+					char *range = NULL, *bar = NULL;
+					range = Darg + 2;
+					bar = strstr(range, "-");
+					if (bar != NULL)
+					{
+						*bar = '\0';
+						start_dump_inst = strtol(range, NULL, 0);
+						end_dump_inst = strtol(bar + 1, NULL, 0);
+						*bar = '-';
+						filename = (char *)malloc(sizeof(char) * strlen(range) + strlen(fileExtension) + 1);
+						strcpy(filename, range);
+						vcdfilename = strcat(filename, fileExtension);
+					}
+				}
+				else if (*Darg == 's') // start dumping vcd if pc equal to specified symbol address
+				{
+					int i = 0;
+					target_symbol = (char *)malloc(sizeof(char) * strlen(Darg + 2) + 1);
+					strcpy(target_symbol, Darg + 2);
+					for (i = 0; symlist[i].addr != NULL; i++)
+					{
+						if (!strcmp(symlist[i].name, target_symbol))
+						{
+							symlist[i].dumpflag = 1;
+							break;
+						}
+					}
+					if (symlist[i].addr == NULL)
+					{
+						printf("--dump-vcd: target symbol %s does not exist\n", target_symbol);
+						exit(1);
+					}
+					filename = (char *)malloc(sizeof(char) * strlen(target_symbol) + strlen(fileExtension) + 1);
+					strcpy(filename, target_symbol);
+					vcdfilename = strcat(filename, ".vcd");
+					dump_vcd_flag = 0;
+				}
+				else
+				{
+					printf("illegal dump-vcd arg\nexample:\n --dump-vcd=s,<symbol name>\n --dump-vcd=i,<start(option)>-<end(option)>\n --dump-vcd\n");
+					exit(1);
+				}
+				free(Darg);
 			}
 			else
 			{
@@ -605,7 +663,6 @@ public:
 			tfp = new VerilatedVcdC;
 			core->trace(tfp, 99);
 			tfp->open(vcdfilename);
-
 			// dump_vcd_flag = 0; // uart debug
 		}
 
@@ -653,6 +710,7 @@ public:
 			}
 		}
 		symlist = (struct symbol *)malloc(sizeof(symbol) * (procedureCounter + 1));
+		memset(symlist, 0, sizeof(symbol) * (procedureCounter + 1));
 		procedureCounter = 0;
 		for (int i = 0; i < number_of_symbols; i++)
 		{
@@ -661,6 +719,7 @@ public:
 				symlist[procedureCounter].name = (char *)malloc(sizeof(char) * strlen(symbol_table[i]->name) + 1);
 				symlist[procedureCounter].addr = 0x80000000 + symbol_table[i]->value;
 				strcpy(symlist[procedureCounter].name, symbol_table[i]->name);
+				// printf("%x %s %d\n", symlist[procedureCounter].addr, symlist[procedureCounter].name, symlist[procedureCounter].dumpflag);
 				procedureCounter++;
 			}
 			// printf("%d %s 0x%lx flags=%x\n", i, symbol_table[i]->name, symbol_table[i]->value, symbol_table[i]->flags);
@@ -838,10 +897,12 @@ int main(int argc, char **argv)
 	on_exit(sim_exit, &env);
 
 	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+	/*
 	tcgetattr(STDIN_FILENO, &tmio);
 	stmio = tmio;
 	tmio.c_lflag &= ~(ECHO | ICANON);
 	tcsetattr(STDIN_FILENO, TCSANOW, &tmio);
+	*/
 
 	Verilated::commandArgs(argc, argv);
 	Verilated::traceEverOn(true);
@@ -870,6 +931,6 @@ void sim_exit(int status, void *p)
 {
 	env_t *env;
 	env = (env_t *)p;
-	tcsetattr(STDIN_FILENO, TCSANOW, env->tmio);
+	// tcsetattr(STDIN_FILENO, TCSANOW, env->tmio);
 	delete env->procs;
 }
