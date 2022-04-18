@@ -354,16 +354,6 @@ public:
 				ch = getchar();
 				if (ch != EOF)
 				{
-					/*
-					 if (temp)
-					 {
-						 dump_vcd_flag = 1; // uart debug
-					 }
-					if (ch == '\n')
-					{
-						temp++;
-					}
-					 */
 					core->uart_wdata = ch;
 					// printf("ch:%x,wdata:%x\n", ch, core->uart_wdata);
 					core->uart_write = 1;
@@ -451,29 +441,22 @@ public:
 			retire_inst = einst;
 		}
 
-		core->funcname = 0;
+		memset(core->funcname, 0, sizeof(__uint128_t));
 
 		for (int i = 0; symlist[i].addr != NULL; i++)
 		{
 			if (retire_pc == symlist[i].addr)
 			{
-				char tempstr[8] = {0};
-				uint64_t funcNameAscii = 0;
-				strncpy(tempstr, symlist[i].name, 7);
-				funcNameAscii = bswap_64(*(uint64_t *)tempstr);
-				core->funcname = funcNameAscii;
-				memset(tempstr, 0, 8);
-				/*
-				if ((!strcmp(symlist[i].name, "push_off")) ||
-					(!strcmp(symlist[i].name, "pop_off")) ||
-					(!strcmp(symlist[i].name, "mycpu")) ||
-					(!strcmp(symlist[i].name, "acquire")) ||
-					(!strcmp(symlist[i].name, "holding")) ||
-					(!strcmp(symlist[i].name, "release"))) // xv6デバッグ用。spinlockの関数で呼ばれまくって可読性を損なうのでログからは除外、波形ダンプには入れる
-				{
-					break;
-				}
-				*/
+				char tempstr[16] = {0};
+				uint64_t funcName7to0 = 0;
+				uint64_t funcName15to8 = 0;
+				strncpy(tempstr, symlist[i].name, 15);
+				funcName7to0 = bswap_64(*(uint64_t *)(tempstr));
+				funcName15to8 = bswap_64(*(uint64_t *)(tempstr + 8));
+				*(uint64_t *)(core->funcname) = funcName15to8;
+				*((uint64_t *)((core->funcname) + 2)) = funcName7to0;
+				memset(tempstr, 0, 16);
+
 				if (symlist[i].dumpflag)
 				{
 					printf("\n\n%s reaches \"%s(%x)\" entry:start dumping %s\n\n", procname, target_symbol, retire_pc, vcdfilename);
@@ -897,12 +880,10 @@ int main(int argc, char **argv)
 	on_exit(sim_exit, &env);
 
 	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
-	/*
 	tcgetattr(STDIN_FILENO, &tmio);
 	stmio = tmio;
 	tmio.c_lflag &= ~(ECHO | ICANON);
 	tcsetattr(STDIN_FILENO, TCSANOW, &tmio);
-	*/
 
 	Verilated::commandArgs(argc, argv);
 	Verilated::traceEverOn(true);
@@ -931,6 +912,6 @@ void sim_exit(int status, void *p)
 {
 	env_t *env;
 	env = (env_t *)p;
-	// tcsetattr(STDIN_FILENO, TCSANOW, env->tmio);
+	tcsetattr(STDIN_FILENO, TCSANOW, env->tmio);
 	delete env->procs;
 }
