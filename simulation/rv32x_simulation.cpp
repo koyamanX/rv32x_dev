@@ -39,6 +39,15 @@
 #define SUPERVISOR_EXTERNAL_INTERRUPT 0x80000009
 
 #define BLOCK_DEVICE_FILENAME "block_device.img"
+#define KERNEL_START_ADDR 0x80400000 // opensbi/plarform/rv32xsoc/config.mk: FW_JUMP_ADDR = 0x80400000
+#define OPCODE 0x0000007F
+#define JAL 111
+#define JALR 103
+#define MRET 0x30200073
+#define SRET 0x10200073
+#define RET 0x00008067
+#define DEST 0x00000F80
+#define RA 0x00000080
 
 using namespace std;
 
@@ -114,11 +123,21 @@ private:
 	int print_entry_flag = 0;
 	struct symbol
 	{
-		unsigned int addr;
-		char *name;
-		int dumpflag;
+		unsigned int addr = 0;
+		char *name = NULL;
+		int dumpflag = 0;
 	} * symlist;
+	struct symbolCache
+	{
+		unsigned int addr = 0;
+		int symlistIndex = 0;
+	} symcache[256 + 1];
 	char *target_symbol = NULL;
+	int import_linux_symbol_flag = 0;
+	const char *vmlinux_location = "/root/linux/vmlinux";
+	int skip_symbol_search = 0;
+	unsigned char symcacheptr = 0;
+	int callDepth = 0;
 
 public:
 	processor_t(const char *name)
@@ -161,7 +180,6 @@ public:
 		exefilename = exefilename;
 		abfd = open_exe(exefilename, archname);
 		load_elf(memory, abfd);
-		fetchSymboltable();
 		print_mem_list(memory);
 	};
 	void resetCore(void)
@@ -354,6 +372,16 @@ public:
 				ch = getchar();
 				if (ch != EOF)
 				{
+					/*
+					 if (temp)
+					 {
+						 dump_vcd_flag = 1; // uart debug
+					 }
+					if (ch == '\n')
+					{
+						temp++;
+					}
+					 */
 					core->uart_wdata = ch;
 					// printf("ch:%x,wdata:%x\n", ch, core->uart_wdata);
 					core->uart_write = 1;
@@ -419,7 +447,15 @@ public:
 		{
 			inst_counter++;
 		}
-		// printf("inst_counter = %d\n", inst_counter);
+		if ((retire_inst & OPCODE) == JAL | (retire_inst & OPCODE) == JALR |
+			retire_inst == MRET | retire_inst == SRET | retire_inst == 0)
+		{
+			skip_symbol_search = 0;
+		}
+		else
+		{
+			skip_symbol_search = 1;
+		}
 		retire_pc = core->debug_retire_pc;
 		retire_inst = core->debug_retire_inst;
 		if ((got_exception == 0) && exception_output_flag)
@@ -443,35 +479,53 @@ public:
 
 		memset(core->funcname, 0, sizeof(__uint128_t));
 
-		for (int i = 0; symlist[i].addr != NULL; i++)
+		if (import_linux_symbol_flag && (retire_pc != KERNEL_START_ADDR))
 		{
-			if (retire_pc == symlist[i].addr)
+			skip_symbol_search = 1;
+		}
+		else
+		{
+			import_linux_symbol_flag = 0; // enable symbol search after payload transition to linux kernel
+		}
+		if (!import_linux_symbol_flag && retire_inst == RET)
+		{
+			// printf("ret:%x\n", retire_inst);
+			callDepth--;
+		}
+		if (!skip_symbol_search)
+		{
+			int idx = -1;
+			if ((idx = searchSymCache()) != -1 || (idx = searchSymlist()) != -1)
 			{
 				char tempstr[16] = {0};
 				uint64_t funcName7to0 = 0;
 				uint64_t funcName15to8 = 0;
-				strncpy(tempstr, symlist[i].name, 15);
+				strncpy(tempstr, symlist[idx].name, 15);
 				funcName7to0 = bswap_64(*(uint64_t *)(tempstr));
 				funcName15to8 = bswap_64(*(uint64_t *)(tempstr + 8));
 				*(uint64_t *)(core->funcname) = funcName15to8;
 				*((uint64_t *)((core->funcname) + 2)) = funcName7to0;
 				memset(tempstr, 0, 16);
-
-				if (symlist[i].dumpflag)
+				if (symlist[idx].dumpflag)
 				{
 					printf("\n\n%s reaches \"%s(%x)\" entry:start dumping %s\n\n", procname, target_symbol, retire_pc, vcdfilename);
 					dump_vcd_flag = 1;
-					symlist[i].dumpflag = 0;
+					symlist[idx].dumpflag = 0;
 				}
 				if (print_entry_flag)
 				{
-					fprintf(logfile, "\nentry: %s", symlist[i].name);
+					fprintf(logfile, "\nDepth=%d, entry: %s(0x%x)", callDepth, symlist[idx].name, retire_pc);
 					fprintf(logfile, "\tinst_counter = %d\n", inst_counter);
 				}
-				break;
 			}
 		}
-
+		if (!import_linux_symbol_flag &&
+			((retire_inst != RET) && ((retire_inst & DEST) == RA) &&
+			 (((retire_inst & OPCODE) == JAL) ||
+			  ((retire_inst & OPCODE) == JALR))))
+		{
+			callDepth++;
+		}
 		if (trace_output_flag)
 		{
 			fprintf(logfile, "%s: 0x%016x (0x%08x) ", procname, retire_pc, retire_inst);
@@ -501,6 +555,34 @@ public:
 
 		return ret;
 	};
+	int searchSymCache(void)
+	{
+		for (int i = 0; symcache[i].addr != 0; i++)
+		{
+			if (retire_pc == symcache[i].addr)
+			{
+				return symcache[i].symlistIndex;
+			}
+		}
+		return -1;
+	};
+	void setSymCache(unsigned char ptr, unsigned char idx)
+	{
+		symcache[ptr].addr = symlist[idx].addr;
+		symcache[ptr].symlistIndex = idx;
+	};
+	int searchSymlist(void)
+	{
+		for (int i = 0; symlist[i].addr != 0; i++)
+		{
+			if (retire_pc == symlist[i].addr)
+			{
+				setSymCache(symcacheptr++, i);
+				return i;
+			}
+		}
+		return -1;
+	};
 	void openLogFile(const char *s)
 	{
 		if (no_log)
@@ -521,7 +603,7 @@ public:
 	void parseLogOpts(int argc, char **argv)
 	{
 		int opt, longindex;
-		char *Darg = NULL, *symfile = NULL;
+		char *Darg = NULL, *larg = NULL, *symfile = NULL;
 		struct option longopts[] = {
 			{"print-exception", no_argument, NULL, 'e'},
 			{"print-writeback", no_argument, NULL, 'w'},
@@ -533,9 +615,10 @@ public:
 			{"no-sim-exit", no_argument, NULL, 'n'},
 			{"dump-vcd", optional_argument, NULL, 'D'},
 			{"print-entry", no_argument, NULL, 'E'},
+			{"debug-linux", no_argument, NULL, 'l'},
 			{0, 0, 0, 0},
 		};
-		while ((opt = getopt_long(argc, argv, "ewdmianxD::E", longopts, &longindex)) != -1)
+		while ((opt = getopt_long(argc, argv, "ewdmianxD::El", longopts, &longindex)) != -1)
 		{
 			switch (opt)
 			{
@@ -574,79 +657,23 @@ public:
 			case 'E':
 				print_entry_flag = 1;
 				break;
+			case 'l':
+				import_linux_symbol_flag = 1;
+				break;
 			default:
 				exit(1);
 				break;
 			}
 		}
+		if (import_linux_symbol_flag)
+		{
+			abfd = open_exe(vmlinux_location, archname);
+			skip_symbol_search = 1;
+		}
+		fetchSymboltable();
 		if (dump_vcd_flag)
 		{
-			char *filename = NULL;
-			const char *fileExtension = ".vcd";
-			if (Darg != NULL)
-			{
-				char *comma;
-				comma = strstr(Darg, ",");
-				if (comma == NULL || comma != Darg + 1 || *(Darg + 2) == '\0')
-				{
-					printf("illegal dump-vcd arg\nexample:\n --dump-vcd=s,<symbol name>\n --dump-vcd=i,<start(option)>-<end(option)>\n --dump-vcd\n");
-					exit(1);
-				}
-				else if (*Darg == 'i')
-				{
-					char *range = NULL, *bar = NULL;
-					range = Darg + 2;
-					bar = strstr(range, "-");
-					if (bar != NULL)
-					{
-						*bar = '\0';
-						start_dump_inst = strtol(range, NULL, 0);
-						end_dump_inst = strtol(bar + 1, NULL, 0);
-						*bar = '-';
-						filename = (char *)malloc(sizeof(char) * strlen(range) + strlen(fileExtension) + 1);
-						strcpy(filename, range);
-						vcdfilename = strcat(filename, fileExtension);
-					}
-				}
-				else if (*Darg == 's') // start dumping vcd if pc equal to specified symbol address
-				{
-					int i = 0;
-					target_symbol = (char *)malloc(sizeof(char) * strlen(Darg + 2) + 1);
-					strcpy(target_symbol, Darg + 2);
-					for (i = 0; symlist[i].addr != NULL; i++)
-					{
-						if (!strcmp(symlist[i].name, target_symbol))
-						{
-							symlist[i].dumpflag = 1;
-							break;
-						}
-					}
-					if (symlist[i].addr == NULL)
-					{
-						printf("--dump-vcd: target symbol %s does not exist\n", target_symbol);
-						exit(1);
-					}
-					filename = (char *)malloc(sizeof(char) * strlen(target_symbol) + strlen(fileExtension) + 1);
-					strcpy(filename, target_symbol);
-					vcdfilename = strcat(filename, ".vcd");
-					dump_vcd_flag = 0;
-				}
-				else
-				{
-					printf("illegal dump-vcd arg\nexample:\n --dump-vcd=s,<symbol name>\n --dump-vcd=i,<start(option)>-<end(option)>\n --dump-vcd\n");
-					exit(1);
-				}
-				free(Darg);
-			}
-			else
-			{
-				char name[10] = "all";
-				vcdfilename = strcat(name, ".vcd");
-			}
-			tfp = new VerilatedVcdC;
-			core->trace(tfp, 99);
-			tfp->open(vcdfilename);
-			// dump_vcd_flag = 0; // uart debug
+			dumpSetting(Darg);
 		}
 
 		if (print_all_flag)
@@ -658,7 +685,80 @@ public:
 			trace_output_flag = 1;
 			print_entry_flag = 1;
 		}
+		if (!(print_entry_flag || dump_vcd_flag && (*Darg == 's')))
+		{
+			skip_symbol_search = 1;
+		}
+		free(Darg);
 	};
+	void dumpSetting(char *Darg)
+	{
+		char *filename = NULL;
+		const char *fileExtension = ".vcd";
+		if (Darg != NULL)
+		{
+			char *comma;
+			comma = strstr(Darg, ",");
+			if (comma == NULL || comma != Darg + 1 || *(Darg + 2) == '\0')
+			{
+				printf("illegal dump-vcd arg\nexample:\n --dump-vcd=s,<symbol name>\n --dump-vcd=i,<start(option)>-<end(option)>\n --dump-vcd\n");
+				exit(1);
+			}
+			else if (*Darg == 'i')
+			{
+				char *range = NULL, *bar = NULL;
+				range = Darg + 2;
+				bar = strstr(range, "-");
+				if (bar != NULL)
+				{
+					*bar = '\0';
+					start_dump_inst = strtol(range, NULL, 0);
+					end_dump_inst = strtol(bar + 1, NULL, 0);
+					*bar = '-';
+					filename = (char *)malloc(sizeof(char) * strlen(range) + strlen(fileExtension) + 1);
+					strcpy(filename, range);
+					vcdfilename = strcat(filename, fileExtension);
+				}
+			}
+			else if (*Darg == 's') // start dumping vcd if pc equal to specified symbol address
+			{
+				int i = 0;
+				target_symbol = (char *)malloc(sizeof(char) * strlen(Darg + 2) + 1);
+				strcpy(target_symbol, Darg + 2);
+				for (i = 0; symlist[i].addr != 0; i++)
+				{
+					if (!strcmp(symlist[i].name, target_symbol))
+					{
+						symlist[i].dumpflag = 1;
+						break;
+					}
+				}
+				if (symlist[i].addr == 0)
+				{
+					printf("--dump-vcd: target symbol %s does not exist\n", target_symbol);
+					exit(1);
+				}
+				filename = (char *)malloc(sizeof(char) * strlen(target_symbol) + strlen(fileExtension) + 1);
+				strcpy(filename, target_symbol);
+				vcdfilename = strcat(filename, ".vcd");
+				dump_vcd_flag = 0;
+			}
+			else
+			{
+				printf("illegal dump-vcd arg\nexample:\n --dump-vcd=s,<symbol name>\n --dump-vcd=i,<start(option)>-<end(option)>\n --dump-vcd\n");
+				exit(1);
+			}
+		}
+		else
+		{
+			char name[10] = "all";
+			vcdfilename = strcat(name, ".vcd");
+		}
+		tfp = new VerilatedVcdC;
+		core->trace(tfp, 99);
+		tfp->open(vcdfilename);
+		// dump_vcd_flag = 0; // uart debug
+	}
 	void fetchSymboltable(void)
 	{
 		long storage_needed;
@@ -697,16 +797,34 @@ public:
 		procedureCounter = 0;
 		for (int i = 0; i < number_of_symbols; i++)
 		{
-			if (symbol_table[i]->value != 0 && !(symbol_table[i]->flags & (BSF_FILE | BSF_OBJECT)))
+			if (import_linux_symbol_flag && (!(strcmp(symbol_table[i]->name, "_start")) ||
+											 !(strcmp(symbol_table[i]->name, "relocate")) ||
+											 !(strcmp(symbol_table[i]->name, "_start_kernel")) ||
+											 !(strcmp(symbol_table[i]->name, "clear_bss")) ||
+											 !(strcmp(symbol_table[i]->name, "clear_bss_done")) ||
+											 !(strcmp(symbol_table[i]->name, "setup_vm"))))
 			{
 				symlist[procedureCounter].name = (char *)malloc(sizeof(char) * strlen(symbol_table[i]->name) + 1);
-				symlist[procedureCounter].addr = 0x80000000 + symbol_table[i]->value;
+				symlist[procedureCounter].addr = KERNEL_START_ADDR + symbol_table[i]->section->lma + symbol_table[i]->value;
 				strcpy(symlist[procedureCounter].name, symbol_table[i]->name);
-				// printf("%x %s %d\n", symlist[procedureCounter].addr, symlist[procedureCounter].name, symlist[procedureCounter].dumpflag);
+				// printf("%d %x %s 0x%lx, flags=%x, lma=%lx, section_flags=%x\n", procedureCounter, symlist[procedureCounter].addr, symlist[procedureCounter].name, symbol_table[i]->value, symbol_table[i]->flags, symbol_table[i]->section->lma, symbol_table[i]->section->flags);
+				procedureCounter++;
+				continue;
+			}
+
+			if (symbol_table[i]->value != 0 && !(symbol_table[i]->flags & (BSF_FILE | BSF_OBJECT)) &&
+					(!(symbol_table[i]->section->flags & SEC_DATA)) ||
+				!import_linux_symbol_flag && !(strcmp(symbol_table[i]->name, "_start")))
+			{
+				symlist[procedureCounter].name = (char *)malloc(sizeof(char) * strlen(symbol_table[i]->name) + 1);
+				symlist[procedureCounter].addr = symbol_table[i]->section->vma + symbol_table[i]->value;
+				strcpy(symlist[procedureCounter].name, symbol_table[i]->name);
+				// printf("%d %x %s 0x%lx, flags=%x\n", procedureCounter, symlist[procedureCounter].addr, symlist[procedureCounter].name, symbol_table[i]->value, symbol_table[i]->flags);
 				procedureCounter++;
 			}
-			// printf("%d %s 0x%lx flags=%x\n", i, symbol_table[i]->name, symbol_table[i]->value, symbol_table[i]->flags);
+			// printf("%d %s 0x%lx flags=%x vma=%lx section_flags=%x\n", i, symbol_table[i]->name, symbol_table[i]->value, symbol_table[i]->flags, symbol_table[i]->section->vma, symbol_table[i]->section->flags);
 		}
+		// exit(1);
 	};
 	void openDisasm(void)
 	{
@@ -880,10 +998,12 @@ int main(int argc, char **argv)
 	on_exit(sim_exit, &env);
 
 	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+	/*
 	tcgetattr(STDIN_FILENO, &tmio);
 	stmio = tmio;
 	tmio.c_lflag &= ~(ECHO | ICANON);
 	tcsetattr(STDIN_FILENO, TCSANOW, &tmio);
+	*/
 
 	Verilated::commandArgs(argc, argv);
 	Verilated::traceEverOn(true);
@@ -912,6 +1032,6 @@ void sim_exit(int status, void *p)
 {
 	env_t *env;
 	env = (env_t *)p;
-	tcsetattr(STDIN_FILENO, TCSANOW, env->tmio);
+	// tcsetattr(STDIN_FILENO, TCSANOW, env->tmio);
 	delete env->procs;
 }
