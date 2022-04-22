@@ -24,7 +24,6 @@ declare rv32x5p
 	func_out csr_write_uimm();
 	func_out csr_read(cradrs) : crdata; /* CSR read */
 	func_out csr_write(cwadrs, cwdata); /* CSR write */
-
 	func_out load_reserved();
 	func_out store_conditional();
 	output amo_src[32];
@@ -125,6 +124,12 @@ declare rv32x5p
 	output debug_mem_data[32];
 	output debug_mem_byteen[3];
 	func_out debug_mem_write(debug_mem_adrs, debug_mem_byteen, debug_mem_data);
+	output debug_csr_write_num[12];
+	output debug_csr_write_data[32];
+	func_out debug_csr_write(debug_csr_write_num, debug_csr_write_data);
+	input debug_cwadrs[12];
+	input debug_cwdata[32];
+	func_in get_csr(debug_cwadrs, debug_cwdata);
 #endif
 }
 #endif

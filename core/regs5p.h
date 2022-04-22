@@ -107,6 +107,9 @@ struct mwreg_t {
 	debug_mem_byteen[3];
 	debug_mem_data[32];
 	debug_wb;
+	debug_csr_write;
+	debug_csr_write_num[12];
+	debug_csr_write_data[32];
 #endif
 };
 #endif

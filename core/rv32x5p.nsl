@@ -635,6 +635,9 @@ module rv32x5p {
 		mwreg.debug_mem_data = mem_data;
 		mwreg.debug_mem_write = EMREG.store;
 		mwreg.debug_wb = if(memory_nop) 1'b0 else EMREG.wb;
+		mwreg.debug_csr_write = get_csr;
+		mwreg.debug_csr_write_num = debug_cwadrs;
+		mwreg.debug_csr_write_data = debug_cwdata;
 #endif
 	}
 	func csrrw {
@@ -703,6 +706,9 @@ module rv32x5p {
 		}
 		if(MWREG.debug_wb) {
 			debug_wb(MWREG.rd, wb_value);
+		}
+		if(MWREG.debug_csr_write){
+			debug_csr_write(MWREG.debug_csr_write_num, MWREG.debug_csr_write_data);
 		}
 		debug_retire(MWREG.pc, MWREG.inst);
 #endif

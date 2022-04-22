@@ -589,7 +589,7 @@ module rv32x_core {
 			else: csr_write_not_mapped();
 		}
 #ifdef DEBUG
-		debug_csr_write(rv32x.cwadrs, rv32x.cwdata);
+		rv32x.get_csr(cwadrs, cwdata);
 #endif
 	}
 	func rv32x.ecall {
@@ -1309,6 +1309,9 @@ module rv32x_core {
 	}
 	func rv32x.debug_mem_write {
 		debug_mem_write(rv32x.debug_mem_adrs, rv32x.debug_mem_byteen, rv32x.debug_mem_data);
+	}
+	func rv32x.debug_csr_write {
+		debug_csr_write(rv32x.debug_csr_write_num, rv32x.debug_csr_write_data);
 	}
 	func lsu.sim_done {
 		sim_done(lsu.tohost);
