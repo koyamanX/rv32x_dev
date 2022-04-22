@@ -14,6 +14,16 @@
 #include <string.h>
 #include <byteswap.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+	extern int print_insn_riscv(bfd_vma, disassemble_info *);
+	extern disassembler_ftype riscv_get_disassembler(bfd *);
+#ifdef __cplusplus
+}
+#endif
+
 #define IMEM_WAIT 1
 #define DMEM_WAIT 1
 
@@ -51,13 +61,35 @@
 #define JAL 111
 #define JALR 103
 #define AUIPC 23
+#define LOAD 3
+#define STORE 35
 #define MRET 0x30200073
 #define SRET 0x10200073
 #define RET 0x00008067
-#define DEST 0x00000F80
+
+#define MXLEN 32
+#define RS2_OFFSET 20
+#define RS1_OFFSET 15
+#define DEST_OFFSET 7
+#define FUNCT3_OFFSET 12
+#define IMM_11_0_OFFSET 20
+#define IMM_11_5_OFFSET 25
+
+#define IMM_11_0 (0xFFF << IMM_11_0_OFFSET)
+#define IMM_11_5 (0x7F << IMM_11_5_OFFSET)
+#define RS2 (0x1F << RS2_OFFSET)
+#define RS1 (0x1F << RS1_OFFSET)
+#define DEST (0x1F << DEST_OFFSET)
+#define FUNCT3 (0x7 << FUNCT3_OFFSET)
+
+#define SIGN_BIT(x) (-((unsigned)x >> (MXLEN - 1)))
+#define LOAD_OFFSET(inst) ((SIGN_BIT(inst) ^ inst) >> IMM_11_0_OFFSET ^ SIGN_BIT(inst)) // arithmetic shift
+#define STORE_OFFSET(inst) ((SIGN_BIT(inst) ^ inst) >> IMM_11_5_OFFSET ^ SIGN_BIT(inst))
+
 #define RA 0x00000080
 
 using namespace std;
+// extern disassembler_ftype riscv_get_disassembler(bfd *);
 
 const char *abi_reg_strs[] = {
 	"zero", "ra", "sp", "gp",
@@ -129,6 +161,8 @@ private:
 	long start_dump_inst = 0;
 	long end_dump_inst = 0;
 	int print_entry_flag = 0;
+	asymbol **symbol_table;
+	long number_of_symbols;
 	struct symbol
 	{
 		unsigned int addr = 0;
@@ -468,6 +502,7 @@ public:
 		{
 			skip_procedure_search = 1;
 		}
+		/*
 		if ((retire_inst & OPCODE) == AUIPC)
 		{
 			skip_object_search = 0;
@@ -476,6 +511,7 @@ public:
 		{
 			skip_object_search = 1;
 		}
+		*/
 		retire_pc = core->debug_retire_pc;
 		retire_inst = core->debug_retire_inst;
 		if ((got_exception == 0) && exception_output_flag)
@@ -534,6 +570,7 @@ public:
 		else
 		{
 			import_linux_symbol_flag = 0; // enable symbol search after payload transition to linux kernel
+			skip_object_search = 0;
 		}
 		if (!import_linux_symbol_flag && retire_inst == RET)
 		{
@@ -592,6 +629,7 @@ public:
 		}
 		if (core->debug_wb && writeback_output_flag)
 		{
+			regs[core->debug_wb_rd] = core->debug_wb_data;
 			fprintf(logfile, "\t");
 			printRegInfo(core->debug_wb_rd, core->debug_wb_data);
 		}
@@ -599,7 +637,7 @@ public:
 		{
 			fprintf(logfile, "\n");
 		}
-		dumpRegs();
+		// dumpRegs();
 
 		return ret;
 	};
@@ -806,8 +844,6 @@ public:
 	void fetchSymboltable(void)
 	{
 		long storage_needed;
-		asymbol **symbol_table;
-		long number_of_symbols;
 		int pCounter = 0;
 		int gOCounter = 0;
 		int start_addr;
@@ -889,12 +925,32 @@ public:
 		disasm_info.read_memory_func = buffer_read_memory;
 		disassemble_init_for_target(&disasm_info);
 		disasm = disassembler(bfd_arch_riscv, false, bfd_mach_riscv32, NULL);
+		// disasm = riscv_get_disassembler(NULL);//same above
 	};
 	void printDisasm(uint32_t pc, uint32_t inst)
 	{
 		memcpy(instbuf, &inst, sizeof(uint32_t));
 		disasm_info.buffer_vma = pc;
 		disasm(pc, &disasm_info);
+		// print_insn_riscv(pc, &disasm_info);
+		int idx = -1;
+		if (!skip_object_search)
+		{
+			if ((inst & OPCODE) == LOAD)
+			{
+				if ((idx = searchCache(regs[(inst & RS1) >> RS1_OFFSET], gOcache)) != -1 || (idx = searchSymbol(regs[(inst & RS1) >> RS1_OFFSET], globalObject, gOcache, &gOcacheptr)) != -1)
+				{
+					fprintf(logfile, "\t< %s=*(%s + %d) >", reg_strs[(inst & DEST) >> DEST_OFFSET], globalObject[idx].name, LOAD_OFFSET(inst));
+				}
+			}
+			else if ((inst & OPCODE) == STORE)
+			{
+				if ((idx = searchCache(regs[(inst & RS1) >> RS1_OFFSET], gOcache)) != -1 || (idx = searchSymbol(regs[(inst & RS1) >> RS1_OFFSET], globalObject, gOcache, &gOcacheptr)) != -1)
+				{
+					fprintf(logfile, "\t< *(%s + %d)=%s >", globalObject[idx].name, STORE_OFFSET(inst), reg_strs[(inst & RS2) >> RS2_OFFSET]);
+				}
+			}
+		}
 	};
 	void dumpRegs(void)
 	{
