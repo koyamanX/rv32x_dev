@@ -39,10 +39,18 @@
 #define SUPERVISOR_EXTERNAL_INTERRUPT 0x80000009
 
 #define BLOCK_DEVICE_FILENAME "block_device.img"
+#define START_ADDR 0x80000000
 #define KERNEL_START_ADDR 0x80400000 // opensbi/plarform/rv32xsoc/config.mk: FW_JUMP_ADDR = 0x80400000
+#define PAGE_OFFSET 0xc0000000		 //.config CONFIG_PAGE_OFFSET
+#define VA_PA_OFFSET (PAGE_OFFSET - KERNEL_START_ADDR)
+
+#define SATP 0x180
+#define SATP_MODE 0x80000000
+
 #define OPCODE 0x0000007F
 #define JAL 111
 #define JALR 103
+#define AUIPC 23
 #define MRET 0x30200073
 #define SRET 0x10200073
 #define RET 0x00008067
@@ -126,18 +134,21 @@ private:
 		unsigned int addr = 0;
 		char *name = NULL;
 		int dumpflag = 0;
-	} * symlist;
+	} * procedure, *globalObject;
 	struct symbolCache
 	{
 		unsigned int addr = 0;
-		int symlistIndex = 0;
-	} symcache[256 + 1];
+		int index = 0;
+	} pCache[256 + 1], gOcache[256 + 1];
 	char *target_symbol = NULL;
 	int import_linux_symbol_flag = 0;
 	const char *vmlinux_location = "/root/linux/vmlinux";
-	int skip_symbol_search = 0;
-	unsigned char symcacheptr = 0;
+	int skip_procedure_search = 0;
+	int skip_object_search = 0;
+	unsigned char pcacheptr = 0;
+	unsigned char gOcacheptr = 0;
 	int callDepth = 0;
+	int sv32_enabled = 0;
 
 public:
 	processor_t(const char *name)
@@ -443,18 +454,27 @@ public:
 				}
 			}
 		}
+
 		if (retire_pc != core->debug_retire_pc)
 		{
 			inst_counter++;
 		}
-		if ((retire_inst & OPCODE) == JAL | (retire_inst & OPCODE) == JALR |
-			retire_inst == MRET | retire_inst == SRET | retire_inst == 0)
+		if ((retire_inst & OPCODE) == JAL || (retire_inst & OPCODE) == JALR ||
+			retire_inst == MRET || retire_inst == SRET || retire_inst == 0)
 		{
-			skip_symbol_search = 0;
+			skip_procedure_search = 0;
 		}
 		else
 		{
-			skip_symbol_search = 1;
+			skip_procedure_search = 1;
+		}
+		if ((retire_inst & OPCODE) == AUIPC)
+		{
+			skip_object_search = 0;
+		}
+		else
+		{
+			skip_object_search = 1;
 		}
 		retire_pc = core->debug_retire_pc;
 		retire_inst = core->debug_retire_inst;
@@ -476,12 +496,40 @@ public:
 			retire_pc = epc;
 			retire_inst = einst;
 		}
+		if (core->debug_csr_write && core->debug_csr_write_num == SATP)
+		{
+			if (!sv32_enabled && (core->debug_csr_write_data & SATP_MODE))
+			{
+				for (int i = 0; procedure[i].addr != 0; i++)
+				{
+					procedure[i].addr += VA_PA_OFFSET;
+				}
+				for (int i = 0; globalObject[i].addr != 0; i++)
+				{
+					globalObject[i].addr += VA_PA_OFFSET;
+				}
+				sv32_enabled = 1;
+			}
+			else if (sv32_enabled && !(core->debug_csr_write_data & SATP_MODE))
+			{
+				for (int i = 0; procedure[i].addr != 0; i++)
+				{
+					procedure[i].addr -= VA_PA_OFFSET;
+				}
+				for (int i = 0; globalObject[i].addr != 0; i++)
+				{
+					globalObject[i].addr -= VA_PA_OFFSET;
+				}
+				sv32_enabled = 0;
+			}
+		}
 
 		memset(core->funcname, 0, sizeof(__uint128_t));
 
 		if (import_linux_symbol_flag && (retire_pc != KERNEL_START_ADDR))
 		{
-			skip_symbol_search = 1;
+			skip_procedure_search = 1;
+			skip_object_search = 1;
 		}
 		else
 		{
@@ -492,29 +540,29 @@ public:
 			// printf("ret:%x\n", retire_inst);
 			callDepth--;
 		}
-		if (!skip_symbol_search)
+		if (!skip_procedure_search)
 		{
 			int idx = -1;
-			if ((idx = searchSymCache()) != -1 || (idx = searchSymlist()) != -1)
+			if ((idx = searchCache(retire_pc, pCache)) != -1 || (idx = searchSymbol(retire_pc, procedure, pCache, &pcacheptr)) != -1)
 			{
 				char tempstr[16] = {0};
 				uint64_t funcName7to0 = 0;
 				uint64_t funcName15to8 = 0;
-				strncpy(tempstr, symlist[idx].name, 15);
+				strncpy(tempstr, procedure[idx].name, 15);
 				funcName7to0 = bswap_64(*(uint64_t *)(tempstr));
 				funcName15to8 = bswap_64(*(uint64_t *)(tempstr + 8));
 				*(uint64_t *)(core->funcname) = funcName15to8;
 				*((uint64_t *)((core->funcname) + 2)) = funcName7to0;
 				memset(tempstr, 0, 16);
-				if (symlist[idx].dumpflag)
+				if (procedure[idx].dumpflag)
 				{
 					printf("\n\n%s reaches \"%s(%x)\" entry:start dumping %s\n\n", procname, target_symbol, retire_pc, vcdfilename);
 					dump_vcd_flag = 1;
-					symlist[idx].dumpflag = 0;
+					procedure[idx].dumpflag = 0;
 				}
 				if (print_entry_flag)
 				{
-					fprintf(logfile, "\nDepth=%d, entry: %s(0x%x)", callDepth, symlist[idx].name, retire_pc);
+					fprintf(logfile, "\nDepth=%d, entry: %s(0x%x)", callDepth, procedure[idx].name, retire_pc);
 					fprintf(logfile, "\tinst_counter = %d\n", inst_counter);
 				}
 			}
@@ -555,29 +603,29 @@ public:
 
 		return ret;
 	};
-	int searchSymCache(void)
+	int searchCache(uint32_t data, struct symbolCache *cache)
 	{
-		for (int i = 0; symcache[i].addr != 0; i++)
+		for (int i = 0; cache[i].addr != 0; i++)
 		{
-			if (retire_pc == symcache[i].addr)
+			if (data == cache[i].addr)
 			{
-				return symcache[i].symlistIndex;
+				return cache[i].index;
 			}
 		}
 		return -1;
 	};
-	void setSymCache(unsigned char ptr, unsigned char idx)
+	void setCache(struct symbolCache *cache, struct symbol *target, unsigned char ptr, unsigned char idx)
 	{
-		symcache[ptr].addr = symlist[idx].addr;
-		symcache[ptr].symlistIndex = idx;
+		cache[ptr].addr = target[idx].addr;
+		cache[ptr].index = idx;
 	};
-	int searchSymlist(void)
+	int searchSymbol(uint32_t data, struct symbol *target, struct symbolCache *cache, unsigned char *cacheptr)
 	{
-		for (int i = 0; symlist[i].addr != 0; i++)
+		for (int i = 0; target[i].addr != 0; i++)
 		{
-			if (retire_pc == symlist[i].addr)
+			if (data == target[i].addr)
 			{
-				setSymCache(symcacheptr++, i);
+				setCache(cache, target, *cacheptr++, i);
 				return i;
 			}
 		}
@@ -668,7 +716,7 @@ public:
 		if (import_linux_symbol_flag)
 		{
 			abfd = open_exe(vmlinux_location, archname);
-			skip_symbol_search = 1;
+			skip_procedure_search = 1;
 		}
 		fetchSymboltable();
 		if (dump_vcd_flag)
@@ -684,10 +732,6 @@ public:
 			memory_output_flag = 1;
 			trace_output_flag = 1;
 			print_entry_flag = 1;
-		}
-		if (!(print_entry_flag || dump_vcd_flag && (*Darg == 's')))
-		{
-			skip_symbol_search = 1;
 		}
 		free(Darg);
 	};
@@ -725,15 +769,15 @@ public:
 				int i = 0;
 				target_symbol = (char *)malloc(sizeof(char) * strlen(Darg + 2) + 1);
 				strcpy(target_symbol, Darg + 2);
-				for (i = 0; symlist[i].addr != 0; i++)
+				for (i = 0; procedure[i].addr != 0; i++)
 				{
-					if (!strcmp(symlist[i].name, target_symbol))
+					if (!strcmp(procedure[i].name, target_symbol))
 					{
-						symlist[i].dumpflag = 1;
+						procedure[i].dumpflag = 1;
 						break;
 					}
 				}
-				if (symlist[i].addr == 0)
+				if (procedure[i].addr == 0)
 				{
 					printf("--dump-vcd: target symbol %s does not exist\n", target_symbol);
 					exit(1);
@@ -764,7 +808,17 @@ public:
 		long storage_needed;
 		asymbol **symbol_table;
 		long number_of_symbols;
-		int procedureCounter = 0;
+		int pCounter = 0;
+		int gOCounter = 0;
+		int start_addr;
+		if (import_linux_symbol_flag)
+		{
+			start_addr = KERNEL_START_ADDR;
+		}
+		else
+		{
+			start_addr = 0;
+		}
 
 		storage_needed = bfd_get_symtab_upper_bound(abfd);
 
@@ -789,40 +843,39 @@ public:
 		{
 			if (symbol_table[i]->value != 0 && !(symbol_table[i]->flags & (BSF_FILE | BSF_OBJECT)))
 			{
-				procedureCounter++;
+				pCounter++;
+			}
+			if ((symbol_table[i]->flags & BSF_OBJECT) && (symbol_table[i]->flags & BSF_GLOBAL))
+			{
+				gOCounter++;
 			}
 		}
-		symlist = (struct symbol *)malloc(sizeof(symbol) * (procedureCounter + 1));
-		memset(symlist, 0, sizeof(symbol) * (procedureCounter + 1));
-		procedureCounter = 0;
+		procedure = (struct symbol *)malloc(sizeof(symbol) * (pCounter + 1));
+		globalObject = (struct symbol *)malloc(sizeof(symbol) * (gOCounter + 1));
+		memset(procedure, 0, sizeof(symbol) * (pCounter + 1));
+		memset(globalObject, 0, sizeof(symbol) * (gOCounter + 1));
+		pCounter = 0;
+		gOCounter = 0;
 		for (int i = 0; i < number_of_symbols; i++)
 		{
-			if (import_linux_symbol_flag && (!(strcmp(symbol_table[i]->name, "_start")) ||
-											 !(strcmp(symbol_table[i]->name, "relocate")) ||
-											 !(strcmp(symbol_table[i]->name, "_start_kernel")) ||
-											 !(strcmp(symbol_table[i]->name, "clear_bss")) ||
-											 !(strcmp(symbol_table[i]->name, "clear_bss_done")) ||
-											 !(strcmp(symbol_table[i]->name, "setup_vm"))))
-			{
-				symlist[procedureCounter].name = (char *)malloc(sizeof(char) * strlen(symbol_table[i]->name) + 1);
-				symlist[procedureCounter].addr = KERNEL_START_ADDR + symbol_table[i]->section->lma + symbol_table[i]->value;
-				strcpy(symlist[procedureCounter].name, symbol_table[i]->name);
-				// printf("%d %x %s 0x%lx, flags=%x, lma=%lx, section_flags=%x\n", procedureCounter, symlist[procedureCounter].addr, symlist[procedureCounter].name, symbol_table[i]->value, symbol_table[i]->flags, symbol_table[i]->section->lma, symbol_table[i]->section->flags);
-				procedureCounter++;
-				continue;
-			}
-
 			if (symbol_table[i]->value != 0 && !(symbol_table[i]->flags & (BSF_FILE | BSF_OBJECT)) &&
-					(!(symbol_table[i]->section->flags & SEC_DATA)) ||
-				!import_linux_symbol_flag && !(strcmp(symbol_table[i]->name, "_start")))
+				(!(symbol_table[i]->section->flags & SEC_DATA)))
 			{
-				symlist[procedureCounter].name = (char *)malloc(sizeof(char) * strlen(symbol_table[i]->name) + 1);
-				symlist[procedureCounter].addr = symbol_table[i]->section->vma + symbol_table[i]->value;
-				strcpy(symlist[procedureCounter].name, symbol_table[i]->name);
-				// printf("%d %x %s 0x%lx, flags=%x\n", procedureCounter, symlist[procedureCounter].addr, symlist[procedureCounter].name, symbol_table[i]->value, symbol_table[i]->flags);
-				procedureCounter++;
+				procedure[pCounter].name = (char *)malloc(sizeof(char) * strlen(symbol_table[i]->name) + 1);
+				procedure[pCounter].addr = start_addr + symbol_table[i]->section->lma + symbol_table[i]->value; // vma = start+lma+value
+				strcpy(procedure[pCounter].name, symbol_table[i]->name);
+				// printf("%d %x %s 0x%lx, flags=%x lma=%lx\n", pCounter, procedure[pCounter].addr, procedure[pCounter].name, symbol_table[i]->value, symbol_table[i]->flags, symbol_table[i]->section->lma);
+				pCounter++;
 			}
-			// printf("%d %s 0x%lx flags=%x vma=%lx section_flags=%x\n", i, symbol_table[i]->name, symbol_table[i]->value, symbol_table[i]->flags, symbol_table[i]->section->vma, symbol_table[i]->section->flags);
+			if ((symbol_table[i]->flags & BSF_OBJECT) && (symbol_table[i]->flags & BSF_GLOBAL))
+			{
+				globalObject[gOCounter].name = (char *)malloc(sizeof(char) * strlen(symbol_table[i]->name) + 1);
+				globalObject[gOCounter].addr = start_addr + symbol_table[i]->section->lma + symbol_table[i]->value;
+				strcpy(globalObject[gOCounter].name, symbol_table[i]->name);
+				// printf("%d %x %s 0x%lx, flags=%x\n", gOCounter, globalObject[gOCounter].addr, globalObject[gOCounter].name, symbol_table[i]->value, symbol_table[i]->flags);
+				gOCounter++;
+			}
+			// printf("%d %s value=0x%lx flags=%x vma=%lx lma=%lx section_flags=%x\n", i, symbol_table[i]->name, symbol_table[i]->value, symbol_table[i]->flags, symbol_table[i]->section->vma, symbol_table[i]->section->lma, symbol_table[i]->section->flags);
 		}
 		// exit(1);
 	};
@@ -843,7 +896,6 @@ public:
 		disasm_info.buffer_vma = pc;
 		disasm(pc, &disasm_info);
 	};
-
 	void dumpRegs(void)
 	{
 		regs[0] = core->debug_pc;
@@ -882,6 +934,14 @@ public:
 	void printRegInfo(uint8_t rd, uint32_t data)
 	{
 		fprintf(logfile, "%4s <- %08x", reg_strs[rd], data);
+		if (!skip_object_search)
+		{
+			int idx = -1;
+			if ((idx = searchCache(core->debug_wb_data, gOcache)) != -1 || (idx = searchSymbol(core->debug_wb_data, globalObject, gOcache, &gOcacheptr)) != -1)
+			{
+				fprintf(logfile, "(%s)", globalObject[idx].name);
+			}
+		}
 	};
 	void printException(uint32_t epc, uint32_t cause, uint32_t mtval)
 	{
