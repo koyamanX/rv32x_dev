@@ -605,7 +605,7 @@ public:
 		if (core->debug_mem_write && memory_output_flag)
 		{
 			int mask;
-			mask = 0xffffffff >> (32 - (core->debug_mem_byteen + 1) * 8);
+			mask = 0xffffffff >> (32 - (int)pow(2, core->debug_mem_byteen + 3));
 			fprintf(logfile, "\t");
 			printMemWrite(core->debug_mem_adrs, core->debug_mem_data & mask);
 		}
