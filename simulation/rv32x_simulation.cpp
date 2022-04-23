@@ -53,6 +53,8 @@ extern "C"
 #define KERNEL_START_ADDR 0x80400000 // opensbi/plarform/rv32xsoc/config.mk: FW_JUMP_ADDR = 0x80400000
 #define PAGE_OFFSET 0xc0000000		 //.config CONFIG_PAGE_OFFSET
 #define VA_PA_OFFSET (PAGE_OFFSET - KERNEL_START_ADDR)
+#define VA VA_PA_OFFSET
+#define PA -(VA_PA_OFFSET)
 
 #define SATP 0x180
 #define SATP_MODE 0x80000000
@@ -74,9 +76,11 @@ extern "C"
 #define FUNCT3_OFFSET 12
 #define IMM_11_0_OFFSET 20
 #define IMM_11_5_OFFSET 25
+#define IMM_4_0_OFFSET 7
 
 #define IMM_11_0 (0xFFF << IMM_11_0_OFFSET)
 #define IMM_11_5 (0x7F << IMM_11_5_OFFSET)
+#define IMM_4_0 (0x1F << IMM_4_0_OFFSET)
 #define RS2 (0x1F << RS2_OFFSET)
 #define RS1 (0x1F << RS1_OFFSET)
 #define DEST (0x1F << DEST_OFFSET)
@@ -84,7 +88,7 @@ extern "C"
 
 #define SIGN_BIT(x) (-((unsigned)x >> (MXLEN - 1)))
 #define LOAD_OFFSET(inst) ((SIGN_BIT(inst) ^ inst) >> IMM_11_0_OFFSET ^ SIGN_BIT(inst)) // arithmetic shift
-#define STORE_OFFSET(inst) ((SIGN_BIT(inst) ^ inst) >> IMM_11_5_OFFSET ^ SIGN_BIT(inst))
+#define STORE_OFFSET(inst) ((((SIGN_BIT(inst) ^ (inst & IMM_11_5)) >> IMM_11_0_OFFSET) ^ SIGN_BIT(inst)) + (((inst & IMM_4_0) >> IMM_4_0_OFFSET) & (IMM_4_0 >> IMM_4_0_OFFSET)))
 
 #define RA 0x00000080
 
@@ -536,26 +540,12 @@ public:
 		{
 			if (!sv32_enabled && (core->debug_csr_write_data & SATP_MODE))
 			{
-				for (int i = 0; procedure[i].addr != 0; i++)
-				{
-					procedure[i].addr += VA_PA_OFFSET;
-				}
-				for (int i = 0; globalObject[i].addr != 0; i++)
-				{
-					globalObject[i].addr += VA_PA_OFFSET;
-				}
+				translateSymbolAddrTo(VA);
 				sv32_enabled = 1;
 			}
 			else if (sv32_enabled && !(core->debug_csr_write_data & SATP_MODE))
 			{
-				for (int i = 0; procedure[i].addr != 0; i++)
-				{
-					procedure[i].addr -= VA_PA_OFFSET;
-				}
-				for (int i = 0; globalObject[i].addr != 0; i++)
-				{
-					globalObject[i].addr -= VA_PA_OFFSET;
-				}
+				translateSymbolAddrTo(PA);
 				sv32_enabled = 0;
 			}
 		}
@@ -582,15 +572,7 @@ public:
 			int idx = -1;
 			if ((idx = searchCache(retire_pc, pCache)) != -1 || (idx = searchSymbol(retire_pc, procedure, pCache, &pcacheptr)) != -1)
 			{
-				char tempstr[16] = {0};
-				uint64_t funcName7to0 = 0;
-				uint64_t funcName15to8 = 0;
-				strncpy(tempstr, procedure[idx].name, 15);
-				funcName7to0 = bswap_64(*(uint64_t *)(tempstr));
-				funcName15to8 = bswap_64(*(uint64_t *)(tempstr + 8));
-				*(uint64_t *)(core->funcname) = funcName15to8;
-				*((uint64_t *)((core->funcname) + 2)) = funcName7to0;
-				memset(tempstr, 0, 16);
+				dumpProcedure(idx);
 				if (procedure[idx].dumpflag)
 				{
 					printf("\n\n%s reaches \"%s(%x)\" entry:start dumping %s\n\n", procname, target_symbol, retire_pc, vcdfilename);
@@ -627,11 +609,14 @@ public:
 			fprintf(logfile, "\t");
 			printMemWrite(core->debug_mem_adrs, core->debug_mem_data & mask);
 		}
-		if (core->debug_wb && writeback_output_flag)
+		if (core->debug_wb)
 		{
 			regs[core->debug_wb_rd] = core->debug_wb_data;
-			fprintf(logfile, "\t");
-			printRegInfo(core->debug_wb_rd, core->debug_wb_data);
+			if (writeback_output_flag)
+			{
+				fprintf(logfile, "\t");
+				printRegInfo(core->debug_wb_rd, core->debug_wb_data);
+			}
 		}
 		if ((core->debug_mem_write && memory_output_flag) || (core->debug_wb && writeback_output_flag))
 		{
@@ -640,6 +625,29 @@ public:
 		// dumpRegs();
 
 		return ret;
+	};
+	void translateSymbolAddrTo(int va_pa_offset)
+	{
+		for (int i = 0; procedure[i].addr != 0; i++)
+		{
+			procedure[i].addr += va_pa_offset;
+		}
+		for (int i = 0; globalObject[i].addr != 0; i++)
+		{
+			globalObject[i].addr += va_pa_offset;
+		}
+	};
+	void dumpProcedure(int idx)
+	{
+		char tempstr[16] = {0};
+		uint64_t funcName7to0 = 0;
+		uint64_t funcName15to8 = 0;
+		strncpy(tempstr, procedure[idx].name, 15);
+		funcName7to0 = bswap_64(*(uint64_t *)(tempstr));
+		funcName15to8 = bswap_64(*(uint64_t *)(tempstr + 8));
+		*(uint64_t *)(core->funcname) = funcName15to8;
+		*((uint64_t *)((core->funcname) + 2)) = funcName7to0;
+		memset(tempstr, 0, 16);
 	};
 	int searchCache(uint32_t data, struct symbolCache *cache)
 	{
@@ -936,18 +944,32 @@ public:
 		int idx = -1;
 		if (!skip_object_search)
 		{
+			int rs1 = (inst & RS1) >> RS1_OFFSET;
+			int rs2 = (inst & RS2) >> RS2_OFFSET;
+			int dest = (inst & DEST) >> DEST_OFFSET;
+			int offset;
 			if ((inst & OPCODE) == LOAD)
 			{
-				if ((idx = searchCache(regs[(inst & RS1) >> RS1_OFFSET], gOcache)) != -1 || (idx = searchSymbol(regs[(inst & RS1) >> RS1_OFFSET], globalObject, gOcache, &gOcacheptr)) != -1)
+				offset = LOAD_OFFSET(inst);
+				if ((idx = searchCache(regs[rs1] + offset, gOcache)) != -1 || (idx = searchSymbol(regs[rs1] + offset, globalObject, gOcache, &gOcacheptr)) != -1)
 				{
-					fprintf(logfile, "\t< %s=*(%s + %d) >", reg_strs[(inst & DEST) >> DEST_OFFSET], globalObject[idx].name, LOAD_OFFSET(inst));
+					fprintf(logfile, "\t< %s=*(%s) >", reg_strs[dest], globalObject[idx].name);
+				}
+				else if ((idx = searchCache(regs[rs1], gOcache)) != -1 || (idx = searchSymbol(regs[rs1], globalObject, gOcache, &gOcacheptr)) != -1)
+				{
+					fprintf(logfile, "\t< %s=*(%s %c %d) >", reg_strs[dest], globalObject[idx].name, (offset < 0) ? '-' : '+', (offset < 0) ? -offset : offset);
 				}
 			}
 			else if ((inst & OPCODE) == STORE)
 			{
-				if ((idx = searchCache(regs[(inst & RS1) >> RS1_OFFSET], gOcache)) != -1 || (idx = searchSymbol(regs[(inst & RS1) >> RS1_OFFSET], globalObject, gOcache, &gOcacheptr)) != -1)
+				offset = STORE_OFFSET(inst);
+				if ((idx = searchCache(regs[rs1] + offset, gOcache)) != -1 || (idx = searchSymbol(regs[rs1] + offset, globalObject, gOcache, &gOcacheptr)) != -1)
 				{
-					fprintf(logfile, "\t< *(%s + %d)=%s >", globalObject[idx].name, STORE_OFFSET(inst), reg_strs[(inst & RS2) >> RS2_OFFSET]);
+					fprintf(logfile, "\t< *(%s)=%s >", globalObject[idx].name, reg_strs[rs2]);
+				}
+				else if ((idx = searchCache(regs[rs1], gOcache)) != -1 || (idx = searchSymbol(regs[rs1], globalObject, gOcache, &gOcacheptr)) != -1)
+				{
+					fprintf(logfile, "\t< *(%s %c %d)=%s >", globalObject[idx].name, (offset < 0) ? '-' : '+', (offset < 0) ? -offset : offset, reg_strs[rs2]);
 				}
 			}
 		}
