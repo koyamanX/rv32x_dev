@@ -60,6 +60,7 @@ extern "C"
 #define SATP_MODE 0x80000000
 
 #define OPCODE 0x0000007F
+#define BRANCH 99
 #define JAL 111
 #define JALR 103
 #define AUIPC 23
@@ -187,6 +188,7 @@ private:
 	unsigned char gOcacheptr = 0;
 	int callDepth = 0;
 	int sv32_enabled = 0;
+	unsigned int callTracker[100] = {0};
 
 public:
 	processor_t(const char *name)
@@ -497,7 +499,7 @@ public:
 		{
 			inst_counter++;
 		}
-		if ((retire_inst & OPCODE) == JAL || (retire_inst & OPCODE) == JALR ||
+		if ((retire_inst & OPCODE) == JAL || (retire_inst & OPCODE) == JALR || // (retire_inst & OPCODE) == BRANCH ||
 			retire_inst == MRET || retire_inst == SRET || retire_inst == 0)
 		{
 			skip_procedure_search = 0;
@@ -561,11 +563,21 @@ public:
 		{
 			import_linux_symbol_flag = 0; // enable symbol search after payload transition to linux kernel
 			skip_object_search = 0;
+			// skip_procedure_search = 0;
 		}
 		if (!import_linux_symbol_flag && retire_inst == RET)
 		{
 			// printf("ret:%x\n", retire_inst);
-			callDepth--;
+			if (callDepth != 0)
+			{
+				callDepth--;
+			}
+			if ((callTracker[callDepth] != core->debug_x1) && (callTracker[callDepth] != 0))
+			{
+				fprintf(logfile, "\nINFO:Call depth has been reset.(previous \"Depth=%d\" function return address(0x%x) discarded )\n", callDepth, callTracker[callDepth]);
+				callDepth = 0;
+				callTracker[callDepth] = 0;
+			};
 		}
 		if (!skip_procedure_search)
 		{
@@ -584,6 +596,17 @@ public:
 					fprintf(logfile, "\nDepth=%d, entry: %s(0x%x)", callDepth, procedure[idx].name, retire_pc);
 					fprintf(logfile, "\tinst_counter = %d\n", inst_counter);
 				}
+				if (!strcmp(procedure[idx].name, "oops_exit"))
+				{
+					printf("\n\nStop logging in %s\n\n", procedure[idx].name);
+					exception_output_flag = 0;
+					writeback_output_flag = 0;
+					disasm_output_flag = 0;
+					memory_output_flag = 0;
+					trace_output_flag = 0;
+					print_entry_flag = 0;
+					dump_vcd_flag = 0;
+				}
 			}
 		}
 		if (!import_linux_symbol_flag &&
@@ -591,7 +614,8 @@ public:
 			 (((retire_inst & OPCODE) == JAL) ||
 			  ((retire_inst & OPCODE) == JALR))))
 		{
-			callDepth++;
+			// callDepth++;
+			callTracker[callDepth++] = retire_pc + 4;
 		}
 		if (trace_output_flag)
 		{
@@ -804,6 +828,14 @@ public:
 					*bar = '\0';
 					start_dump_inst = strtol(range, NULL, 0);
 					end_dump_inst = strtol(bar + 1, NULL, 0);
+					if (start_dump_inst == 0 && end_dump_inst != 0)
+					{
+						start_dump_inst = end_dump_inst - 100;
+					}
+					else if (start_dump_inst != 0 && end_dump_inst == 0)
+					{
+						end_dump_inst = start_dump_inst + 100;
+					}
 					*bar = '-';
 					filename = (char *)malloc(sizeof(char) * strlen(range) + strlen(fileExtension) + 1);
 					strcpy(filename, range);
@@ -889,7 +921,10 @@ public:
 			{
 				pCounter++;
 			}
-			if ((symbol_table[i]->flags & BSF_OBJECT) && (symbol_table[i]->flags & BSF_GLOBAL))
+			if ((symbol_table[i]->flags & BSF_OBJECT) && ((symbol_table[i]->flags & BSF_GLOBAL) ||
+														  ((symbol_table[i]->flags & BSF_LOCAL) &&
+														   (strstr(symbol_table[i]->name, "__") == NULL) &&
+														   (strstr(symbol_table[i]->name, ".") == NULL))))
 			{
 				gOCounter++;
 			}
@@ -911,7 +946,10 @@ public:
 				// printf("%d %x %s 0x%lx, flags=%x lma=%lx\n", pCounter, procedure[pCounter].addr, procedure[pCounter].name, symbol_table[i]->value, symbol_table[i]->flags, symbol_table[i]->section->lma);
 				pCounter++;
 			}
-			if ((symbol_table[i]->flags & BSF_OBJECT) && (symbol_table[i]->flags & BSF_GLOBAL))
+			if ((symbol_table[i]->flags & BSF_OBJECT) && ((symbol_table[i]->flags & BSF_GLOBAL) ||
+														  ((symbol_table[i]->flags & BSF_LOCAL) &&
+														   (strstr(symbol_table[i]->name, "__") == NULL) &&
+														   (strstr(symbol_table[i]->name, ".") == NULL))))
 			{
 				globalObject[gOCounter].name = (char *)malloc(sizeof(char) * strlen(symbol_table[i]->name) + 1);
 				globalObject[gOCounter].addr = start_addr + symbol_table[i]->section->lma + symbol_table[i]->value;
