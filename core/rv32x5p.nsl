@@ -440,7 +440,7 @@ module rv32x5p {
 					emreg.nextpc=target_address;
 					memory(emreg);	/* for logging */
 				}
-				((taken && DEREG.predict_as_taken) || (not_taken && DEREG.predict_as_not_taken)): {
+				(((taken && DEREG.predict_as_taken) || (not_taken && DEREG.predict_as_not_taken)) && !stall_execute): {
 					correct_prediction();
 					emreg.nextpc= if(taken) target_address else DEREG.pc4;
 					memory(emreg);	/* for logging */
