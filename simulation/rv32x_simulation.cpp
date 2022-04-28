@@ -107,7 +107,6 @@ const char *abi_reg_strs[] = {
 	"t3", "t4", "t5", "t6"};
 
 void sim_exit(int status, void *p);
-
 static void cpy(void *dest, void *src, size_t n)
 {
 	uint8_t *d, *s;
@@ -115,10 +114,10 @@ static void cpy(void *dest, void *src, size_t n)
 	d = (uint8_t *)dest, s = (uint8_t *)src;
 	for (size_t i = 0; i < n; i += 4)
 	{
-		d[i + 0] = s[i + 2];
-		d[i + 1] = s[i + 3];
-		d[i + 2] = s[i + 0];
-		d[i + 3] = s[i + 1];
+		d[i + 0] = s[i + 0];
+		d[i + 1] = s[i + 1];
+		d[i + 2] = s[i + 2];
+		d[i + 3] = s[i + 3];
 	}
 }
 
@@ -200,7 +199,7 @@ public:
 		if (access(BLOCK_DEVICE_FILENAME, F_OK) == 0)
 		{
 			block_device_avail = 1;
-			block_device = fopen(BLOCK_DEVICE_FILENAME, "rb");
+			block_device = fopen(BLOCK_DEVICE_FILENAME, "rb+");
 		}
 #ifndef FAST_SIM
 #endif
@@ -215,7 +214,10 @@ public:
 		}
 #endif
 		core->final();
+
+#ifndef FAST_SIM
 		fclose(logfile);
+#endif
 		if (block_device_avail)
 		{
 			fclose(block_device);
@@ -292,6 +294,7 @@ public:
 	{
 		return m_clock_count;
 	};
+#ifndef FAST_SIM
 	uint64_t step(void)
 	{
 		int imem_stat = 0;
@@ -400,6 +403,15 @@ public:
 						cpy(core->block_data, buf, 512);
 						core->block_data_valid = 1;
 					}
+					/*
+					else if (core->write_block)
+					{
+						fseek(block_device, core->block_adrs * 512, SEEK_SET);
+						cpy(buf, core->block_data, 512);
+						fwrite(buf, sizeof(uint8_t), 512, block_device);
+						//core->block_data_valid = 1;
+					}
+					*/
 					else
 					{
 						core->block_data_valid = 0;
@@ -650,6 +662,171 @@ public:
 
 		return ret;
 	};
+#else
+	uint64_t step(void)
+	{
+		int imem_stat = 0;
+		int dmem_stat = 0;
+		static uint32_t epc, cause, mtval, einst, got_exception = -1;
+		uint64_t ret = -1;
+
+		while (1)
+		{
+			tick();
+			eval();
+			core->inst = 0;
+			if (core->imem_read)
+			{
+				if (imem_wait == IMEM_WAIT)
+				{
+					imem_stat = read_word(memory, core->iaddr, (uint32_t *)&core->inst);
+					core->imem_ready = 1;
+					imem_wait = 0;
+				}
+				else
+				{
+					core->imem_ready = 0;
+					imem_wait++;
+				}
+			}
+			else
+			{
+				core->imem_ready = 0;
+			}
+			core->rdata = 0;
+			if (core->dmem_read || core->dmem_write)
+			{
+				if (dmem_wait == DMEM_WAIT)
+				{
+					if ((core->dbyteen & 0x3) == 0)
+					{
+						if (core->dmem_read)
+						{
+							dmem_stat = read_byte(memory, core->daddr, (uint8_t *)&core->rdata);
+						}
+						else if (core->dmem_write)
+						{
+							dmem_stat = write_byte(memory, core->daddr, core->wdata);
+						}
+					}
+					else if ((core->dbyteen & 0x3) == 1)
+					{
+						if (core->dmem_read)
+						{
+							dmem_stat = read_halfword(memory, core->daddr, (uint16_t *)&core->rdata);
+						}
+						else if (core->dmem_write)
+						{
+							dmem_stat = write_halfword(memory, core->daddr, core->wdata);
+						}
+					}
+					else if ((core->dbyteen & 0x3) == 2)
+					{
+						if (core->dmem_read)
+						{
+							dmem_stat = read_word(memory, core->daddr, (uint32_t *)&core->rdata);
+						}
+						else if (core->dmem_write)
+						{
+							dmem_stat = write_word(memory, core->daddr, core->wdata);
+						}
+					}
+					core->dmem_ready = 1;
+					dmem_wait = 0;
+				}
+				else
+				{
+					core->dmem_ready = 0;
+					dmem_wait++;
+				}
+			}
+			else
+			{
+				core->dmem_ready = 0;
+			}
+			if (imem_stat == -1)
+			{
+				fprintf(stderr, "Instruction Memory violation occuries at address of %08x, byteen %02x\n", core->iaddr, core->ibyteen);
+				fflush(stderr);
+				fflush(stdout);
+				exit(-1);
+			}
+			if (dmem_stat == -1)
+			{
+				fprintf(stderr, "Data memory violation occuries at address of %08x, byteen %02x\n", core->daddr, core->dbyteen);
+				fflush(stderr);
+				fflush(stdout);
+				exit(-1);
+			}
+			if (rising_edge)
+			{
+				if (block_device_avail)
+				{
+					if (core->read_block)
+					{
+						size_t len;
+
+						fseek(block_device, core->block_adrs * 512, SEEK_SET);
+						len = fread(buf, sizeof(uint8_t), 512, block_device);
+						cpy(core->block_data, buf, 512);
+						core->block_data_valid = 1;
+					}
+					else
+					{
+						core->block_data_valid = 0;
+					}
+				}
+			}
+			eval();
+			dump();
+			if (rising_edge)
+			{
+				ssize_t nr;
+				int ch = -1;
+				// static int temp = 0;
+				/*
+				if(core->uart_done) {
+					fprintf(stdout, "%c", core->uart_data);
+					fflush(stdout);
+				}
+				*/
+				core->uart_wdata = 0;
+				ch = getchar();
+				if (ch != EOF)
+				{
+					/*
+					 if (temp)
+					 {
+						 dump_vcd_flag = 1; // uart debug
+					 }
+					if (ch == '\n')
+					{
+						temp++;
+					}
+					 */
+					core->uart_wdata = ch;
+					// printf("ch:%x,wdata:%x\n", ch, core->uart_wdata);
+					core->uart_write = 1;
+				}
+				else
+				{
+					core->uart_write = 0;
+				}
+			}
+			if (rising_edge)
+			{
+				if (core->sim_done)
+				{
+					ret = core->tohost;
+				}
+				if (core->debug_retire)
+				{
+					return ret;
+				}
+			}
+		}
+	};
+#endif
 	void translateSymbolAddrTo(int va_pa_offset)
 	{
 		for (int i = 0; procedure[i].addr != 0; i++)
@@ -729,14 +906,13 @@ public:
 			{"print-memory-write", no_argument, NULL, 'm'},
 			{"print-inst-trace", no_argument, NULL, 'i'},
 			{"print-all", no_argument, NULL, 'a'},
-			{"no-log", no_argument, NULL, 'x'},
 			{"no-sim-exit", no_argument, NULL, 'n'},
 			{"dump-vcd", optional_argument, NULL, 'D'},
 			{"print-entry", no_argument, NULL, 'E'},
 			{"debug-linux", no_argument, NULL, 'l'},
 			{0, 0, 0, 0},
 		};
-		while ((opt = getopt_long(argc, argv, "ewdmianxD::El", longopts, &longindex)) != -1)
+		while ((opt = getopt_long(argc, argv, "ewdmianD::El", longopts, &longindex)) != -1)
 		{
 			switch (opt)
 			{
@@ -760,9 +936,6 @@ public:
 				break;
 			case 'n':
 				no_sim_exit = 1;
-				break;
-			case 'x':
-				no_log = 1;
 				break;
 			case 'D':
 				dump_vcd_flag = 1;
@@ -1180,16 +1353,17 @@ int main(int argc, char **argv)
 	tmio.c_lflag &= ~(ECHO | ICANON);
 	tcsetattr(STDIN_FILENO, TCSANOW, &tmio);
 	*/
-
+#ifndef FAST_SIM
 	Verilated::commandArgs(argc, argv);
 	Verilated::traceEverOn(true);
-
+#endif
 	proc0 = new processor_t("core\t0");
 	proc0->load(argv[1]); // elf
+#ifndef FAST_SIM
 	proc0->parseLogOpts(argc - 1, argv + 1);
 	proc0->openLogFile(argv[1]);
 	proc0->openDisasm();
-
+#endif
 	proc0->resetCore();
 	while (1)
 	{
