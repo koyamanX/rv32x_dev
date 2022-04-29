@@ -51,13 +51,12 @@ extern "C"
 #define BLOCK_DEVICE_FILENAME "block_device.img"
 #define START_ADDR 0x80000000
 #define KERNEL_START_ADDR 0x80400000 // opensbi/plarform/rv32xsoc/config.mk: FW_JUMP_ADDR = 0x80400000
-#define PAGE_OFFSET 0xc0000000		 //.config CONFIG_PAGE_OFFSET
-#define VA_PA_OFFSET (PAGE_OFFSET - KERNEL_START_ADDR)
-#define VA VA_PA_OFFSET
-#define PA -(VA_PA_OFFSET)
 
 #define SATP 0x180
 #define SATP_MODE 0x80000000
+
+#define SET_VA 1
+#define SET_PA 0
 
 #define OPCODE 0x0000007F
 #define BRANCH 99
@@ -170,6 +169,8 @@ private:
 	struct symbol
 	{
 		unsigned int addr = 0;
+		unsigned int vma = 0;
+		unsigned int pma = 0;
 		char *name = NULL;
 		int dumpflag = 0;
 	} * procedure, *globalObject;
@@ -403,17 +404,16 @@ public:
 						cpy(core->block_data, buf, 512);
 						core->block_data_valid = 1;
 					}
-					/*
 					else if (core->write_block)
 					{
 						fseek(block_device, core->block_adrs * 512, SEEK_SET);
 						cpy(buf, core->block_data, 512);
 						fwrite(buf, sizeof(uint8_t), 512, block_device);
-						//core->block_data_valid = 1;
+						core->write_block_interrupt_req = 1;
 					}
-					*/
 					else
 					{
+						core->write_block_interrupt_req = 0;
 						core->block_data_valid = 0;
 					}
 				}
@@ -554,12 +554,12 @@ public:
 		{
 			if (!sv32_enabled && (core->debug_csr_write_data & SATP_MODE))
 			{
-				translateSymbolAddrTo(VA);
+				setSymbolAddr(SET_VA);
 				sv32_enabled = 1;
 			}
 			else if (sv32_enabled && !(core->debug_csr_write_data & SATP_MODE))
 			{
-				translateSymbolAddrTo(PA);
+				setSymbolAddr(SET_PA);
 				sv32_enabled = 0;
 			}
 		}
@@ -827,15 +827,29 @@ public:
 		}
 	};
 #endif
-	void translateSymbolAddrTo(int va_pa_offset)
+	void setSymbolAddr(int flag)
 	{
-		for (int i = 0; procedure[i].addr != 0; i++)
+		if (flag == SET_VA)
 		{
-			procedure[i].addr += va_pa_offset;
+			for (int i = 0; procedure[i].addr != 0; i++)
+			{
+				procedure[i].addr = procedure[i].vma;
+			}
+			for (int i = 0; globalObject[i].addr != 0; i++)
+			{
+				globalObject[i].addr = globalObject[i].vma;
+			}
 		}
-		for (int i = 0; globalObject[i].addr != 0; i++)
+		else if (flag == SET_PA)
 		{
-			globalObject[i].addr += va_pa_offset;
+			for (int i = 0; procedure[i].addr != 0; i++)
+			{
+				procedure[i].addr = procedure[i].pma;
+			}
+			for (int i = 0; globalObject[i].addr != 0; i++)
+			{
+				globalObject[i].addr = globalObject[i].pma;
+			}
 		}
 	};
 	void dumpProcedure(int idx)
@@ -1114,7 +1128,9 @@ public:
 				(!(symbol_table[i]->section->flags & SEC_DATA)))
 			{
 				procedure[pCounter].name = (char *)malloc(sizeof(char) * strlen(symbol_table[i]->name) + 1);
-				procedure[pCounter].addr = start_addr + symbol_table[i]->section->lma + symbol_table[i]->value; // vma = start+lma+value
+				procedure[pCounter].pma = start_addr + symbol_table[i]->section->lma + symbol_table[i]->value;
+				procedure[pCounter].vma = symbol_table[i]->section->vma + symbol_table[i]->value;
+				procedure[pCounter].addr = procedure[pCounter].pma;
 				strcpy(procedure[pCounter].name, symbol_table[i]->name);
 				// printf("%d %x %s 0x%lx, flags=%x lma=%lx\n", pCounter, procedure[pCounter].addr, procedure[pCounter].name, symbol_table[i]->value, symbol_table[i]->flags, symbol_table[i]->section->lma);
 				pCounter++;
@@ -1125,7 +1141,9 @@ public:
 														   (strstr(symbol_table[i]->name, ".") == NULL))))
 			{
 				globalObject[gOCounter].name = (char *)malloc(sizeof(char) * strlen(symbol_table[i]->name) + 1);
-				globalObject[gOCounter].addr = start_addr + symbol_table[i]->section->lma + symbol_table[i]->value;
+				globalObject[gOCounter].pma = start_addr + symbol_table[i]->section->lma + symbol_table[i]->value;
+				globalObject[gOCounter].vma = symbol_table[i]->section->vma + symbol_table[i]->value;
+				globalObject[gOCounter].addr = globalObject[gOCounter].pma;
 				strcpy(globalObject[gOCounter].name, symbol_table[i]->name);
 				// printf("%d %x %s 0x%lx, flags=%x\n", gOCounter, globalObject[gOCounter].addr, globalObject[gOCounter].name, symbol_table[i]->value, symbol_table[i]->flags);
 				gOCounter++;

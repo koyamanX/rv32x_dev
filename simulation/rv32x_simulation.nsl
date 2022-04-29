@@ -36,6 +36,8 @@ declare rv32x_simulation simulation {
 	output block_adrs[32];
 	func_in block_data_valid();
 	func_out read_block(block_adrs);
+	func_out write_block(block_adrs);
+	func_in write_block_interrupt_req();
 #ifdef DEBUG
 	output uart_data[8];
 	func_out uart_done();
@@ -148,9 +150,15 @@ module rv32x_simulation {
 	func sdsim.read {
 		read_block(sdsim.adrs);
 	}
+	func sdsim.write{
+		write_block(sdsim.adrs);
+	}
 	func block_data_valid {
 		sdsim.block_data_valid();
 		sdsim.read_block_data = block_data;
+	}
+	func write_block_interrupt_req{
+		core.simulator_write_block_interrupt_req();
 	}
 #ifdef DEBUG
 	func core.sim_done {

@@ -186,6 +186,9 @@ module rv32x_integration {
 	func rv32x_mmio_dev.uart_receiver_interrupt_req {
 		rv32x_plic.irq_10();
 	}
+	func simulator_write_block_interrupt_req{
+		rv32x_plic.irq_1();
+	}
 	func rv32x_sdspi.interrupt_req{
 		rv32x_plic.irq_1();
 	}
