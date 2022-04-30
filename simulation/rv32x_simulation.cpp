@@ -189,6 +189,7 @@ private:
 	int callDepth = 0;
 	int sv32_enabled = 0;
 	unsigned int callTracker[100] = {0};
+	int print_blkrw_flag = 0;
 
 public:
 	processor_t(const char *name)
@@ -401,13 +402,39 @@ public:
 
 						fseek(block_device, core->block_adrs * 512, SEEK_SET);
 						len = fread(buf, sizeof(uint8_t), 512, block_device);
+						if (print_blkrw_flag)
+						{
+							fprintf(logfile, "\nread block %d(byte offset:0x%x), inst=%d\n", core->block_adrs, core->block_adrs * 512, inst_counter);
+							for (int i = 0; i < 512; i += 4)
+							{
+								if (i % 16 == 0)
+								{
+									fprintf(logfile, "\n");
+								}
+								fprintf(logfile, "%02x%02x%02x%02x ", *(buf + i), *(buf + i + 1), *(buf + i + 2), *(buf + i + 3));
+							}
+							fprintf(logfile, "\n");
+						}
 						cpy(core->block_data, buf, 512);
 						core->block_data_valid = 1;
 					}
 					else if (core->write_block)
 					{
 						fseek(block_device, core->block_adrs * 512, SEEK_SET);
-						cpy(buf, core->block_data, 512);
+						cpy(buf, core->write_block_data, 512);
+						if (print_blkrw_flag)
+						{
+							fprintf(logfile, "\nwrite block %d(byte offset:0x%x), inst=%d\n", core->block_adrs, core->block_adrs * 512, inst_counter);
+							for (int i = 0; i < 512; i += 4)
+							{
+								if (i % 16 == 0)
+								{
+									fprintf(logfile, "\n");
+								}
+								fprintf(logfile, "%02x%02x%02x%02x ", *(buf + i), *(buf + i + 1), *(buf + i + 2), *(buf + i + 3));
+							}
+							fprintf(logfile, "\n");
+						}
 						fwrite(buf, sizeof(uint8_t), 512, block_device);
 						core->write_block_interrupt_req = 1;
 					}
@@ -584,7 +611,7 @@ public:
 			{
 				callDepth--;
 			}
-			if ((callTracker[callDepth] != core->debug_x1) && (callTracker[callDepth] != 0))
+			if (print_entry_flag && (callTracker[callDepth] != core->debug_x1) && (callTracker[callDepth] != 0))
 			{
 				fprintf(logfile, "\nINFO:Call depth has been reset.(previous \"Depth=%d\" function return address(0x%x) discarded )\n", callDepth, callTracker[callDepth]);
 				callDepth = 0;
@@ -924,9 +951,10 @@ public:
 			{"dump-vcd", optional_argument, NULL, 'D'},
 			{"print-entry", no_argument, NULL, 'E'},
 			{"debug-linux", no_argument, NULL, 'l'},
+			{"print-blkrw", no_argument, NULL, 'b'},
 			{0, 0, 0, 0},
 		};
-		while ((opt = getopt_long(argc, argv, "ewdmianD::El", longopts, &longindex)) != -1)
+		while ((opt = getopt_long(argc, argv, "ewdmianD::Elb", longopts, &longindex)) != -1)
 		{
 			switch (opt)
 			{
@@ -965,6 +993,9 @@ public:
 			case 'l':
 				import_linux_symbol_flag = 1;
 				break;
+			case 'b':
+				print_blkrw_flag = 1;
+				break;
 			default:
 				exit(1);
 				break;
@@ -989,6 +1020,7 @@ public:
 			memory_output_flag = 1;
 			trace_output_flag = 1;
 			print_entry_flag = 1;
+			print_blkrw_flag = 1;
 		}
 		free(Darg);
 	};
