@@ -12,6 +12,7 @@
 #include "elfloader/elfloader.h"
 #include <signal.h>
 #include <string.h>
+#include <stdlib.h>
 #include <byteswap.h>
 
 #ifdef __cplusplus
@@ -159,7 +160,7 @@ private:
 	uint8_t buf[512];
 	FILE *block_device;
 	int block_device_avail = 0;
-	int inst_counter = 1; //最初0x00000000なので、条件の都合上1
+	unsigned int inst_counter = 1; //最初0x00000000なので、条件の都合上1
 	int dump_vcd_flag = 0;
 	long start_dump_inst = 0;
 	long end_dump_inst = 0;
@@ -174,22 +175,18 @@ private:
 		char *name = NULL;
 		int dumpflag = 0;
 	} * procedure, *globalObject;
-	struct symbolCache
-	{
-		unsigned int addr = 0;
-		int index = 0;
-	} pCache[256 + 1], gOcache[256 + 1];
 	char *target_symbol = NULL;
 	int import_linux_symbol_flag = 0;
 	const char *vmlinux_location = "/root/linux/vmlinux";
 	int skip_procedure_search = 0;
 	int skip_object_search = 0;
-	unsigned char pcacheptr = 0;
-	unsigned char gOcacheptr = 0;
 	int callDepth = 0;
 	int sv32_enabled = 0;
 	unsigned int callTracker[100] = {0};
 	int print_blkrw_flag = 0;
+	unsigned int nProc = 0;
+	unsigned int nObject = 0;
+	int dump_memory_flag = 0;
 
 public:
 	processor_t(const char *name)
@@ -451,29 +448,11 @@ public:
 			{
 				ssize_t nr;
 				int ch = -1;
-				// static int temp = 0;
-				/*
-				if(core->uart_done) {
-					fprintf(stdout, "%c", core->uart_data);
-					fflush(stdout);
-				}
-				*/
 				core->uart_wdata = 0;
 				ch = getchar();
 				if (ch != EOF)
 				{
-					/*
-					 if (temp)
-					 {
-						 dump_vcd_flag = 1; // uart debug
-					 }
-					if (ch == '\n')
-					{
-						temp++;
-					}
-					 */
 					core->uart_wdata = ch;
-					// printf("ch:%x,wdata:%x\n", ch, core->uart_wdata);
 					core->uart_write = 1;
 				}
 				else
@@ -538,25 +517,6 @@ public:
 		{
 			inst_counter++;
 		}
-		if ((retire_inst & OPCODE) == JAL || (retire_inst & OPCODE) == JALR || // (retire_inst & OPCODE) == BRANCH ||
-			retire_inst == MRET || retire_inst == SRET || retire_inst == 0)
-		{
-			skip_procedure_search = 0;
-		}
-		else
-		{
-			skip_procedure_search = 1;
-		}
-		/*
-		if ((retire_inst & OPCODE) == AUIPC)
-		{
-			skip_object_search = 0;
-		}
-		else
-		{
-			skip_object_search = 1;
-		}
-		*/
 		retire_pc = core->debug_retire_pc;
 		retire_inst = core->debug_retire_inst;
 		if ((got_exception == 0) && exception_output_flag)
@@ -592,66 +552,66 @@ public:
 		}
 
 		memset(core->funcname, 0, sizeof(__uint128_t));
-
-		if (import_linux_symbol_flag && (retire_pc != KERNEL_START_ADDR))
-		{
-			skip_procedure_search = 1;
-			skip_object_search = 1;
-		}
-		else
-		{
-			import_linux_symbol_flag = 0; // enable symbol search after payload transition to linux kernel
-			skip_object_search = 0;
-			// skip_procedure_search = 0;
-		}
-		if (!import_linux_symbol_flag && retire_inst == RET)
+		if (print_entry_flag && retire_inst == RET)
 		{
 			// printf("ret:%x\n", retire_inst);
 			if (callDepth != 0)
 			{
 				callDepth--;
 			}
-			if (print_entry_flag && (callTracker[callDepth] != core->debug_x1) && (callTracker[callDepth] != 0))
+			if ((callTracker[callDepth] != core->debug_x1) && (callTracker[callDepth] != 0))
 			{
 				fprintf(logfile, "\nINFO:Call depth has been reset.(previous \"Depth=%d\" function return address(0x%x) discarded )\n", callDepth, callTracker[callDepth]);
 				callDepth = 0;
 				callTracker[callDepth] = 0;
-			};
-		}
-		if (!skip_procedure_search)
-		{
-			int idx = -1;
-			if ((idx = searchCache(retire_pc, pCache)) != -1 || (idx = searchSymbol(retire_pc, procedure, pCache, &pcacheptr)) != -1)
-			{
-				dumpProcedure(idx);
-				if (procedure[idx].dumpflag)
-				{
-					printf("\n\n%s reaches \"%s(%x)\" entry:start dumping %s\n\n", procname, target_symbol, retire_pc, vcdfilename);
-					dump_vcd_flag = 1;
-					procedure[idx].dumpflag = 0;
-				}
-				if (print_entry_flag)
-				{
-					fprintf(logfile, "\nDepth=%d, entry: %s(0x%x)", callDepth, procedure[idx].name, retire_pc);
-					fprintf(logfile, "\tinst_counter = %d\n", inst_counter);
-				}
-				if (!strcmp(procedure[idx].name, "oops_exit"))
-				{
-					printf("\n\nStop logging in %s\n\n", procedure[idx].name);
-					exception_output_flag = 0;
-					writeback_output_flag = 0;
-					disasm_output_flag = 0;
-					memory_output_flag = 0;
-					trace_output_flag = 0;
-					print_entry_flag = 0;
-					dump_vcd_flag = 0;
-				}
 			}
 		}
-		if (!import_linux_symbol_flag &&
-			((retire_inst != RET) && ((retire_inst & DEST) == RA) &&
-			 (((retire_inst & OPCODE) == JAL) ||
-			  ((retire_inst & OPCODE) == JALR))))
+		int idx = -1;
+		if ((idx = searchSymbol(retire_pc, procedure)) != -1)
+		{
+			dumpProcedure(idx);
+			/*
+			if ((!strcmp(procedure[idx].name, "push_off")) ||
+				(!strcmp(procedure[idx].name, "pop_off")) ||
+				(!strcmp(procedure[idx].name, "mycpu")) ||
+				(!strcmp(procedure[idx].name, "acquire")) ||
+				(!strcmp(procedure[idx].name, "holding")) ||
+				(!strcmp(procedure[idx].name, "myproc")) ||
+				(!strcmp(procedure[idx].name, "holdingsleep")) ||
+				(!strcmp(procedure[idx].name, "releasesleep")) ||
+				(!strcmp(procedure[idx].name, "cpuid")) ||
+				(!strcmp(procedure[idx].name, "release"))) // xv6デバッグ用。spinlockの関数で呼ばれまくって可読性を損なうのでログからは除外、波形ダンプには入れる
+			{
+				goto skip;
+			}
+			*/
+			if (procedure[idx].dumpflag)
+			{
+				printf("\n\n%s reaches \"%s(%x)\" entry:start dumping %s\n\n", procname, target_symbol, retire_pc, vcdfilename);
+				dump_vcd_flag = 1;
+				procedure[idx].dumpflag = 0;
+			}
+			if (print_entry_flag)
+			{
+				fprintf(logfile, "\nDepth=%d, entry: %s(0x%x)", callDepth, procedure[idx].name, retire_pc);
+				fprintf(logfile, "\tinst_counter = %d\n", inst_counter);
+			}
+			// skip:
+			if (!strcmp(procedure[idx].name, "oops_exit"))
+			{
+				printf("\n\nStop logging in %s\n\n", procedure[idx].name);
+				exception_output_flag = 0;
+				writeback_output_flag = 0;
+				disasm_output_flag = 0;
+				memory_output_flag = 0;
+				trace_output_flag = 0;
+				print_entry_flag = 0;
+				dump_vcd_flag = 0;
+			}
+		}
+		if (print_entry_flag && ((retire_inst != RET) && ((retire_inst & DEST) == RA) &&
+								 (((retire_inst & OPCODE) == JAL) ||
+								  ((retire_inst & OPCODE) == JALR))))
 		{
 			// callDepth++;
 			callTracker[callDepth++] = retire_pc + 4;
@@ -686,6 +646,14 @@ public:
 			fprintf(logfile, "\n");
 		}
 		// dumpRegs();
+		/*
+		if (inst_counter == 3377570)
+		{
+			printf("Hi\n");
+			dumpMemory();
+			dump_memory_flag = 0;
+		}
+		*/
 
 		return ret;
 	};
@@ -891,31 +859,20 @@ public:
 		*((uint64_t *)((core->funcname) + 2)) = funcName7to0;
 		memset(tempstr, 0, 16);
 	};
-	int searchCache(uint32_t data, struct symbolCache *cache)
+	static int compareAddr(const struct symbol *a, const struct symbol *b)
 	{
-		for (int i = 0; cache[i].addr != 0; i++)
-		{
-			if (data == cache[i].addr)
-			{
-				return cache[i].index;
-			}
-		}
-		return -1;
+		return a->addr - b->addr;
 	};
-	void setCache(struct symbolCache *cache, struct symbol *target, unsigned char ptr, unsigned char idx)
+	int searchSymbol(const uint32_t data, const struct symbol *target)
 	{
-		cache[ptr].addr = target[idx].addr;
-		cache[ptr].index = idx;
-	};
-	int searchSymbol(uint32_t data, struct symbol *target, struct symbolCache *cache, unsigned char *cacheptr)
-	{
-		for (int i = 0; target[i].addr != 0; i++)
+		struct symbol key;
+		struct symbol *res = NULL;
+
+		key.addr = data;
+		res = (struct symbol *)bsearch(&key, target, (target == procedure) ? nProc : nObject, sizeof(struct symbol), (comparison_fn_t)compareAddr);
+		if (res != NULL)
 		{
-			if (data == target[i].addr)
-			{
-				setCache(cache, target, *cacheptr++, i);
-				return i;
-			}
+			return res - target;
 		}
 		return -1;
 	};
@@ -952,9 +909,10 @@ public:
 			{"print-entry", no_argument, NULL, 'E'},
 			{"debug-linux", no_argument, NULL, 'l'},
 			{"print-blkrw", no_argument, NULL, 'b'},
+			{"dump-memory", no_argument, NULL, 'M'},
 			{0, 0, 0, 0},
 		};
-		while ((opt = getopt_long(argc, argv, "ewdmianD::Elb", longopts, &longindex)) != -1)
+		while ((opt = getopt_long(argc, argv, "ewdmianD::ElbM", longopts, &longindex)) != -1)
 		{
 			switch (opt)
 			{
@@ -996,6 +954,9 @@ public:
 			case 'b':
 				print_blkrw_flag = 1;
 				break;
+			case 'M':
+				dump_memory_flag = 1;
+				break;
 			default:
 				exit(1);
 				break;
@@ -1011,7 +972,6 @@ public:
 		{
 			dumpSetting(Darg);
 		}
-
 		if (print_all_flag)
 		{
 			exception_output_flag = 1;
@@ -1034,7 +994,7 @@ public:
 			comma = strstr(Darg, ",");
 			if (comma == NULL || comma != Darg + 1 || *(Darg + 2) == '\0')
 			{
-				printf("illegal dump-vcd arg\nexample:\n --dump-vcd=s,<symbol name>\n --dump-vcd=i,<start(option)>-<end(option)>\n --dump-vcd\n");
+				printf("illegal dump-vcd arg\nexample:\n --dump-vcd=p,<procedure name(FUNC or NOTYPE symbol)>\n --dump-vcd=i,<start(option)>-<end(option)>\n --dump-vcd\n");
 				exit(1);
 			}
 			else if (*Darg == 'i')
@@ -1061,7 +1021,7 @@ public:
 					vcdfilename = strcat(filename, fileExtension);
 				}
 			}
-			else if (*Darg == 's') // start dumping vcd if pc equal to specified symbol address
+			else if (*Darg == 'p') // start dumping vcd if pc equal to specified symbol address
 			{
 				int i = 0;
 				target_symbol = (char *)malloc(sizeof(char) * strlen(Darg + 2) + 1);
@@ -1076,7 +1036,7 @@ public:
 				}
 				if (procedure[i].addr == 0)
 				{
-					printf("--dump-vcd: target symbol %s does not exist\n", target_symbol);
+					printf("--dump-vcd: target procedure %s does not exist\n", target_symbol);
 					exit(1);
 				}
 				filename = (char *)malloc(sizeof(char) * strlen(target_symbol) + strlen(fileExtension) + 1);
@@ -1086,7 +1046,7 @@ public:
 			}
 			else
 			{
-				printf("illegal dump-vcd arg\nexample:\n --dump-vcd=s,<symbol name>\n --dump-vcd=i,<start(option)>-<end(option)>\n --dump-vcd\n");
+				printf("illegal dump-vcd arg\nexample:\n --dump-vcd=p,<procedure name(FUNC or NOTYPE symbol)>\n --dump-vcd=i,<start(option)>-<end(option)>\n --dump-vcd\n");
 				exit(1);
 			}
 		}
@@ -1100,6 +1060,7 @@ public:
 		tfp->open(vcdfilename);
 		// dump_vcd_flag = 0; // uart debug
 	}
+
 	void fetchSymboltable(void)
 	{
 		long storage_needed;
@@ -1182,6 +1143,17 @@ public:
 			}
 			// printf("%d %s value=0x%lx flags=%x vma=%lx lma=%lx section_flags=%x\n", i, symbol_table[i]->name, symbol_table[i]->value, symbol_table[i]->flags, symbol_table[i]->section->vma, symbol_table[i]->section->lma, symbol_table[i]->section->flags);
 		}
+		nProc = pCounter;
+		nObject = gOCounter;
+		qsort(procedure, nProc, sizeof(struct symbol), (comparison_fn_t)compareAddr);
+		qsort(globalObject, nObject, sizeof(struct symbol), (comparison_fn_t)compareAddr);
+		/*
+		for (int i = 0; i < nProc; i++)
+		{
+			printf("%d %x %s\n", i, procedure[i].addr, procedure[i].name);
+		}
+		printf("n %d/n", nProc);
+		*/
 		// exit(1);
 	};
 	void openDisasm(void)
@@ -1203,35 +1175,32 @@ public:
 		disasm(pc, &disasm_info);
 		// print_insn_riscv(pc, &disasm_info);
 		int idx = -1;
-		if (!skip_object_search)
+		int rs1 = (inst & RS1) >> RS1_OFFSET;
+		int rs2 = (inst & RS2) >> RS2_OFFSET;
+		int dest = (inst & DEST) >> DEST_OFFSET;
+		int offset;
+		if ((inst & OPCODE) == LOAD)
 		{
-			int rs1 = (inst & RS1) >> RS1_OFFSET;
-			int rs2 = (inst & RS2) >> RS2_OFFSET;
-			int dest = (inst & DEST) >> DEST_OFFSET;
-			int offset;
-			if ((inst & OPCODE) == LOAD)
+			offset = LOAD_OFFSET(inst);
+			if ((idx = searchSymbol(regs[rs1] + offset, globalObject)) != -1)
 			{
-				offset = LOAD_OFFSET(inst);
-				if ((idx = searchCache(regs[rs1] + offset, gOcache)) != -1 || (idx = searchSymbol(regs[rs1] + offset, globalObject, gOcache, &gOcacheptr)) != -1)
-				{
-					fprintf(logfile, "\t< %s=*(%s) >", reg_strs[dest], globalObject[idx].name);
-				}
-				else if ((idx = searchCache(regs[rs1], gOcache)) != -1 || (idx = searchSymbol(regs[rs1], globalObject, gOcache, &gOcacheptr)) != -1)
-				{
-					fprintf(logfile, "\t< %s=*(%s %c %d) >", reg_strs[dest], globalObject[idx].name, (offset < 0) ? '-' : '+', (offset < 0) ? -offset : offset);
-				}
+				fprintf(logfile, "\t< %s=*(%s) >", reg_strs[dest], globalObject[idx].name);
 			}
-			else if ((inst & OPCODE) == STORE)
+			else if ((idx = searchSymbol(regs[rs1], globalObject)) != -1)
 			{
-				offset = STORE_OFFSET(inst);
-				if ((idx = searchCache(regs[rs1] + offset, gOcache)) != -1 || (idx = searchSymbol(regs[rs1] + offset, globalObject, gOcache, &gOcacheptr)) != -1)
-				{
-					fprintf(logfile, "\t< *(%s)=%s >", globalObject[idx].name, reg_strs[rs2]);
-				}
-				else if ((idx = searchCache(regs[rs1], gOcache)) != -1 || (idx = searchSymbol(regs[rs1], globalObject, gOcache, &gOcacheptr)) != -1)
-				{
-					fprintf(logfile, "\t< *(%s %c %d)=%s >", globalObject[idx].name, (offset < 0) ? '-' : '+', (offset < 0) ? -offset : offset, reg_strs[rs2]);
-				}
+				fprintf(logfile, "\t< %s=*(%s %c %d) >", reg_strs[dest], globalObject[idx].name, (offset < 0) ? '-' : '+', (offset < 0) ? -offset : offset);
+			}
+		}
+		else if ((inst & OPCODE) == STORE)
+		{
+			offset = STORE_OFFSET(inst);
+			if ((idx = searchSymbol(regs[rs1] + offset, globalObject)) != -1)
+			{
+				fprintf(logfile, "\t< *(%s)=%s >", globalObject[idx].name, reg_strs[rs2]);
+			}
+			else if ((idx = searchSymbol(regs[rs1], globalObject)) != -1)
+			{
+				fprintf(logfile, "\t< *(%s %c %d)=%s >", globalObject[idx].name, (offset < 0) ? '-' : '+', (offset < 0) ? -offset : offset, reg_strs[rs2]);
 			}
 		}
 	};
@@ -1273,13 +1242,10 @@ public:
 	void printRegInfo(uint8_t rd, uint32_t data)
 	{
 		fprintf(logfile, "%4s <- %08x", reg_strs[rd], data);
-		if (!skip_object_search)
+		int idx = -1;
+		if ((idx = searchSymbol(core->debug_wb_data, globalObject)) != -1)
 		{
-			int idx = -1;
-			if ((idx = searchCache(core->debug_wb_data, gOcache)) != -1 || (idx = searchSymbol(core->debug_wb_data, globalObject, gOcache, &gOcacheptr)) != -1)
-			{
-				fprintf(logfile, "(%s)", globalObject[idx].name);
-			}
+			fprintf(logfile, "(%s)", globalObject[idx].name);
 		}
 	};
 	void printException(uint32_t epc, uint32_t cause, uint32_t mtval)
@@ -1363,6 +1329,14 @@ public:
 	{
 		fprintf(logfile, "Memory[%08x] <- %08x", adrs, data);
 	};
+	void dumpMemory(void)
+	{
+		if (dump_memory_flag)
+		{
+			FILE *fp = fopen("RAM0_80000000-84008000.dat", "wb");
+			fwrite(memory->next->mem, sizeof(uint8_t), memory->next->length, fp);
+		}
+	}
 	void flushPipeline(void){
 
 	};
@@ -1371,7 +1345,7 @@ public:
 typedef struct
 {
 	struct termios *tmio;
-	processor_t *procs;
+	processor_t **procs;
 } env_t;
 
 void gotSigInt(int i)
@@ -1392,7 +1366,6 @@ int main(int argc, char **argv)
 	struct termios stmio;
 	env_t env;
 
-	env.procs = proc0;
 	env.tmio = &stmio;
 	on_exit(sim_exit, &env);
 
@@ -1415,6 +1388,8 @@ int main(int argc, char **argv)
 	proc0->openDisasm();
 #endif
 	proc0->resetCore();
+	env.procs = &proc0;
+	// printf("%p %p\n", *(env.procs), proc0);
 	while (1)
 	{
 		ret = proc0->step();
@@ -1432,6 +1407,10 @@ void sim_exit(int status, void *p)
 {
 	env_t *env;
 	env = (env_t *)p;
+	if ((*(env->procs)) != NULL)
+	{
+		(*(env->procs))->dumpMemory();
+		delete *(env->procs);
+	}
 	// tcsetattr(STDIN_FILENO, TCSANOW, env->tmio);
-	delete env->procs;
 }
