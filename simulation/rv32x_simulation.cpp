@@ -177,7 +177,7 @@ private:
 	} * procedure, *globalObject;
 	char *target_symbol = NULL;
 	int import_linux_symbol_flag = 0;
-	const char *vmlinux_location = "/root/linux/vmlinux";
+	const char *vmlinux_location = "/root/linux/vmlinux"; //"/root/busybox/busybox_unstripped"; //
 	int skip_procedure_search = 0;
 	int skip_object_search = 0;
 	int callDepth = 0;
@@ -554,7 +554,6 @@ public:
 		memset(core->funcname, 0, sizeof(__uint128_t));
 		if (print_entry_flag && retire_inst == RET)
 		{
-			// printf("ret:%x\n", retire_inst);
 			if (callDepth != 0)
 			{
 				callDepth--;
@@ -570,21 +569,6 @@ public:
 		if ((idx = searchSymbol(retire_pc, procedure)) != -1)
 		{
 			dumpProcedure(idx);
-			/*
-			if ((!strcmp(procedure[idx].name, "push_off")) ||
-				(!strcmp(procedure[idx].name, "pop_off")) ||
-				(!strcmp(procedure[idx].name, "mycpu")) ||
-				(!strcmp(procedure[idx].name, "acquire")) ||
-				(!strcmp(procedure[idx].name, "holding")) ||
-				(!strcmp(procedure[idx].name, "myproc")) ||
-				(!strcmp(procedure[idx].name, "holdingsleep")) ||
-				(!strcmp(procedure[idx].name, "releasesleep")) ||
-				(!strcmp(procedure[idx].name, "cpuid")) ||
-				(!strcmp(procedure[idx].name, "release"))) // xv6デバッグ用。spinlockの関数で呼ばれまくって可読性を損なうのでログからは除外、波形ダンプには入れる
-			{
-				goto skip;
-			}
-			*/
 			if (procedure[idx].dumpflag)
 			{
 				printf("\n\n%s reaches \"%s(%x)\" entry:start dumping %s\n\n", procname, target_symbol, retire_pc, vcdfilename);
@@ -595,18 +579,6 @@ public:
 			{
 				fprintf(logfile, "\nDepth=%d, entry: %s(0x%x)", callDepth, procedure[idx].name, retire_pc);
 				fprintf(logfile, "\tinst_counter = %d\n", inst_counter);
-			}
-			// skip:
-			if (!strcmp(procedure[idx].name, "oops_exit"))
-			{
-				printf("\n\nStop logging in %s\n\n", procedure[idx].name);
-				exception_output_flag = 0;
-				writeback_output_flag = 0;
-				disasm_output_flag = 0;
-				memory_output_flag = 0;
-				trace_output_flag = 0;
-				print_entry_flag = 0;
-				dump_vcd_flag = 0;
 			}
 		}
 		if (print_entry_flag && ((retire_inst != RET) && ((retire_inst & DEST) == RA) &&
@@ -645,15 +617,6 @@ public:
 		{
 			fprintf(logfile, "\n");
 		}
-		// dumpRegs();
-		/*
-		if (inst_counter == 3377570)
-		{
-			printf("Hi\n");
-			dumpMemory();
-			dump_memory_flag = 0;
-		}
-		*/
 
 		return ret;
 	};
@@ -760,47 +723,35 @@ public:
 					if (core->read_block)
 					{
 						size_t len;
-
 						fseek(block_device, core->block_adrs * 512, SEEK_SET);
 						len = fread(buf, sizeof(uint8_t), 512, block_device);
 						cpy(core->block_data, buf, 512);
 						core->block_data_valid = 1;
 					}
+					else if (core->write_block)
+					{
+						fseek(block_device, core->block_adrs * 512, SEEK_SET);
+						cpy(buf, core->write_block_data, 512);
+						fwrite(buf, sizeof(uint8_t), 512, block_device);
+						core->write_block_interrupt_req = 1;
+					}
 					else
 					{
+						core->write_block_interrupt_req = 0;
 						core->block_data_valid = 0;
 					}
 				}
 			}
 			eval();
-			dump();
 			if (rising_edge)
 			{
 				ssize_t nr;
 				int ch = -1;
-				// static int temp = 0;
-				/*
-				if(core->uart_done) {
-					fprintf(stdout, "%c", core->uart_data);
-					fflush(stdout);
-				}
-				*/
 				core->uart_wdata = 0;
 				ch = getchar();
 				if (ch != EOF)
 				{
-					/*
-					 if (temp)
-					 {
-						 dump_vcd_flag = 1; // uart debug
-					 }
-					if (ch == '\n')
-					{
-						temp++;
-					}
-					 */
 					core->uart_wdata = ch;
-					// printf("ch:%x,wdata:%x\n", ch, core->uart_wdata);
 					core->uart_write = 1;
 				}
 				else
@@ -1069,7 +1020,7 @@ public:
 		int start_addr;
 		if (import_linux_symbol_flag)
 		{
-			start_addr = KERNEL_START_ADDR;
+			start_addr = KERNEL_START_ADDR; // 0; //
 		}
 		else
 		{
@@ -1125,7 +1076,7 @@ public:
 				procedure[pCounter].vma = symbol_table[i]->section->vma + symbol_table[i]->value;
 				procedure[pCounter].addr = procedure[pCounter].pma;
 				strcpy(procedure[pCounter].name, symbol_table[i]->name);
-				// printf("%d %x %s 0x%lx, flags=%x lma=%lx\n", pCounter, procedure[pCounter].addr, procedure[pCounter].name, symbol_table[i]->value, symbol_table[i]->flags, symbol_table[i]->section->lma);
+				// printf("%d %08x name=%s value=0x%lx, flags=%x vma=%08lx lma=%08lx\n", pCounter, procedure[pCounter].addr, procedure[pCounter].name, symbol_table[i]->value, symbol_table[i]->flags, symbol_table[i]->section->lma, symbol_table[i]->section->lma);
 				pCounter++;
 			}
 			if ((symbol_table[i]->flags & BSF_OBJECT) && ((symbol_table[i]->flags & BSF_GLOBAL) ||
@@ -1147,13 +1098,11 @@ public:
 		nObject = gOCounter;
 		qsort(procedure, nProc, sizeof(struct symbol), (comparison_fn_t)compareAddr);
 		qsort(globalObject, nObject, sizeof(struct symbol), (comparison_fn_t)compareAddr);
-		/*
 		for (int i = 0; i < nProc; i++)
 		{
-			printf("%d %x %s\n", i, procedure[i].addr, procedure[i].name);
+			// printf("%d pma:%x vma:%x %s\n", i, procedure[i].pma, procedure[i].vma, procedure[i].name);
 		}
-		printf("n %d/n", nProc);
-		*/
+		// printf("n %d/n", nProc);
 		// exit(1);
 	};
 	void openDisasm(void)

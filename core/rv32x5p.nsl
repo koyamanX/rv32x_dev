@@ -588,6 +588,10 @@ module rv32x5p {
 				stall_ifetch();		
 				stall_decode();
 				stall_execute();
+				ifetch.finish();
+				decode.finish();
+				execute.finish();
+				rv32x_btb.flush();
 				fence();
 			}
 			lr_w: {
