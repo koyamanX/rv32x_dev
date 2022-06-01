@@ -177,7 +177,7 @@ private:
 	} * procedure, *globalObject;
 	char *target_symbol = NULL;
 	int import_linux_symbol_flag = 0;
-	const char *vmlinux_location = "/root/linux/vmlinux"; //"/root/busybox/busybox_unstripped"; //
+	const char *vmlinux_location = "/root/software/linux/vmlinux"; //"/root/software/busybox/busybox_unstripped"; //
 	int skip_procedure_search = 0;
 	int skip_object_search = 0;
 	int callDepth = 0;
@@ -1319,12 +1319,10 @@ int main(int argc, char **argv)
 	on_exit(sim_exit, &env);
 
 	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
-	/*
 	tcgetattr(STDIN_FILENO, &tmio);
 	stmio = tmio;
 	tmio.c_lflag &= ~(ECHO | ICANON);
 	tcsetattr(STDIN_FILENO, TCSANOW, &tmio);
-	*/
 #ifndef FAST_SIM
 	Verilated::commandArgs(argc, argv);
 	Verilated::traceEverOn(true);
@@ -1361,5 +1359,5 @@ void sim_exit(int status, void *p)
 		(*(env->procs))->dumpMemory();
 		delete *(env->procs);
 	}
-	// tcsetattr(STDIN_FILENO, TCSANOW, env->tmio);
+	tcsetattr(STDIN_FILENO, TCSANOW, env->tmio);
 }
