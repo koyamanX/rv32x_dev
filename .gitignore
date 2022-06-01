@@ -24,3 +24,4 @@ software/bootrom/*.dtb
 .vscode/*.json
 *.out
 run.sh
+.vscode/*
