@@ -101,7 +101,6 @@ module rv32x5p {
 		func_self system_csrrc;
 		func_self system_mret;
 		func_self system_sret;
-		func_self system_uret;
 		func_self system_ecall;
 		func_self system_ebreak;
 		func_self system_wfi;
@@ -175,7 +174,6 @@ module rv32x5p {
 			dereg.ebreak = system_ebreak;
 			dereg.mret = system_mret;
 			dereg.sret = system_sret;
-			dereg.uret = system_uret;
 			dereg.wfi = system_wfi;
 			dereg.wb = rv32x_inst_dec.wb;
 			dereg.illegal_instruction = (rv32x_inst_dec.illegal_instruction || decode_illegal_instruction);
@@ -273,9 +271,6 @@ module rv32x5p {
 	}
 	func rv32x_inst_dec.system_sret {
 		system_sret();
-	}
-	func rv32x_inst_dec.system_uret {
-		system_uret();
 	}
 	func rv32x_inst_dec.system_wfi {
 		system_wfi();
@@ -401,9 +396,16 @@ module rv32x5p {
 				(DEREG.wfi): {wfi();}
 			}
 			alt {
-				(DEREG.mret): {emreg.nextpc=mret();memory(emreg);	/* for logging and update link register */}
-				(DEREG.sret): {emreg.nextpc=sret();memory(emreg);	/* for logging and update link register */}
-				(DEREG.uret): {emreg.nextpc=uret();memory(emreg);	/* for logging and update link register */}
+				(DEREG.mret): {
+					emreg.nextpc=mret();
+					valid_context();
+					memory(emreg);	/* for logging and update link register */
+					}
+				(DEREG.sret): {
+					emreg.nextpc=sret();
+					valid_context();
+					memory(emreg);	/* for logging and update link register */
+					}
 				/* Branch and jump instructions */
 				(DEREG.jump  && !stall_execute): {
 					stall_ifetch();
@@ -414,6 +416,7 @@ module rv32x5p {
 					decode.finish();
 					ifetch(target_address);
 					emreg.nextpc=target_address;
+					valid_context();
 					memory(emreg);	/* for logging and update link register */
 				} 
 				((not_taken && DEREG.predict_as_taken) && !stall_execute): {
@@ -426,6 +429,7 @@ module rv32x5p {
 					decode.finish();
 					ifetch(DEREG.pc4);
 					emreg.nextpc=DEREG.pc4;
+					valid_context();
 					memory(emreg);	/* for logging */
 				}
 				((taken && DEREG.predict_as_not_taken) && !stall_execute): {
@@ -438,20 +442,24 @@ module rv32x5p {
 					decode.finish();
 					ifetch(target_address);
 					emreg.nextpc=target_address;
+					valid_context();
 					memory(emreg);	/* for logging */
 				}
 				(((taken && DEREG.predict_as_taken) || (not_taken && DEREG.predict_as_not_taken)) && !stall_execute): {
 					correct_prediction();
 					emreg.nextpc= if(taken) target_address else DEREG.pc4;
+					valid_context();
 					memory(emreg);	/* for logging */
 				}
 				/* ALU and M-Ext instructions */
 				((DEREG.alu_sel == ALU) && !stall_execute): {
 					emreg.nextpc=DEREG.pc4;
+					valid_context();
 					memory(emreg);	/* for logging */
 				}
 				((DEREG.alu_sel == MUNIT) && rv32x_munit32.done && !stall_execute): {
 					emreg.nextpc=DEREG.pc4;
+					valid_context();
 					memory(emreg);	/* for logging */
 				}
 			}
