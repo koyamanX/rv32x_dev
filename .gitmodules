@@ -7,12 +7,12 @@
 [submodule "software/opensbi"]
 	path = software/opensbi
 	url = git@github.com:twinkletia/opensbi
-[submodule "integration/sdspi"]
-	path = integration/sdspi
-	url = git@github.com:twinkletia/sdspi
 [submodule "software/linux"]
 	path = software/linux
 	url = git@github.com:twinkletia/linux
 [submodule "software/busybox"]
 	path = software/busybox
 	url = git@github.com:twinkletia/busybox
+[submodule "integration/mmcspi"]
+	path = integration/mmcspi
+	url = https://github.com/twinkletia/mmcspi
