@@ -14,6 +14,8 @@ simulation/out/
 simulation/*.log
 software/tests
 software/bootrom/*.dtb
+software/*/gtk.sh
+software/*/rv32x.gtkw
 *.a
 *.o
 *.elf
