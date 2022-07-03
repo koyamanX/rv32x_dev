@@ -75,11 +75,13 @@ module cache {
 			pma_check(addr);
 
 			any {
+				/*
 				(pma_cacheable && !pma_empty): {
 					compare_tag(cache_data_way0[i], cache_tag_way0[i], cache_valid_way0[i], cache_dirty_way0[i],
 								cache_data_way1[i], cache_tag_way1[i], cache_valid_way1[i], cache_dirty_way1[i],
 								cache_lru[i], addr, byteen, wdata, write);
 				}
+				*/
 				(!pma_cacheable && !pma_empty): {
 					noncacheable_memop(addr, byteen, wdata, write);
 				}

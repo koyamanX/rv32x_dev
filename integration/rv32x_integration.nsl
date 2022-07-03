@@ -6,7 +6,7 @@
 #include "clint.h"
 #include "mmio_dev.h"
 #include "plic.h"
-#include "sdspi.h"
+#include "mmcspi.h"
 
 module rv32x_integration {
 	rv32x_core core;
@@ -14,13 +14,13 @@ module rv32x_integration {
 	clint rv32x_clint;
 	mmio_dev rv32x_mmio_dev;
 	plic rv32x_plic;
-	sdspi rv32x_sdspi;
+	mmcspi rv32x_mmcspi;
 
 	func reset {
 		core.reset();
 		rom.reset();
 		rv32x_mmio_dev.reset();
-		rv32x_sdspi.reset();
+		rv32x_mmcspi.reset();
 		rv32x_plic.reset();
 	}
 	/* Interconnect */
@@ -34,7 +34,7 @@ module rv32x_integration {
 		any {
 			CLINT_BASE <= core.daddr && core.daddr < CLINT_BASE + CLINT_LENGTH:	rv32x_clint.read((core.daddr - CLINT_BASE)[15:0]);
 			IO0_BASE <= core.daddr && core.daddr < IO0_BASE + IO0_LENGTH: rv32x_mmio_dev.read((core.daddr - IO0_BASE)[15:0]);
-			IO1_BASE <= core.daddr && core.daddr < IO1_BASE + IO1_LENGTH: rv32x_sdspi.read((core.daddr - IO1_BASE)[11:0], core.dbyteen);
+			IO1_BASE <= core.daddr && core.daddr < IO1_BASE + IO1_LENGTH: rv32x_mmcspi.read((core.daddr - IO1_BASE)[11:0], core.dbyteen);
 			PLIC_BASE <= core.daddr && core.daddr < PLIC_BASE + PLIC_LENGTH: rv32x_plic.read((core.daddr));
 			else: dmem_read(core.daddr, core.dbyteen);
 		}
@@ -43,7 +43,7 @@ module rv32x_integration {
 		any {
 			CLINT_BASE <= core.daddr && core.daddr < CLINT_BASE + CLINT_LENGTH:	rv32x_clint.write((core.daddr - CLINT_BASE)[15:0], core.wdata);
 			IO0_BASE <= core.daddr && core.daddr < IO0_BASE + IO0_LENGTH: rv32x_mmio_dev.write((core.daddr - IO0_BASE)[15:0], core.wdata);
-			IO1_BASE <= core.daddr && core.daddr < IO1_BASE + IO1_LENGTH: rv32x_sdspi.write((core.daddr - IO1_BASE)[11:0], core.dbyteen, core.wdata);
+			IO1_BASE <= core.daddr && core.daddr < IO1_BASE + IO1_LENGTH: rv32x_mmcspi.write((core.daddr - IO1_BASE)[11:0], core.dbyteen, core.wdata);
 			PLIC_BASE <= core.daddr && core.daddr < PLIC_BASE + PLIC_LENGTH: rv32x_plic.write(core.daddr, core.wdata);
 			else: dmem_write(core.daddr, core.dbyteen, core.wdata);
 		}
@@ -159,8 +159,8 @@ module rv32x_integration {
 		core.rdata = rv32x_clint.rdata;
 		core.dmem_ready();
 	}
-	func rv32x_sdspi.valid {
-		core.rdata = rv32x_sdspi.rdata;
+	func rv32x_mmcspi.valid {
+		core.rdata = rv32x_mmcspi.rdata;
 		core.dmem_ready();
 	}
 	func rv32x_mmio_dev.ready {
@@ -189,16 +189,16 @@ module rv32x_integration {
 	func simulator_write_block_interrupt_req{
 		rv32x_plic.irq_1();
 	}
-	func rv32x_sdspi.interrupt_req{
+	func rv32x_mmcspi.interrupt_req{
 		rv32x_plic.irq_1();
 	}
 	/* Device connections */
 	TXD = rv32x_mmio_dev.TXD;
 	rv32x_mmio_dev.RXD = RXD;
-	MOSI = rv32x_sdspi.MOSI;
-	SCLK = rv32x_sdspi.SCLK;
-	CS = rv32x_sdspi.CS;
-	rv32x_sdspi.MISO = MISO;
+	MOSI = rv32x_mmcspi.MOSI;
+	SCLK = rv32x_mmcspi.SCLK;
+	CS = rv32x_mmcspi.CS;
+	rv32x_mmcspi.MISO = MISO;
 
 #ifdef DEBUG
 	debug_x0  = core.debug_x0;
