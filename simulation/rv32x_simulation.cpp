@@ -580,6 +580,19 @@ public:
 				fprintf(logfile, "\nDepth=%d, entry: %s(0x%x)", callDepth, procedure[idx].name, retire_pc);
 				fprintf(logfile, "\tinst_counter = %d\n", inst_counter);
 			}
+			/*
+			if (!strcmp(procedure[idx].name, "sbi_console_getchar"))
+			{
+				printf("Hi\n");
+				exception_output_flag = 1;
+				writeback_output_flag = 1;
+				disasm_output_flag = 1;
+				memory_output_flag = 1;
+				trace_output_flag = 1;
+				print_entry_flag = 1;
+				print_blkrw_flag = 1;
+			}
+			*/
 		}
 		if (print_entry_flag && ((retire_inst != RET) && ((retire_inst & DEST) == RA) &&
 								 (((retire_inst & OPCODE) == JAL) ||
@@ -617,7 +630,30 @@ public:
 		{
 			fprintf(logfile, "\n");
 		}
-
+		/*
+		if (inst_counter == 599552985)
+		{
+			printf("Hi\n");
+			exception_output_flag = 1;
+			writeback_output_flag = 1;
+			disasm_output_flag = 1;
+			memory_output_flag = 1;
+			trace_output_flag = 1;
+			print_entry_flag = 1;
+			print_blkrw_flag = 1;
+		}
+		if (inst_counter == 600257412)
+		{
+			printf("Hi\n");
+			exception_output_flag = 0;
+			writeback_output_flag = 0;
+			disasm_output_flag = 0;
+			memory_output_flag = 0;
+			trace_output_flag = 0;
+			print_entry_flag = 0;
+			print_blkrw_flag = 0;
+		}
+		*/
 		return ret;
 	};
 #else
@@ -1271,8 +1307,9 @@ public:
 #undef STR
 
 		fprintf(logfile, "%s\tepc <- %08x, mtval <- %08x\n", str, epc, mtval);
-		// printDisasm(epc, mtval);
-		// fprintf(logfile, ")\n");
+		// printf("\n%s\tepc <- %08x, mtval <- %08x\n", str, epc, mtval);
+		//  printDisasm(epc, mtval);
+		//  fprintf(logfile, ")\n");
 	};
 	void printMemWrite(uint32_t adrs, uint32_t data)
 	{
@@ -1319,10 +1356,12 @@ int main(int argc, char **argv)
 	on_exit(sim_exit, &env);
 
 	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
+	/*
 	tcgetattr(STDIN_FILENO, &tmio);
 	stmio = tmio;
 	tmio.c_lflag &= ~(ECHO | ICANON);
 	tcsetattr(STDIN_FILENO, TCSANOW, &tmio);
+	*/
 #ifndef FAST_SIM
 	Verilated::commandArgs(argc, argv);
 	Verilated::traceEverOn(true);
@@ -1359,5 +1398,5 @@ void sim_exit(int status, void *p)
 		(*(env->procs))->dumpMemory();
 		delete *(env->procs);
 	}
-	tcsetattr(STDIN_FILENO, TCSANOW, env->tmio);
+	// tcsetattr(STDIN_FILENO, TCSANOW, env->tmio);
 }
