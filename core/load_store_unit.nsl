@@ -113,9 +113,12 @@ module load_store_unit {
 					page_table_walk(PTW_STORE, sv32_va);
 				}
 #ifdef DEBUG
+				//for riscv-tests
+				/*
 				if(sv32_pa == 0x80001000) {
 					sim_done(store_data);
 				}
+				*/
 #endif
 			}
 			amo_exe: {

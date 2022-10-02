@@ -252,5 +252,8 @@ module rv32x_integration {
 	func core.debug_raise_exception {
 		debug_raise_exception(core.debug_cause, core.debug_epc, core.debug_mtval, core.debug_inst);
 	}
+	func rv32x_mmcspi.debug_status{
+		debug_general32(rv32x_mmcspi.debugstatus);
+	}
 #endif
 }

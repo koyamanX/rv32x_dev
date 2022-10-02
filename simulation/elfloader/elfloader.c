@@ -166,6 +166,7 @@ int write_byte(memlist_t *m, uint32_t adrs, uint8_t wdata) {
 	memlist_t *t;
 	t = find_mem_entry(m, adrs);
 	if(t == NULL) {
+		//	printf("error:addr = 0x%08x\n",adrs);
 		return -1;
 	}
 	assert(t->mem != NULL);

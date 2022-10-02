@@ -1,6 +1,7 @@
 #ifndef RV32X_INTEGRATION_H
 #define RV32X_INTEGRATION_H
-declare rv32x_integration {
+declare rv32x_integration
+{
 	input inst[32];
 	input rdata[32];
 	output wdata[32];
@@ -11,8 +12,8 @@ declare rv32x_integration {
 	func_in reset();
 	func_in dmem_ready;
 	func_in imem_ready;
-	func_out imem_read(iaddr, ibyteen);  /* When data is ready on 'inst', imem_ready is asserted */
-	func_out dmem_read(daddr, dbyteen);  /* When data is ready on 'rdata', dmem_ready is asserted */
+	func_out imem_read(iaddr, ibyteen);			/* When data is ready on 'inst', imem_ready is asserted */
+	func_out dmem_read(daddr, dbyteen);			/* When data is ready on 'rdata', dmem_ready is asserted */
 	func_out dmem_write(daddr, dbyteen, wdata); /* When data is written, dmem_ready is asserted */
 	func_in simulator_write_block_interrupt_req();
 
@@ -76,6 +77,8 @@ declare rv32x_integration {
 	output debug_mtval[32];
 	output debug_inst[32];
 	func_out debug_raise_exception(debug_cause, debug_epc, debug_mtval, debug_inst);
+	output debug32[32];
+	func_out debug_general32(debug32);
 #endif
 }
 #endif

@@ -99,6 +99,8 @@ declare rv32x_simulation simulation {
 	func_out debug_raise_exception(debug_cause, debug_epc, debug_mtval, debug_inst);
 	input funcname[128];
 	//func_in debug_disp_funcname(funcname);
+	output debug32[32];
+	func_out debug_general32(debug32);
 #endif
 }
 
@@ -212,6 +214,9 @@ module rv32x_simulation {
 	}
 	func core.debug_raise_exception {
 		debug_raise_exception(core.debug_cause, core.debug_epc, core.debug_mtval, core.debug_inst);
+	}
+	func core.debug_general32{
+		debug_general32(core.debug32);
 	}
 #endif
 }

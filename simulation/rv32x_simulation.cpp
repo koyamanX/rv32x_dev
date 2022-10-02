@@ -51,7 +51,9 @@ extern "C"
 
 #define BLOCK_DEVICE_FILENAME "block_device.img"
 #define START_ADDR 0x80000000
+#ifndef KERNEL_START_ADDR
 #define KERNEL_START_ADDR 0x80400000 // opensbi/plarform/rv32xsoc/config.mk: FW_JUMP_ADDR = 0x80400000
+#endif
 
 #define SATP 0x180
 #define SATP_MODE 0x80000000
@@ -177,7 +179,7 @@ private:
 	} * procedure, *globalObject;
 	char *target_symbol = NULL;
 	int import_linux_symbol_flag = 0;
-	const char *vmlinux_location = "/root/software/linux/vmlinux"; //"/root/software/busybox/busybox_unstripped"; //
+	const char *vmlinux_location = "/root/software/xv6-riscv/kernel/kernel"; //	"/root/software/linux/vmlinux"; //"/root/software/busybox/busybox_unstripped"; //
 	int skip_procedure_search = 0;
 	int skip_object_search = 0;
 	int callDepth = 0;
@@ -401,7 +403,7 @@ public:
 						len = fread(buf, sizeof(uint8_t), 512, block_device);
 						if (print_blkrw_flag)
 						{
-							fprintf(logfile, "\nread block %d(byte offset:0x%x), inst=%d\n", core->block_adrs, core->block_adrs * 512, inst_counter);
+							fprintf(logfile, "\nread sector %d(byte offset:0x%x), inst=%d\n", core->block_adrs, core->block_adrs * 512, inst_counter);
 							for (int i = 0; i < 512; i += 4)
 							{
 								if (i % 16 == 0)
@@ -462,6 +464,10 @@ public:
 			}
 			if (rising_edge)
 			{
+				if (core->debug_general32)
+				{
+					printf("status = 0x%08x\n", core->debug32);
+				}
 				if (core->sim_done && !no_sim_exit)
 				{
 					ret = core->tohost;
@@ -537,7 +543,7 @@ public:
 			retire_pc = epc;
 			retire_inst = einst;
 		}
-		if (core->debug_csr_write && core->debug_csr_write_num == SATP)
+		if (core->debug_csr_write && core->debug_csr_write_num == SATP && print_entry_flag)
 		{
 			if (!sv32_enabled && (core->debug_csr_write_data & SATP_MODE))
 			{
@@ -575,24 +581,16 @@ public:
 				dump_vcd_flag = 1;
 				procedure[idx].dumpflag = 0;
 			}
-			if (print_entry_flag)
+			if (print_entry_flag && !((!strcmp(procedure[idx].name, "push_off")) ||
+									  (!strcmp(procedure[idx].name, "pop_off")) ||
+									  (!strcmp(procedure[idx].name, "mycpu")) ||
+									  (!strcmp(procedure[idx].name, "acquire")) ||
+									  (!strcmp(procedure[idx].name, "holding")) ||
+									  (!strcmp(procedure[idx].name, "release"))))
 			{
 				fprintf(logfile, "\nDepth=%d, entry: %s(0x%x)", callDepth, procedure[idx].name, retire_pc);
 				fprintf(logfile, "\tinst_counter = %d\n", inst_counter);
 			}
-			/*
-			if (!strcmp(procedure[idx].name, "sbi_console_getchar"))
-			{
-				printf("Hi\n");
-				exception_output_flag = 1;
-				writeback_output_flag = 1;
-				disasm_output_flag = 1;
-				memory_output_flag = 1;
-				trace_output_flag = 1;
-				print_entry_flag = 1;
-				print_blkrw_flag = 1;
-			}
-			*/
 		}
 		if (print_entry_flag && ((retire_inst != RET) && ((retire_inst & DEST) == RA) &&
 								 (((retire_inst & OPCODE) == JAL) ||
@@ -603,7 +601,7 @@ public:
 		}
 		if (trace_output_flag)
 		{
-			fprintf(logfile, "%s: 0x%016x (0x%08x) ", procname, retire_pc, retire_inst);
+			fprintf(logfile, "inst_counter=%d, %s: 0x%016x (0x%08x) ", inst_counter, procname, retire_pc, retire_inst);
 		}
 		if ((disasm != NULL) && disasm_output_flag)
 		{
@@ -630,30 +628,40 @@ public:
 		{
 			fprintf(logfile, "\n");
 		}
-		/*
-		if (inst_counter == 599552985)
+		if (retire_pc == KERNEL_START_ADDR)
 		{
-			printf("Hi\n");
+			printf("Done bootloading\n");
+			print_entry_flag = 1;
+			// exception_output_flag = 1;
+			// writeback_output_flag = 1;
+			// disasm_output_flag = 1;
+			// trace_output_flag = 1;
+			//   memory_output_flag = 1;
+			//     print_entry_flag = 1;
+			//     print_blkrw_flag = 1;
+			// dump_memory_flag = 1;
+			// exit(0);
+		}
+
+		/*
+		if (inst_counter == 609000)
+		{
+			printf("st!\n");
 			exception_output_flag = 1;
 			writeback_output_flag = 1;
 			disasm_output_flag = 1;
-			memory_output_flag = 1;
 			trace_output_flag = 1;
-			print_entry_flag = 1;
-			print_blkrw_flag = 1;
 		}
-		if (inst_counter == 600257412)
+		if (inst_counter == 609300)
 		{
-			printf("Hi\n");
+			printf("ed!\n");
 			exception_output_flag = 0;
 			writeback_output_flag = 0;
 			disasm_output_flag = 0;
-			memory_output_flag = 0;
 			trace_output_flag = 0;
-			print_entry_flag = 0;
-			print_blkrw_flag = 0;
 		}
 		*/
+
 		return ret;
 	};
 #else
@@ -875,10 +883,14 @@ public:
 			free(logfilename);
 			logfilename = NULL;
 		}
+#ifndef NO_TARGET
 		logfilename = (char *)calloc(sizeof(char), strlen(s) + strlen(".log"));
 		strcat(logfilename, basename(s));
 		strcat(logfilename, ".log");
 		logfile = fopen(logfilename, "w");
+#else
+		logfile = fopen("noTarget.log", "w");
+#endif
 	};
 	void parseLogOpts(int argc, char **argv)
 	{
@@ -1036,6 +1048,7 @@ public:
 				printf("illegal dump-vcd arg\nexample:\n --dump-vcd=p,<procedure name(FUNC or NOTYPE symbol)>\n --dump-vcd=i,<start(option)>-<end(option)>\n --dump-vcd\n");
 				exit(1);
 			}
+			printf("start=%ld,\nend=%ld\n", start_dump_inst, end_dump_inst);
 		}
 		else
 		{
@@ -1050,10 +1063,10 @@ public:
 
 	void fetchSymboltable(void)
 	{
-		long storage_needed;
+		long storage_needed = 0;
 		int pCounter = 0;
 		int gOCounter = 0;
-		int start_addr;
+		unsigned int start_addr;
 		if (import_linux_symbol_flag)
 		{
 			start_addr = KERNEL_START_ADDR; // 0; //
@@ -1062,8 +1075,10 @@ public:
 		{
 			start_addr = 0;
 		}
-
-		storage_needed = bfd_get_symtab_upper_bound(abfd);
+		if (abfd != NULL)
+		{
+			storage_needed = bfd_get_symtab_upper_bound(abfd);
+		}
 
 		if (storage_needed < 0) // failed reading symbol
 		{
@@ -1108,7 +1123,11 @@ public:
 				(!(symbol_table[i]->section->flags & SEC_DATA)))
 			{
 				procedure[pCounter].name = (char *)malloc(sizeof(char) * strlen(symbol_table[i]->name) + 1);
+#ifndef NO_TARGET
 				procedure[pCounter].pma = start_addr + symbol_table[i]->section->lma + symbol_table[i]->value;
+#else
+				procedure[pCounter].pma = start_addr + symbol_table[i]->value;
+#endif
 				procedure[pCounter].vma = symbol_table[i]->section->vma + symbol_table[i]->value;
 				procedure[pCounter].addr = procedure[pCounter].pma;
 				strcpy(procedure[pCounter].name, symbol_table[i]->name);
@@ -1121,7 +1140,11 @@ public:
 														   (strstr(symbol_table[i]->name, ".") == NULL))))
 			{
 				globalObject[gOCounter].name = (char *)malloc(sizeof(char) * strlen(symbol_table[i]->name) + 1);
+#ifndef NO_TARGET
 				globalObject[gOCounter].pma = start_addr + symbol_table[i]->section->lma + symbol_table[i]->value;
+#else
+				globalObject[gOCounter].pma = start_addr + symbol_table[i]->value;
+#endif
 				globalObject[gOCounter].vma = symbol_table[i]->section->vma + symbol_table[i]->value;
 				globalObject[gOCounter].addr = globalObject[gOCounter].pma;
 				strcpy(globalObject[gOCounter].name, symbol_table[i]->name);
@@ -1307,9 +1330,8 @@ public:
 #undef STR
 
 		fprintf(logfile, "%s\tepc <- %08x, mtval <- %08x\n", str, epc, mtval);
-		// printf("\n%s\tepc <- %08x, mtval <- %08x\n", str, epc, mtval);
-		//  printDisasm(epc, mtval);
-		//  fprintf(logfile, ")\n");
+		// printDisasm(epc, mtval);
+		// fprintf(logfile, ")\n");
 	};
 	void printMemWrite(uint32_t adrs, uint32_t data)
 	{
@@ -1322,7 +1344,7 @@ public:
 			FILE *fp = fopen("RAM0_80000000-84008000.dat", "wb");
 			fwrite(memory->next->mem, sizeof(uint8_t), memory->next->length, fp);
 		}
-	}
+	};
 	void flushPipeline(void){
 
 	};
@@ -1353,28 +1375,33 @@ int main(int argc, char **argv)
 	env_t env;
 
 	env.tmio = &stmio;
+	env.procs = &proc0;
 	on_exit(sim_exit, &env);
 
 	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
-	/*
 	tcgetattr(STDIN_FILENO, &tmio);
 	stmio = tmio;
 	tmio.c_lflag &= ~(ECHO | ICANON);
 	tcsetattr(STDIN_FILENO, TCSANOW, &tmio);
-	*/
 #ifndef FAST_SIM
 	Verilated::commandArgs(argc, argv);
 	Verilated::traceEverOn(true);
 #endif
 	proc0 = new processor_t("core\t0");
+#ifndef NO_TARGET
 	proc0->load(argv[1]); // elf
+#endif
 #ifndef FAST_SIM
-	proc0->parseLogOpts(argc - 1, argv + 1);
 	proc0->openLogFile(argv[1]);
+#ifndef NO_TARGET
+	proc0->parseLogOpts(argc - 1, argv + 1);
+#else
+	proc0->parseLogOpts(argc, argv);
+#endif
 	proc0->openDisasm();
+
 #endif
 	proc0->resetCore();
-	env.procs = &proc0;
 	// printf("%p %p\n", *(env.procs), proc0);
 	while (1)
 	{
@@ -1398,5 +1425,5 @@ void sim_exit(int status, void *p)
 		(*(env->procs))->dumpMemory();
 		delete *(env->procs);
 	}
-	// tcsetattr(STDIN_FILENO, TCSANOW, env->tmio);
+	tcsetattr(STDIN_FILENO, TCSANOW, env->tmio);
 }
