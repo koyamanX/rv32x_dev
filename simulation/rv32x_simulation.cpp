@@ -50,6 +50,11 @@ extern "C"
 #define SUPERVISOR_EXTERNAL_INTERRUPT 0x80000009
 
 #define BLOCK_DEVICE_FILENAME "block_device.img"
+#ifndef KERNEL_ELF_LOCATION
+#define KERNEL_ELF_LOCATION "/root/software/linux/vmlinux"
+#endif
+#define STRINGIZE(x) #x
+#define STRINGIZE_VALUE_OF(x) STRINGIZE(x)
 #define START_ADDR 0x80000000
 #ifndef KERNEL_START_ADDR
 #define KERNEL_START_ADDR 0x80400000 // opensbi/plarform/rv32xsoc/config.mk: FW_JUMP_ADDR = 0x80400000
@@ -179,7 +184,7 @@ private:
 	} * procedure, *globalObject;
 	char *target_symbol = NULL;
 	int import_linux_symbol_flag = 0;
-	const char *vmlinux_location = "/root/software/xv6-riscv/kernel/kernel"; //	"/root/software/linux/vmlinux"; //"/root/software/busybox/busybox_unstripped"; //
+	const char *vmlinux_location = STRINGIZE_VALUE_OF(KERNEL_ELF_LOCATION); //"/root/software/xv6-riscv/kernel/kernel"; //	"/root/software/busybox/busybox_unstripped"; //
 	int skip_procedure_search = 0;
 	int skip_object_search = 0;
 	int callDepth = 0;
@@ -632,15 +637,15 @@ public:
 		{
 			printf("Done bootloading\n");
 			print_entry_flag = 1;
-			// exception_output_flag = 1;
+			exception_output_flag = 1;
 			// writeback_output_flag = 1;
 			// disasm_output_flag = 1;
 			// trace_output_flag = 1;
-			//   memory_output_flag = 1;
-			//     print_entry_flag = 1;
-			//     print_blkrw_flag = 1;
-			// dump_memory_flag = 1;
-			// exit(0);
+			//     memory_output_flag = 1;
+			//       print_entry_flag = 1;
+			//       print_blkrw_flag = 1;
+			//   dump_memory_flag = 1;
+			//   exit(0);
 		}
 
 		/*
