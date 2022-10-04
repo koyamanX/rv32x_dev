@@ -15,7 +15,6 @@ declare rv32x_integration
 	func_out imem_read(iaddr, ibyteen);			/* When data is ready on 'inst', imem_ready is asserted */
 	func_out dmem_read(daddr, dbyteen);			/* When data is ready on 'rdata', dmem_ready is asserted */
 	func_out dmem_write(daddr, dbyteen, wdata); /* When data is written, dmem_ready is asserted */
-	func_in simulator_write_block_interrupt_req();
 
 	input RXD;
 	output TXD;

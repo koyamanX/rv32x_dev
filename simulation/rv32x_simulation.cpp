@@ -440,11 +440,9 @@ public:
 							fprintf(logfile, "\n");
 						}
 						fwrite(buf, sizeof(uint8_t), 512, block_device);
-						core->write_block_interrupt_req = 1;
 					}
 					else
 					{
-						core->write_block_interrupt_req = 0;
 						core->block_data_valid = 0;
 					}
 				}
@@ -782,11 +780,9 @@ public:
 						fseek(block_device, core->block_adrs * 512, SEEK_SET);
 						cpy(buf, core->write_block_data, 512);
 						fwrite(buf, sizeof(uint8_t), 512, block_device);
-						core->write_block_interrupt_req = 1;
 					}
 					else
 					{
-						core->write_block_interrupt_req = 0;
 						core->block_data_valid = 0;
 					}
 				}
