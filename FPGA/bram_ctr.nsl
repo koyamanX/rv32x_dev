@@ -1,0 +1,105 @@
+#include "bram_ctr.h"
+#include "opcode.h"
+
+module bram_ctr {
+	/*
+	reg bram_addr[32];
+	reg bram_byteen[3];
+	reg bram_wdata[32];
+	proc_name bram_read(bram_addr, bram_byteen);
+	proc_name bram_write(bram_addr, bram_byteen, bram_wdata);
+	*/
+	mem memory[65536][8];
+
+	func reset{
+		_readmemh("program.hex", memory);
+	}
+	func iread {
+		any {
+			ibyteen == MEM_WORD: {
+				irdata = {memory[{iaddr[15:2],2'b11}], memory[{iaddr[15:2],2'b10}], memory[{iaddr[15:2],2'b01}], memory[{iaddr[11:2],2'b00}]};
+			} 
+			ibyteen == MEM_HALFWORD: {
+				irdata = {0x0000, memory[{iaddr[15:2],2'b01}], memory[{iaddr[15:2],2'b00}]};
+			} 
+			ibyteen == MEM_BYTE: {
+				irdata = {0x000000, memory[{iaddr[15:2],2'b00}]};
+			} 
+		}
+		iready();
+	}
+	func dread {
+		any {
+			dbyteen == MEM_WORD: {
+				drdata = {memory[{daddr[15:2],2'b11}], memory[{daddr[15:2],2'b10}], memory[{daddr[15:2],2'b01}], memory[{daddr[11:2],2'b00}]};
+			} 
+			dbyteen == MEM_HALFWORD: {
+				drdata = {0x0000, memory[{daddr[15:2],2'b01}], memory[{daddr[15:2],2'b00}]};
+			} 
+			dbyteen == MEM_BYTE: {
+				drdata = {0x000000, memory[{daddr[15:2],2'b00}]};
+			} 
+		}
+		dready();
+	}
+	func dwrite {
+		any {
+			dbyteen == MEM_WORD: {
+				memory[{daddr[15:2],2'b11}] := wdata[31:24];
+				memory[{daddr[15:2],2'b10}] := wdata[23:16];
+				memory[{daddr[15:2],2'b01}] := wdata[15:8];
+				memory[{daddr[15:2],2'b00}] := wdata[7:0];
+			}
+			dbyteen == MEM_HALFWORD: {
+				memory[{daddr[15:2],2'b01}] := wdata[15:8];
+				memory[{daddr[15:2],2'b00}] := wdata[7:0];
+			}
+			dbyteen == MEM_BYTE: {
+				memory[{daddr[15:2],2'b00}] := wdata[7:0];
+			}
+		}
+		dready();
+	}
+}
+
+
+/*
+	proc bram_read {
+		any {
+			bram_byteen == MEM_WORD:{
+				rdata = {memory[{bram_addr[15:2],2'b11}], memory[{bram_addr[15:2],2'b10}], memory[{bram_addr[15:2],2'b01}], memory[{bram_addr[11:2],2'b00}]};
+				ready();	
+			} 
+			bram_byteen == MEM_HALFWORD:{
+				rdata = {0x0000, memory[{bram_addr[15:2],2'b01}], memory[{bram_addr[15:2],2'b00}]};
+				ready();
+			} 
+			bram_byteen == MEM_BYTE:{
+				rdata = {0x000000, memory[{bram_addr[15:2],2'b00}]};
+				ready();
+			} 
+		}
+		finish();
+	}
+	proc bram_write{
+		any {
+			bram_byteen == MEM_WORD:{
+				memory[{bram_addr[15:2],2'b11}] := bram_wdata[31:24];
+				memory[{bram_addr[15:2],2'b10}] := bram_wdata[23:16];
+				memory[{bram_addr[15:2],2'b01}] := bram_wdata[15:8];
+				memory[{bram_addr[15:2],2'b00}] := bram_wdata[7:0];
+				ready();
+			}
+			bram_byteen == MEM_HARFWORD:{
+				memory[{bram_addr[15:2],2'b01}] := bram_wdata[15:8];
+				memory[{bram_addr[15:2],2'b00}] := bram_wdata[7:0];
+				ready();
+			}
+			bram_byteen == MEM_BYTE:{
+				memory[{bram_addr[15:2],2'b00}] := bram_wdata[7:0];
+				ready();
+			}
+		}
+		finish();
+	}
+*/

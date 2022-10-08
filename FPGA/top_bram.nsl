@@ -1,0 +1,57 @@
+#include "rv32x_integration.h"
+#include "bram_ctr.h"
+
+declare top_bram{
+    output SCLK;
+    input MISO;
+    output MOSI;
+    output CS;
+    input TXD;
+    output RXD;
+	output LEDR[9];
+}
+
+module top_bram {
+    func_self reset();
+	reg led[9] = 0;
+
+	rv32x_integration core;
+    bram_ctr bram;
+	
+	RXD = core.TXD;
+	core.RXD = TXD;
+	SCLK = core.SCLK;
+	CS = core.CS;
+	MOSI = core.MOSI;
+	core.MISO = MISO;
+	LEDR = led;
+	if(~p_reset){
+		reset();
+	}
+
+
+	func reset {
+		core.reset();
+        bram.reset();
+	}
+	func core.imem_read {
+		bram.iread(core.iaddr, core.ibyteen);
+		led++;
+	}
+	func core.dmem_read {
+		bram.dread(core.daddr, core.dbyteen);
+		//led := 9'b000000010;
+	}
+	func core.dmem_write {
+		bram.dwrite(core.daddr, core.dbyteen, core.wdata);
+		//led := 9'b000000100;
+	}
+	func bram.iready {
+		core.inst = bram.irdata;
+		core.imem_ready();
+	}
+	func bram.dready {
+		core.rdata = bram.drdata;
+		core.dmem_ready();
+	}
+}

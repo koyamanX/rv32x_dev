@@ -16,4 +16,5 @@ docker run -it --rm \
     -v $(pwd)/docs:/root/docs \
 	-v $(pwd)/integration:/root/integration \
 	-v $(pwd)/simulation:/root/simulation \
+    -v $(pwd)/FPGA:/root/FPGA \
     rv32x_dev:v1.0 $1
