@@ -1,6 +1,26 @@
 #include "bootrom.h"
 #include "opcode.h"
 
+#ifdef DE0_CV
+#include "rom_1p.h"
+module bootrom {
+	proc_name rom_read();
+	rom_1p rom;
+
+	rom.clock = m_clock;
+
+	func read{
+		rom.addr = addr[11:2];
+		rom_read();
+	}
+
+	proc rom_read{
+		rdata = q;
+		ready();
+		finish();
+	}
+}
+#else
 module bootrom {
 	mem rom[4096][8];
 
@@ -16,3 +36,4 @@ module bootrom {
 		ready();
 	}
 }
+#endif

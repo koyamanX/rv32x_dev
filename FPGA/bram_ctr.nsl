@@ -1,105 +1,79 @@
 #include "bram_ctr.h"
+#include "ram_1p.h"
 #include "opcode.h"
 
 module bram_ctr {
-	/*
-	reg bram_addr[32];
-	reg bram_byteen[3];
-	reg bram_wdata[32];
-	proc_name bram_read(bram_addr, bram_byteen);
-	proc_name bram_write(bram_addr, bram_byteen, bram_wdata);
-	*/
-	mem memory[65536][8];
 
-	func reset{
-		_readmemh("program.hex", memory);
+	reg memory_byteen[3];
+	reg memory_type[2];
+	proc_name memory_read(memory_byteen, memory_type);
+	proc_name memory_write();
+
+	ram_1p memory[4];
+	integer i;
+	
+	generate(i=0; i<4; i++){
+		memory[i].clock = m_clock;
 	}
-	func iread {
-		any {
-			ibyteen == MEM_WORD: {
-				irdata = {memory[{iaddr[15:2],2'b11}], memory[{iaddr[15:2],2'b10}], memory[{iaddr[15:2],2'b01}], memory[{iaddr[11:2],2'b00}]};
-			} 
-			ibyteen == MEM_HALFWORD: {
-				irdata = {0x0000, memory[{iaddr[15:2],2'b01}], memory[{iaddr[15:2],2'b00}]};
-			} 
-			ibyteen == MEM_BYTE: {
-				irdata = {0x000000, memory[{iaddr[15:2],2'b00}]};
-			} 
+	
+	func read {
+		generate(i=0;i<4;i++){
+			memory[i].address = addr[15:2];
+			memory[i].wren = READ;
 		}
-		iready();
+		memory_read(byteen,type);
 	}
-	func dread {
+
+	func write {
 		any {
-			dbyteen == MEM_WORD: {
-				drdata = {memory[{daddr[15:2],2'b11}], memory[{daddr[15:2],2'b10}], memory[{daddr[15:2],2'b01}], memory[{daddr[11:2],2'b00}]};
-			} 
-			dbyteen == MEM_HALFWORD: {
-				drdata = {0x0000, memory[{daddr[15:2],2'b01}], memory[{daddr[15:2],2'b00}]};
-			} 
-			dbyteen == MEM_BYTE: {
-				drdata = {0x000000, memory[{daddr[15:2],2'b00}]};
-			} 
+			byteen == MEM_WORD: {
+				generate(i=0;i<4;i++){
+					memory[i].address = addr[15:2];
+					memory[i].wren = WRITE;
+					memory[i].data = wdata[((i+1)*8 - 1):i*8];
+				}
+			}
+			byteen == MEM_HALFWORD: {
+				generate(i=0;i<2;i++){
+					memory[i].address = addr[15:2];
+					memory[i].wren = WRITE;
+					memory[i].data = wdata[((i+1)*8 - 1):i*8];
+				}
+			}
+			byteen == MEM_BYTE: {
+				generate(i=0;i<1;i++){
+					memory[i].address = addr[15:2];
+					memory[i].wren = WRITE;
+					memory[i].data = wdata[((i+1)*8 - 1):i*8];
+				}
+			}
 		}
+		memory_write();
+	}
+
+	proc memory_read{
+		any {
+			memory_byteen == MEM_WORD: {
+				rdata = {memory[3].q,memory[2].q,memory[1].q,memory[0].q};
+			} 
+			memory_byteen == MEM_HALFWORD: {
+				rdata = {0x0000, memory[1].q, memory[0].q};
+			} 
+			memory_byteen == MEM_BYTE: {
+				rdata = {0x000000, memory[0].q};
+			} 
+			memory_type == IMEM: {
+				iready();
+			}
+			memory_type == DMEM: {
+				dready();
+			}
+		}
+		finish();
+	}
+
+	proc memory_write{
 		dready();
-	}
-	func dwrite {
-		any {
-			dbyteen == MEM_WORD: {
-				memory[{daddr[15:2],2'b11}] := wdata[31:24];
-				memory[{daddr[15:2],2'b10}] := wdata[23:16];
-				memory[{daddr[15:2],2'b01}] := wdata[15:8];
-				memory[{daddr[15:2],2'b00}] := wdata[7:0];
-			}
-			dbyteen == MEM_HALFWORD: {
-				memory[{daddr[15:2],2'b01}] := wdata[15:8];
-				memory[{daddr[15:2],2'b00}] := wdata[7:0];
-			}
-			dbyteen == MEM_BYTE: {
-				memory[{daddr[15:2],2'b00}] := wdata[7:0];
-			}
-		}
-		dready();
+		finish();
 	}
 }
-
-
-/*
-	proc bram_read {
-		any {
-			bram_byteen == MEM_WORD:{
-				rdata = {memory[{bram_addr[15:2],2'b11}], memory[{bram_addr[15:2],2'b10}], memory[{bram_addr[15:2],2'b01}], memory[{bram_addr[11:2],2'b00}]};
-				ready();	
-			} 
-			bram_byteen == MEM_HALFWORD:{
-				rdata = {0x0000, memory[{bram_addr[15:2],2'b01}], memory[{bram_addr[15:2],2'b00}]};
-				ready();
-			} 
-			bram_byteen == MEM_BYTE:{
-				rdata = {0x000000, memory[{bram_addr[15:2],2'b00}]};
-				ready();
-			} 
-		}
-		finish();
-	}
-	proc bram_write{
-		any {
-			bram_byteen == MEM_WORD:{
-				memory[{bram_addr[15:2],2'b11}] := bram_wdata[31:24];
-				memory[{bram_addr[15:2],2'b10}] := bram_wdata[23:16];
-				memory[{bram_addr[15:2],2'b01}] := bram_wdata[15:8];
-				memory[{bram_addr[15:2],2'b00}] := bram_wdata[7:0];
-				ready();
-			}
-			bram_byteen == MEM_HARFWORD:{
-				memory[{bram_addr[15:2],2'b01}] := bram_wdata[15:8];
-				memory[{bram_addr[15:2],2'b00}] := bram_wdata[7:0];
-				ready();
-			}
-			bram_byteen == MEM_BYTE:{
-				memory[{bram_addr[15:2],2'b00}] := bram_wdata[7:0];
-				ready();
-			}
-		}
-		finish();
-	}
-*/

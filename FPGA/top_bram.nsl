@@ -13,6 +13,7 @@ declare top_bram{
 
 module top_bram {
     func_self reset();
+	func_self conflict();
 	reg led[9] = 0;
 
 	rv32x_integration core;
@@ -35,23 +36,27 @@ module top_bram {
         bram.reset();
 	}
 	func core.imem_read {
-		bram.iread(core.iaddr, core.ibyteen);
-		led++;
+		if(!conflict){
+			bram.read(core.iaddr, core.ibyteen, IMEM);
+			led++;
+		}
 	}
 	func core.dmem_read {
-		bram.dread(core.daddr, core.dbyteen);
+		conflict();
+		bram.read(core.daddr, core.dbyteen, DMEM);
 		//led := 9'b000000010;
 	}
 	func core.dmem_write {
-		bram.dwrite(core.daddr, core.dbyteen, core.wdata);
+		conflict();
+		bram.write(core.daddr, core.dbyteen, core.wdata);
 		//led := 9'b000000100;
 	}
 	func bram.iready {
-		core.inst = bram.irdata;
+		core.inst = bram.rdata;
 		core.imem_ready();
 	}
 	func bram.dready {
-		core.rdata = bram.drdata;
+		core.rdata = bram.rdata;
 		core.dmem_ready();
 	}
 }

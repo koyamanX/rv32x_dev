@@ -1,3 +1,6 @@
-/synth
+synth/*
 *.mif
 *.hex
+pll/*
+rom_1p/*
+ram_1p/*

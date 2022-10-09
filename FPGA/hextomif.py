@@ -13,7 +13,7 @@ def hextomif(input, output):
             for j in a:
                 array.append(j)
         # print(array)
-    buf = f'WIDTH=8;\nDEPTH=@;\nADDRESS_RADIX=HEX;\nDATA_RADIX=HEX;\nCONTENT BEGIN\n\n{0:04x} :'
+    buf = f'DEPTH=@;\nWIDTH=8;\nADDRESS_RADIX=HEX;\nDATA_RADIX=HEX;\nCONTENT BEGIN\n\n{0:04x} :'
     for i in array:
         if (addr != 0) and ((addr % 16 == 0)):
             buf += f';\n{addr:04x} :'

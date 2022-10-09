@@ -108,6 +108,7 @@ module rv32x_simulation {
 	uart_receiver ur;
 	debug_uart_sender us;	/* same as uart_sender.nsl except for status.en is 1 at reset */
 	mmcspi_slave mmcsim;
+	func_self conflict();
 	
 	ur.RXD = core.TXD;
 	core.RXD = us.TXD;
@@ -133,12 +134,16 @@ module rv32x_simulation {
 		us.write(10'(0x0), 32'(uart_wdata));
 	}
 	func core.imem_read {
-		imem_read(core.iaddr, core.ibyteen);
+		if(!conflict){
+			imem_read(core.iaddr, core.ibyteen);
+		}
 	}
 	func core.dmem_read {
+		conflict();
 		dmem_read(core.daddr, core.dbyteen);
 	}
 	func core.dmem_write {
+		conflict();
 		dmem_write(core.daddr, core.dbyteen, core.wdata);
 	}
 	func imem_ready {

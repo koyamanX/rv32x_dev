@@ -18,19 +18,18 @@ WORKDIR		= synth
 DESIGN		= rv32x_bram
 BOARD		= DE0_CV
 NSL2VL    	= nsl2vl
-NSLFLAGS  	= -O2 -neg_res -I$(SRCDIR)/../core -I$(SRCDIR)/../integration -I$(SRCDIR)/../integration/mmcspi/src
+NSLFLAGS  	= -O2 -neg_res -I$(SRCDIR)/../core -I$(SRCDIR)/../integration -I$(SRCDIR)/../integration/mmcspi/src -DMIF
 MKPROJ		= $(SRCDIR)/mkproj-$(BOARD).tcl
 Q2SH		= quartus_sh
 Q2PGM		= quartus_pgm
 CABLE		= "USB-Blaster [USB-0]"
 PMODE		= JTAG
 NSRC := $(wildcard $(SRCDIR)/../core/*.nsl) $(wildcard $(SRCDIR)/../integration/*.nsl) $(wildcard $(SRCDIR)/../integration/mmcspi/src/*.nsl) $(wildcard $(SRCDIR)/*.nsl)
-SRC := $(notdir $(NSRC)) 
 #SRCS		:= $(wildcard $(SRCDIR)/*.nsl)
 #VFILES 		= $(SRCS:$(SRCDIR)/%.nsl=%.v) 
-VFILES := $(SRC:.nsl=.v)
+VFILES := $(patsubst %.nsl,%.v,$(notdir $(NSRC)))
 MIFSRCS:= $(wildcard $(SRCDIR)/program/*.hex)
-MIFS := $(notdir $(MIFSRCS))
+MIFS := $(patsubst %.hex,%.mif,$(notdir $(MIFSRCS)))
 LIBS		= 
 RESULT		= result.txt
 
@@ -60,8 +59,9 @@ all:
 %.v: $(SRCDIR)/%.nsl
 	$(NSL2VL) $(NSLFLAGS)  $< -o $@
 
-%.hex: $(MIFSRCS)
-	cp $(MIFSRCS) .
+%.mif: $(MIFSRCS)
+	$(SRCDIR)/hextomif.py $(SRCDIR)/program/bootrom.hex bootrom.mif
+	$(SRCDIR)/hextomif.py $(SRCDIR)/program/program.hex program.mif
 
 test2:
 	echo $(MIFSRCS) $(MIFS) $(VFILES)
