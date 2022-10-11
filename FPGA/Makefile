@@ -29,7 +29,7 @@ NSRC := $(wildcard $(SRCDIR)/../core/*.nsl) $(wildcard $(SRCDIR)/../integration/
 #VFILES 		= $(SRCS:$(SRCDIR)/%.nsl=%.v) 
 VFILES := $(patsubst %.nsl,%.v,$(notdir $(NSRC)))
 MIFSRCS:= $(wildcard $(SRCDIR)/program/*.hex)
-MIFS := $(patsubst %.hex,%.mif,$(notdir $(MIFSRCS)))
+MIFS := $(notdir $(MIFSRCS))
 LIBS		= 
 RESULT		= result.txt
 
@@ -59,14 +59,14 @@ all:
 %.v: $(SRCDIR)/%.nsl
 	$(NSL2VL) $(NSLFLAGS)  $< -o $@
 
-%.mif: $(MIFSRCS)
-	$(SRCDIR)/hextomif.py $(SRCDIR)/program/bootrom.hex bootrom.mif
-	$(SRCDIR)/hextomif.py $(SRCDIR)/program/program.hex program.mif
+%.hex: $(MIFSRCS)
+	cp $(SRCDIR)/program/bootrom.hex bootrom.hex
+	cp $(SRCDIR)/program/program.hex program.hex
 
 test2:
-	echo $(MIFSRCS) $(MIFS) $(VFILES)
+	echo $(MIFSRCS) $(VFILES) $(HEX)
 
-$(DESIGN).qsf: $(VFILES) $(LIBS) $(MIFS)
+$(DESIGN).qsf: $(VFILES) $(LIBS)
 	$(Q2SH) -t $(MKPROJ) -project $(DESIGN) $^
 
 $(DESIGN).sof: $(DESIGN).qsf $(MIFS)
@@ -74,7 +74,7 @@ $(DESIGN).sof: $(DESIGN).qsf $(MIFS)
 
 ########
 
-compile: $(DESIGN).qsf	#.sofでPL作成、.qsfでquartusのGUI形式生成のみできる
+compile: $(MIFS) $(DESIGN).qsf	#.sofでPL作成、.qsfでquartusのGUI形式生成のみできる
 #	@echo "**** $(DESIGN).fit.summary" | tee -a $(RESULT)
 #	@cat $(DESIGN).fit.summary | tee -a $(RESULT)
 #	@echo "**** $(DESIGN).tan.rpt" | tee -a $(RESULT)

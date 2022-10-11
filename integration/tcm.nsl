@@ -5,15 +5,21 @@ module tcm {
 	reg tcm_addr[32];
 	reg tcm_byteen[3];
 	reg tcm_wdata[32];
-	proc_name tcm_read(tcm_addr, tcm_byteen);
+	reg memory_type[2];
+	proc_name tcm_read(tcm_addr, tcm_byteen, memory_type);
 	proc_name tcm_write(tcm_addr, tcm_byteen, tcm_wdata);
-	mem memory0[8192][8];
+	mem memory0[65536][8];
 	mem memory1[8192][8];
 	mem memory2[8192][8];
 	mem memory3[8192][8];
+	filename = ""
+
+	func reset{
+		_readmemh(filename, memory0);
+	}
 
 	func read {
-		tcm_read(addr, byteen);
+		tcm_read(addr, byteen, type);
 	}
 	func write {
 		tcm_write(addr, byteen, wdata);
@@ -22,15 +28,18 @@ module tcm {
 		any {
 			tcm_byteen == MEM_WORD:	{
 				rdata = {memory3[tcm_addr[12:0]], memory2[tcm_addr[12:0]], memory1[tcm_addr[12:0]], memory0[tcm_addr[12:0]]};
-				ready();
 			}
 			tcm_byteen == MEM_HALFWORD:	{
 				rdata = {0x0000, memory1[tcm_addr[12:0]], memory0[tcm_addr[12:0]]};
-				ready();
 			}
 			tcm_byteen == MEM_BYTE:	{
 				rdata = {0x000000, memory0[tcm_addr[12:0]]};
-				ready();
+			}
+			memory_type == IMEM: {
+				iready();
+			}
+			memory_type == DMEM: {
+				dready();
 			}
 		}
 		finish();
@@ -42,16 +51,16 @@ module tcm {
 				memory2[tcm_addr[12:0]] := tcm_wdata[23:16];
 				memory1[tcm_addr[12:0]] := tcm_wdata[15:8];
 				memory0[tcm_addr[12:0]] := tcm_wdata[7:0];
-				ready();
+				dready();
 			}
 			tcm_byteen == MEM_HALFWORD:	{
 				memory1[tcm_addr[12:0]] := tcm_wdata[15:8];
 				memory0[tcm_addr[12:0]] := tcm_wdata[7:0];
-				ready();
+				dready();
 			}
 			tcm_byteen == MEM_BYTE:	{
 				memory0[tcm_addr[12:0]] := tcm_wdata[7:0];
-				ready();
+				dready();
 			}
 		}
 		finish();

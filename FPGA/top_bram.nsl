@@ -1,5 +1,6 @@
 #include "rv32x_integration.h"
-#include "bram_ctr.h"
+//#include "bram_ctr.h"
+#include "tcm.h"
 
 declare top_bram{
     output SCLK;
@@ -17,7 +18,7 @@ module top_bram {
 	reg led[9] = 0;
 
 	rv32x_integration core;
-    bram_ctr bram;
+    tcm bram(filename="program.hex");
 	
 	RXD = core.TXD;
 	core.RXD = TXD;
@@ -32,8 +33,8 @@ module top_bram {
 
 
 	func reset {
+		bram.reset();
 		core.reset();
-        bram.reset();
 	}
 	func core.imem_read {
 		if(!conflict){
