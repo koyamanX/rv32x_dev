@@ -1,7 +1,7 @@
 OUTPUT_ARCH( "riscv" )
 ENTRY(main)
 MEMORY {
-	BRAM(rwx): ORIGIN = 0x80000000, LENGTH = 0x10000
+	BRAM(rwx): ORIGIN = 0x80000000, LENGTH = 0x8000
 }
 
 SECTIONS
@@ -20,7 +20,7 @@ SECTIONS
   __bss_end = .;
   .zero : {
 	  FILL(0x0); 
-	  . = 0x80010000-__bss_end - 1;
+	  . = 0x80008000-__bss_end - 1;
 	  BYTE(0x00);
   } > BRAM
 }

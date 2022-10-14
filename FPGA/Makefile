@@ -18,18 +18,17 @@ WORKDIR		= synth
 DESIGN		= rv32x_bram
 BOARD		= DE0_CV
 NSL2VL    	= nsl2vl
-NSLFLAGS  	= -O2 -neg_res -I$(SRCDIR)/../core -I$(SRCDIR)/../integration -I$(SRCDIR)/../integration/mmcspi/src -DMIF
+NSLFLAGS  	= -O2 -neg_res -I$(SRCDIR)/../core -I$(SRCDIR)/../integration -I$(SRCDIR)/../integration/mmcspi/src
 MKPROJ		= $(SRCDIR)/mkproj-$(BOARD).tcl
 Q2SH		= quartus_sh
 Q2PGM		= quartus_pgm
 CABLE		= "USB-Blaster [USB-0]"
 PMODE		= JTAG
-NSRC := $(wildcard $(SRCDIR)/../core/*.nsl) $(wildcard $(SRCDIR)/../integration/*.nsl) $(wildcard $(SRCDIR)/../integration/mmcspi/src/*.nsl) $(wildcard $(SRCDIR)/*.nsl)
+NSRC := $(wildcard $(SRCDIR)/../core/*.nsl) $(wildcard $(SRCDIR)/../integration/*.nsl) $(wildcard $(SRCDIR)/../integration/mmcspi/src/*.nsl) $(wildcard $(SRCDIR)/*.nsl) $(wildcard $(SRCDIR)/mem/*.nsl)
 #SRCS		:= $(wildcard $(SRCDIR)/*.nsl)
 #VFILES 		= $(SRCS:$(SRCDIR)/%.nsl=%.v) 
 VFILES := $(patsubst %.nsl,%.v,$(notdir $(NSRC)))
-MIFSRCS:= $(wildcard $(SRCDIR)/program/*.hex)
-MIFS := $(notdir $(MIFSRCS))
+HEXS := bootrom.hex
 LIBS		= 
 RESULT		= result.txt
 
@@ -59,22 +58,33 @@ all:
 %.v: $(SRCDIR)/%.nsl
 	$(NSL2VL) $(NSLFLAGS)  $< -o $@
 
-%.hex: $(MIFSRCS)
+mem.v: $(SRCDIR)/mem/mem.nsl
+	$(NSL2VL) $(NSLFLAGS)  $< -o $@
+	sed -i -e "s/\"DEADBEEF\"/filename/g" mem.v
+
+bram_ctr.v: $(SRCDIR)/mem/bram_ctr.nsl
+	$(NSL2VL) $(NSLFLAGS)  $< -o $@
+	sed -i -e "97i \ \ defparam memory.filename = \"memory_0.mif\";" bram_ctr.v
+	sed -i -e "97i \ \ defparam memory_1.filename = \"memory_1.mif\";" bram_ctr.v
+	sed -i -e "97i \ \ defparam memory_2.filename = \"memory_2.mif\";" bram_ctr.v
+	sed -i -e "97i \ \ defparam memory_3.filename = \"memory_3.mif\";" bram_ctr.v
+
+%.hex:
 	cp $(SRCDIR)/program/bootrom.hex bootrom.hex
-	cp $(SRCDIR)/program/program.hex program.hex
+	$(SRCDIR)/hextomif.py $(SRCDIR)/program/program.hex
 
 test2:
-	echo $(MIFSRCS) $(VFILES) $(HEX)
+	echo $(MIFSRCS) $(VFILES) $(HEXS)
 
 $(DESIGN).qsf: $(VFILES) $(LIBS)
 	$(Q2SH) -t $(MKPROJ) -project $(DESIGN) $^
 
-$(DESIGN).sof: $(DESIGN).qsf $(MIFS)
+$(DESIGN).sof: $(DESIGN).qsf
 	$(Q2SH) --flow compile $(DESIGN)
 
 ########
 
-compile: $(MIFS) $(DESIGN).qsf	#.sofでPL作成、.qsfでquartusのGUI形式生成のみできる
+compile: $(HEXS) $(DESIGN).qsf	#.sofでPL作成、.qsfでquartusのGUI形式生成のみできる
 #	@echo "**** $(DESIGN).fit.summary" | tee -a $(RESULT)
 #	@cat $(DESIGN).fit.summary | tee -a $(RESULT)
 #	@echo "**** $(DESIGN).tan.rpt" | tee -a $(RESULT)

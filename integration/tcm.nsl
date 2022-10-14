@@ -4,25 +4,41 @@
 module tcm {
 	reg tcm_addr[32];
 	reg tcm_byteen[3];
-	reg tcm_wdata[32];
 	reg memory_type[2];
 	proc_name tcm_read(tcm_addr, tcm_byteen, memory_type);
-	proc_name tcm_write(tcm_addr, tcm_byteen, tcm_wdata);
-	mem memory0[65536][8];
+	proc_name tcm_write();
+	mem memory0[8192][8];
 	mem memory1[8192][8];
 	mem memory2[8192][8];
 	mem memory3[8192][8];
-	filename = ""
 
 	func reset{
-		_readmemh(filename, memory0);
+		_readmemh("memory_0.hex", memory0);
+		_readmemh("memory_1.hex", memory1);
+		_readmemh("memory_2.hex", memory2);
+		_readmemh("memory_3.hex", memory3);
 	}
 
 	func read {
 		tcm_read(addr, byteen, type);
 	}
 	func write {
-		tcm_write(addr, byteen, wdata);
+		any {
+			byteen == MEM_WORD:	{
+				memory3[addr[12:0]] := wdata[31:24];
+				memory2[addr[12:0]] := wdata[23:16];
+				memory1[addr[12:0]] := wdata[15:8];
+				memory0[addr[12:0]] := wdata[7:0];
+			}
+			byteen == MEM_HALFWORD:	{
+				memory1[addr[12:0]] := wdata[15:8];
+				memory0[addr[12:0]] := wdata[7:0];
+			}
+			byteen == MEM_BYTE:	{
+				memory0[addr[12:0]] := wdata[7:0];
+			}
+		}
+		tcm_write();
 	}
 	proc tcm_read {
 		any {
@@ -45,24 +61,7 @@ module tcm {
 		finish();
 	}
 	proc tcm_write {
-		any {
-			tcm_byteen == MEM_WORD:	{
-				memory3[tcm_addr[12:0]] := tcm_wdata[31:24];
-				memory2[tcm_addr[12:0]] := tcm_wdata[23:16];
-				memory1[tcm_addr[12:0]] := tcm_wdata[15:8];
-				memory0[tcm_addr[12:0]] := tcm_wdata[7:0];
-				dready();
-			}
-			tcm_byteen == MEM_HALFWORD:	{
-				memory1[tcm_addr[12:0]] := tcm_wdata[15:8];
-				memory0[tcm_addr[12:0]] := tcm_wdata[7:0];
-				dready();
-			}
-			tcm_byteen == MEM_BYTE:	{
-				memory0[tcm_addr[12:0]] := tcm_wdata[7:0];
-				dready();
-			}
-		}
+		dready();
 		finish();
 	}
 }

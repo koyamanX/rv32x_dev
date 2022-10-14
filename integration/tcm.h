@@ -4,7 +4,6 @@
 #define DMEM 2'b10
 declare tcm
 {
-	param_str filename;
 	input addr[32];
 	input wdata[32];
 	input byteen[3];

@@ -1,0 +1,49 @@
+#include "altsyncram.h"
+#include "ram_1p.h"
+
+module ram_1p {
+	wire sub_wire0[8];
+    integer i;
+	
+	altsyncram	altsyncram_component (
+	    widthad_a = 13,
+        width_a = 8, 
+        width_byteena_a = 1,
+		numwords_a = 8192,
+		clock_enable_input_a = "BYPASS",
+		clock_enable_output_a = "BYPASS",
+		intended_device_family = "Cyclone V",
+        init_file = "DEADBEEF",
+		lpm_hint = "ENABLE_RUNTIME_MOD=NO",
+		lpm_type = "altsyncram",
+		operation_mode = "SINGLE_PORT",
+		outdata_aclr_a = "NONE",
+		outdata_reg_a = "UNREGISTERED",
+		power_up_uninitialized = "FALSE",
+		read_during_write_mode_port_a = "DONT_CARE");
+
+	q = sub_wire0;
+
+	altsyncram_component.address_a=address;
+	altsyncram_component.clock0=clock;
+	altsyncram_component.data_a=data;
+	altsyncram_component.wren_a=wren;
+	altsyncram_component.aclr0=1'b0;
+	altsyncram_component.aclr1=1'b0;
+	altsyncram_component.address_b=1'b1;
+	altsyncram_component.addressstall_a=1'b0;
+	altsyncram_component.addressstall_b=1'b0;
+	altsyncram_component.byteena_a=1'b1;
+	altsyncram_component.byteena_b=1'b1;
+	altsyncram_component.clock1=1'b1;
+	altsyncram_component.clocken0=1'b1;
+	altsyncram_component.clocken1=1'b1;
+	altsyncram_component.clocken2=1'b1;
+	altsyncram_component.clocken3=1'b1;
+	altsyncram_component.data_b=1'b1;
+	altsyncram_component.rden_a=1'b1;
+	altsyncram_component.rden_b=1'b1;
+	altsyncram_component.wren_b=1'b0;
+
+	sub_wire0=altsyncram_component.q_a;
+}

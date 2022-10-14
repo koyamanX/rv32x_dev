@@ -2,7 +2,8 @@
 #define WRITE 1'b1
 
 declare ram_1p interface {
-    input address[14];
+    param_str filename;
+    input address[13];
     input clock;
     input data[8];
     input wren;
