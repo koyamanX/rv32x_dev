@@ -34,7 +34,7 @@ if {$opt(script) != ""} {
 set_global_assignment -name FMAX_REQUIREMENT 50MHz
 create_base_clock -fmax 50MHz -duty_cycle 50 m_clock
 
-set_global_assignment -name TOP_LEVEL_ENTITY rv32x_integration
+set_global_assignment -name TOP_LEVEL_ENTITY top_bram
 
 #============================================================
 # Build by Terasic System Builder V1.0.0
