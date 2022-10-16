@@ -23,8 +23,6 @@ declare rv32x_integration
 	output MOSI;
 	input MISO;
 #ifdef DEBUG
-	output tohost[32];
-	func_out sim_done(tohost);
 	output debug_x0[32];
 	output debug_x1[32];
 	output debug_x2[32];
@@ -78,6 +76,20 @@ declare rv32x_integration
 	func_out debug_raise_exception(debug_cause, debug_epc, debug_mtval, debug_inst);
 	output debug32[32];
 	func_out debug_general32(debug32);
+#endif
+#ifdef RISCV_TESTS
+	output tohost[32];
+	func_out sim_done(tohost);
+#endif
+#ifdef CV
+	func_out debug_led_1();
+	func_out debug_led_2();
+	func_out debug_led_3();
+	func_out debug_led_4();
+	func_out debug_led_5();
+	func_out debug_led_6();
+	func_out debug_led_7();
+	func_out debug_led_8();
 #endif
 }
 #endif

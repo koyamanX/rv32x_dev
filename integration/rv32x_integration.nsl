@@ -231,9 +231,6 @@ module rv32x_integration {
 	debug_x30 = core.debug_x30;
 	debug_x31 = core.debug_x31;
 	debug_pc = core.debug_pc;
-	func core.sim_done {
-		sim_done(core.tohost);
-	}
 	func core.debug_retire {
 		debug_retire(core.debug_retire_pc, core.debug_retire_inst);
 	}
@@ -251,6 +248,30 @@ module rv32x_integration {
 	}
 	func rv32x_mmcspi.debug_status{
 		debug_general32(rv32x_mmcspi.debugstatus);
+	}
+#endif
+
+#ifdef RISCV_TESTS
+	func core.sim_done {
+		sim_done(core.tohost);
+	}
+#endif
+
+#ifdef CV
+	func core.debug_led_1{
+		debug_led_1();
+	}	
+	func core.debug_led_2{
+		debug_led_2();
+	}	
+	func core.debug_led_3{
+		debug_led_3();
+	}	
+	func core.debug_led_4{
+		debug_led_4();
+	}	
+	func core.debug_led_5{
+		debug_led_5();
 	}
 #endif
 }

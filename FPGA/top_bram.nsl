@@ -8,13 +8,14 @@ declare top_bram{
     output CS;
     input TXD;
     output RXD;
-	output LEDR[9];
+	output LEDR[10];
 }
 
 module top_bram {
     func_self reset();
 	func_self conflict();
-	reg led[9] = 0;
+	reg led[10] = 0;
+	reg cnt[10] = 0;
 
 	rv32x_integration core;
     bram_ctr bram;
@@ -26,19 +27,19 @@ module top_bram {
 	MOSI = core.MOSI;
 	core.MISO = MISO;
 	LEDR = led;
-	if(~p_reset){
-		reset();
+	any{
+		cnt == 100: reset();
+		cnt < 255: cnt++;
 	}
-
 
 	func reset {
 		//bram.reset();
 		core.reset();
+		led := led | 10'(0x001);
 	}
 	func core.imem_read {
 		if(!conflict){
 			bram.read(core.iaddr, core.ibyteen, IMEM);
-			led++;
 		}
 	}
 	func core.dmem_read {
@@ -59,4 +60,35 @@ module top_bram {
 		core.rdata = bram.rdata;
 		core.dmem_ready();
 	}
+	#ifdef RISCV_TESTS
+	func core.sim_done {
+		led :=10'(0x2AA);
+	}
+	#endif
+	#ifdef CV
+	func core.debug_led_1{
+		led := led | 10'(0x002);
+	}
+	func core.debug_led_2{
+		led := led | 10'(0x004);
+	}
+	func core.debug_led_3{
+		led := led | 10'(0x008);
+	}
+	func core.debug_led_4{
+		led := led | 10'(0x010);
+	}
+	func core.debug_led_5{
+		led := led | 10'(0x020);
+	}
+	func core.debug_led_6{
+		led := led | 10'(0x040);
+	}
+	func core.debug_led_7{
+		led := led | 10'(0x080);
+	}
+	func core.debug_led_8{
+		led := led | 10'(0x100);
+	}
+	#endif
 }

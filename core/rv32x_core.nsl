@@ -1172,8 +1172,28 @@ module rv32x_core {
 	func rv32x.debug_csr_write {
 		debug_csr_write(rv32x.debug_csr_write_num, rv32x.debug_csr_write_data);
 	}
+#endif
+
+#ifdef RISCV_TESTS
 	func lsu.sim_done {
 		sim_done(lsu.tohost);
+	}
+#endif
+#ifdef CV
+	func rv32x.debug_led_1{
+		debug_led_1();
+	}	
+	func rv32x.debug_led_2{
+		debug_led_2();
+	}	
+	func rv32x.debug_led_3{
+		debug_led_3();
+	}	
+	func rv32x.debug_led_4{
+		debug_led_4();
+	}	
+	func rv32x.debug_led_5{
+		debug_led_5();
 	}
 #endif
 }

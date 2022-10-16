@@ -17,13 +17,13 @@ SIMOPT=
 .PHONY: clean all obj_dir $(TOP)
 .SUFFIXES: .nsl .v
 
-all:$(TOP)#_fast
+all: $(TOP)
 lint: $(VFILES)
 	verilator --lint-only -Wall -Wno-UNUSED -Wno-UNDRIVEN --Wno-DECLFILENAME --Wno-VARHIDDEN rv32x_simulation -Iout/
 	
-run_riscv_tests: $(TOP)
+run_riscv_tests: $(TOP)_test bootrom.hex
 	make -C ../software/riscv-tests/isa XLEN=32
-	./run_riscv_tests.py
+	./run_riscv_tests.py no_log
 check: run_riscv_tests
 out/%.v: ../integration/%.nsl 
 	if [ ! -d out ]; then \
@@ -53,8 +53,9 @@ obj_dir: $(TOP).cpp $(VFILES)
 $(TOP): $(TOP).cpp obj_dir $(VFILES) bootrom.hex
 	cd obj_dir && make -f V$(TOP).mk V$(TOP)
 	cp obj_dir/V$(TOP) $(TOP)
-$(TOP)_fast: 
-	make $(TOP) SIMOPT=-DFAST_SIM
+$(TOP)_test: 
+	make $(TOP) NFLAGS=-O2\ -neg_res\ -I../core\ -I../integration\ -I../integration/mmcspi/src\ -DRISCV_TESTS SIMOPT=-DFAST_SIM -B
+	
 bootrom.hex: 
 	make -C bootrom -B
 	cp bootrom/bootrom.hex ./

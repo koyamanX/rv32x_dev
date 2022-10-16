@@ -57,7 +57,7 @@ extern "C"
 #define STRINGIZE_VALUE_OF(x) STRINGIZE(x)
 #define START_ADDR 0x80000000
 #ifndef KERNEL_START_ADDR
-#define KERNEL_START_ADDR 0x80400000 // opensbi/plarform/rv32xsoc/config.mk: FW_JUMP_ADDR = 0x80400000
+#define KERNEL_START_ADDR 0x80000000 // opensbi/plarform/rv32xsoc/config.mk: FW_JUMP_ADDR = 0x80400000
 #endif
 
 #define SATP 0x180
@@ -136,7 +136,7 @@ private:
 	const char *exefilename = "a.out";
 	const char *procname = NULL;
 	char *logfilename = NULL;
-	FILE *logfile;
+	FILE *logfile = NULL;
 	unsigned int imem_wait = 0;
 	unsigned int dmem_wait = 0;
 	unsigned int m_clock_count = 0;
@@ -207,22 +207,21 @@ public:
 			block_device_avail = 1;
 			block_device = fopen(BLOCK_DEVICE_FILENAME, "rb+");
 		}
-#ifndef FAST_SIM
-#endif
 		regs = (uint32_t *)calloc(sizeof(uint32_t), 32);
 	};
 	~processor_t(void)
 	{
-#ifndef FAST_SIM
 		if (dump_vcd_flag)
 		{
 			tfp->close();
 		}
-#endif
 		core->final();
 
 #ifndef FAST_SIM
-		fclose(logfile);
+		if (logfile != NULL)
+		{
+			fclose(logfile);
+		}
 #endif
 		if (block_device_avail)
 		{
@@ -234,10 +233,9 @@ public:
 		exefilename = s;
 		return exefilename;
 	};
-	void load(char *exefilename)
+	void load(char *s)
 	{
-		exefilename = exefilename;
-		abfd = open_exe(exefilename, archname);
+		abfd = open_exe(s, archname);
 		load_elf(memory, abfd);
 		print_mem_list(memory);
 	};
@@ -289,12 +287,10 @@ public:
 	};
 	void dump(void)
 	{
-#ifndef FAST_SIM
 		if (dump_vcd_flag && ((start_dump_inst == 0 && end_dump_inst == 0) || (start_dump_inst <= inst_counter && end_dump_inst >= inst_counter)))
 		{
 			tfp->dump(m_clock_count);
 		}
-#endif
 	};
 	unsigned long long getSimTime(void)
 	{
@@ -471,10 +467,13 @@ public:
 				{
 					printf("status = 0x%08x\n", core->debug32);
 				}
+				/*
 				if (core->sim_done && !no_sim_exit)
 				{
+					printf("0x%08x\n", core->tohost);
 					ret = core->tohost;
 				}
+				*/
 				if (core->debug_raise_exception)
 				{
 					epc = core->debug_epc;
@@ -634,8 +633,8 @@ public:
 		if (retire_pc == KERNEL_START_ADDR)
 		{
 			printf("Done bootloading\n");
-			print_entry_flag = 1;
-			exception_output_flag = 1;
+			// print_entry_flag = 1;
+			// exception_output_flag = 1;
 			// writeback_output_flag = 1;
 			// disasm_output_flag = 1;
 			// trace_output_flag = 1;
@@ -788,6 +787,7 @@ public:
 				}
 			}
 			eval();
+			dump();
 			if (rising_edge)
 			{
 				ssize_t nr;
@@ -809,52 +809,14 @@ public:
 				if (core->sim_done)
 				{
 					ret = core->tohost;
-				}
-				if (core->debug_retire)
-				{
-					return ret;
+					break;
 				}
 			}
 		}
+		return ret;
 	};
 #endif
-	void setSymbolAddr(int flag)
-	{
-		if (flag == SET_VA)
-		{
-			for (int i = 0; procedure[i].addr != 0; i++)
-			{
-				procedure[i].addr = procedure[i].vma;
-			}
-			for (int i = 0; globalObject[i].addr != 0; i++)
-			{
-				globalObject[i].addr = globalObject[i].vma;
-			}
-		}
-		else if (flag == SET_PA)
-		{
-			for (int i = 0; procedure[i].addr != 0; i++)
-			{
-				procedure[i].addr = procedure[i].pma;
-			}
-			for (int i = 0; globalObject[i].addr != 0; i++)
-			{
-				globalObject[i].addr = globalObject[i].pma;
-			}
-		}
-	};
-	void dumpProcedure(int idx)
-	{
-		char tempstr[16] = {0};
-		uint64_t funcName7to0 = 0;
-		uint64_t funcName15to8 = 0;
-		strncpy(tempstr, procedure[idx].name, 15);
-		funcName7to0 = bswap_64(*(uint64_t *)(tempstr));
-		funcName15to8 = bswap_64(*(uint64_t *)(tempstr + 8));
-		*(uint64_t *)(core->funcname) = funcName15to8;
-		*((uint64_t *)((core->funcname) + 2)) = funcName7to0;
-		memset(tempstr, 0, 16);
-	};
+
 	static int compareAddr(const struct symbol *a, const struct symbol *b)
 	{
 		return a->addr - b->addr;
@@ -872,8 +834,32 @@ public:
 		}
 		return -1;
 	};
+#ifndef FAST_SIM
+	void dumpProcedure(int idx)
+	{
+		char tempstr[16] = {0};
+		uint64_t funcName7to0 = 0;
+		uint64_t funcName15to8 = 0;
+		strncpy(tempstr, procedure[idx].name, 15);
+		funcName7to0 = bswap_64(*(uint64_t *)(tempstr));
+		funcName15to8 = bswap_64(*(uint64_t *)(tempstr + 8));
+		*(uint64_t *)(core->funcname) = funcName15to8;
+		*((uint64_t *)((core->funcname) + 2)) = funcName7to0;
+		memset(tempstr, 0, 16);
+	};
+	void printRegInfo(uint8_t rd, uint32_t data)
+	{
+		fprintf(logfile, "%4s <- %08x", reg_strs[rd], data);
+		int idx = -1;
+		if ((idx = searchSymbol(core->debug_wb_data, globalObject)) != -1)
+		{
+			fprintf(logfile, "(%s)", globalObject[idx].name);
+		}
+	};
+#endif
 	void openLogFile(const char *s)
 	{
+		FILE *fp;
 		if (no_log)
 		{
 			logfilename = (char *)"/dev/null";
@@ -885,10 +871,11 @@ public:
 			logfilename = NULL;
 		}
 #ifndef NO_TARGET
-		logfilename = (char *)calloc(sizeof(char), strlen(s) + strlen(".log"));
-		strcat(logfilename, basename(s));
+		logfilename = (char *)calloc(sizeof(char), strlen(basename(s)) + strlen(".log") + 1);
+		strcpy(logfilename, basename(s));
 		strcat(logfilename, ".log");
-		logfile = fopen(logfilename, "w");
+		fp = fopen(logfilename, "w");
+		logfile = fp;
 #else
 		logfile = fopen("noTarget.log", "w");
 #endif
@@ -971,6 +958,7 @@ public:
 		if (dump_vcd_flag)
 		{
 			dumpSetting(Darg);
+			free(Darg);
 		}
 		if (print_all_flag)
 		{
@@ -982,7 +970,31 @@ public:
 			print_entry_flag = 1;
 			print_blkrw_flag = 1;
 		}
-		free(Darg);
+	};
+	void setSymbolAddr(int flag)
+	{
+		if (flag == SET_VA)
+		{
+			for (int i = 0; procedure[i].addr != 0; i++)
+			{
+				procedure[i].addr = procedure[i].vma;
+			}
+			for (int i = 0; globalObject[i].addr != 0; i++)
+			{
+				globalObject[i].addr = globalObject[i].vma;
+			}
+		}
+		else if (flag == SET_PA)
+		{
+			for (int i = 0; procedure[i].addr != 0; i++)
+			{
+				procedure[i].addr = procedure[i].pma;
+			}
+			for (int i = 0; globalObject[i].addr != 0; i++)
+			{
+				globalObject[i].addr = globalObject[i].pma;
+			}
+		}
 	};
 	void dumpSetting(char *Darg)
 	{
@@ -1041,7 +1053,7 @@ public:
 				}
 				filename = (char *)malloc(sizeof(char) * strlen(target_symbol) + strlen(fileExtension) + 1);
 				strcpy(filename, target_symbol);
-				vcdfilename = strcat(filename, ".vcd");
+				vcdfilename = strcat(filename, fileExtension);
 				dump_vcd_flag = 0;
 			}
 			else
@@ -1053,8 +1065,10 @@ public:
 		}
 		else
 		{
-			char name[10] = "all";
-			vcdfilename = strcat(name, ".vcd");
+			vcdfilename = (char *)malloc(sizeof(char) * 12);
+			strcpy(vcdfilename, "1-10000.vcd");
+			start_dump_inst = 1;
+			end_dump_inst = 10000;
 		}
 		tfp = new VerilatedVcdC;
 		core->trace(tfp, 99);
@@ -1213,50 +1227,43 @@ public:
 			}
 		}
 	};
-	void dumpRegs(void)
-	{
-		regs[0] = core->debug_pc;
-		regs[1] = core->debug_x1;
-		regs[2] = core->debug_x2;
-		regs[3] = core->debug_x3;
-		regs[4] = core->debug_x4;
-		regs[5] = core->debug_x5;
-		regs[6] = core->debug_x6;
-		regs[7] = core->debug_x7;
-		regs[8] = core->debug_x8;
-		regs[9] = core->debug_x9;
-		regs[10] = core->debug_x10;
-		regs[11] = core->debug_x11;
-		regs[12] = core->debug_x12;
-		regs[13] = core->debug_x13;
-		regs[14] = core->debug_x14;
-		regs[15] = core->debug_x15;
-		regs[16] = core->debug_x16;
-		regs[17] = core->debug_x17;
-		regs[18] = core->debug_x18;
-		regs[19] = core->debug_x19;
-		regs[20] = core->debug_x20;
-		regs[21] = core->debug_x21;
-		regs[22] = core->debug_x22;
-		regs[23] = core->debug_x23;
-		regs[24] = core->debug_x24;
-		regs[25] = core->debug_x25;
-		regs[26] = core->debug_x26;
-		regs[27] = core->debug_x27;
-		regs[28] = core->debug_x28;
-		regs[29] = core->debug_x29;
-		regs[30] = core->debug_x30;
-		regs[31] = core->debug_x31;
-	};
-	void printRegInfo(uint8_t rd, uint32_t data)
-	{
-		fprintf(logfile, "%4s <- %08x", reg_strs[rd], data);
-		int idx = -1;
-		if ((idx = searchSymbol(core->debug_wb_data, globalObject)) != -1)
+	/*
+		void dumpRegs(void)
 		{
-			fprintf(logfile, "(%s)", globalObject[idx].name);
-		}
-	};
+			regs[0] = core->debug_pc;
+			regs[1] = core->debug_x1;
+			regs[2] = core->debug_x2;
+			regs[3] = core->debug_x3;
+			regs[4] = core->debug_x4;
+			regs[5] = core->debug_x5;
+			regs[6] = core->debug_x6;
+			regs[7] = core->debug_x7;
+			regs[8] = core->debug_x8;
+			regs[9] = core->debug_x9;
+			regs[10] = core->debug_x10;
+			regs[11] = core->debug_x11;
+			regs[12] = core->debug_x12;
+			regs[13] = core->debug_x13;
+			regs[14] = core->debug_x14;
+			regs[15] = core->debug_x15;
+			regs[16] = core->debug_x16;
+			regs[17] = core->debug_x17;
+			regs[18] = core->debug_x18;
+			regs[19] = core->debug_x19;
+			regs[20] = core->debug_x20;
+			regs[21] = core->debug_x21;
+			regs[22] = core->debug_x22;
+			regs[23] = core->debug_x23;
+			regs[24] = core->debug_x24;
+			regs[25] = core->debug_x25;
+			regs[26] = core->debug_x26;
+			regs[27] = core->debug_x27;
+			regs[28] = core->debug_x28;
+			regs[29] = core->debug_x29;
+			regs[30] = core->debug_x30;
+			regs[31] = core->debug_x31;
+		};
+	*/
 	void printException(uint32_t epc, uint32_t cause, uint32_t mtval)
 	{
 		const char *str;
@@ -1362,6 +1369,11 @@ void gotSigInt(int i)
 	exit(0);
 }
 
+void test()
+{
+	printf("\nhi\n");
+}
+
 int main(int argc, char **argv)
 {
 	struct sigaction act;
@@ -1374,37 +1386,35 @@ int main(int argc, char **argv)
 	struct termios tmio;
 	struct termios stmio;
 	env_t env;
-
+	proc0 = NULL;
 	env.tmio = &stmio;
 	env.procs = &proc0;
-	on_exit(sim_exit, &env);
 
 	fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);
 	tcgetattr(STDIN_FILENO, &tmio);
 	stmio = tmio;
 	tmio.c_lflag &= ~(ECHO | ICANON);
 	tcsetattr(STDIN_FILENO, TCSANOW, &tmio);
-#ifndef FAST_SIM
-	Verilated::commandArgs(argc, argv);
+	on_exit(sim_exit, &env);
+	// Verilated::commandArgs(argc, argv);
 	Verilated::traceEverOn(true);
-#endif
 	proc0 = new processor_t("core\t0");
 #ifndef NO_TARGET
 	proc0->load(argv[1]); // elf
 #endif
-#ifndef FAST_SIM
-	proc0->openLogFile(argv[1]);
 #ifndef NO_TARGET
 	proc0->parseLogOpts(argc - 1, argv + 1);
 #else
 	proc0->parseLogOpts(argc, argv);
 #endif
-	proc0->openDisasm();
-
+#ifndef FAST_SIM
+	proc0->openLogFile(argv[1]);
 #endif
+	proc0->openDisasm();
 	proc0->resetCore();
 	// printf("%p %p\n", *(env.procs), proc0);
-	while (1)
+	int cnt = 0;
+	while (cnt < 1)
 	{
 		ret = proc0->step();
 		if (ret != -1)
@@ -1412,7 +1422,9 @@ int main(int argc, char **argv)
 			break;
 		}
 	}
+#ifndef FAST_SIM
 	proc0->step(); /* flush store instruction */
+#endif
 
 	return (ret == 0x00000001) ? 0 : ret;
 }
@@ -1421,10 +1433,10 @@ void sim_exit(int status, void *p)
 {
 	env_t *env;
 	env = (env_t *)p;
+	tcsetattr(STDIN_FILENO, TCSANOW, env->tmio);
 	if ((*(env->procs)) != NULL)
 	{
 		(*(env->procs))->dumpMemory();
 		delete *(env->procs);
 	}
-	tcsetattr(STDIN_FILENO, TCSANOW, env->tmio);
 }

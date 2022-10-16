@@ -84,6 +84,12 @@ module rv32x5p {
 				}
 			}
 		}
+
+		#ifdef CV
+		if(PC == 0x80000000){
+			debug_led_1();
+		}
+		#endif
 	}
 	func flush_ifetch {
 		ifetch.finish();
@@ -187,6 +193,8 @@ module rv32x5p {
 		if(!stall_decode) {
 			execute(dereg);
 		}
+		#ifdef CV
+		#endif
 	}
 	func flush_decode {
 		decode.finish();
@@ -487,6 +495,11 @@ module rv32x5p {
 				not_taken: rv32x_btb.not_taken();
 			}
 		}
+		#ifdef CV
+		if(DEREG.illegal_instruction){
+			debug_led_3();
+		}
+		#endif
 	}
 	func miss_prediction {
 		rv32x_btb.update(DEREG.pc, target_address);
@@ -651,6 +664,8 @@ module rv32x5p {
 		mwreg.debug_csr_write_num = debug_cwadrs;
 		mwreg.debug_csr_write_data = debug_cwdata;
 #endif
+		#ifdef CV
+		#endif
 	}
 	func csrrw {
 		csr_wb_data = if(EMREG.uimm) 32'(EMREG.rs1) else EMREG.rs1_data;
@@ -725,6 +740,8 @@ module rv32x5p {
 		debug_retire(MWREG.pc, MWREG.inst);
 #endif
 		finish();
+		#ifdef CV
+		#endif
 	}
 	func get_pc_memory {
 		return EMREG.pc; 

@@ -38,13 +38,11 @@ declare rv32x_simulation simulation {
 	func_in block_data_valid();
 	func_out read_block(block_adrs);
 	func_out write_block(block_adrs,write_block_data);
-#ifdef DEBUG
 	output uart_data[8];
 	func_out uart_done();
 	input uart_wdata[8];
 	func_in uart_write(uart_wdata);
-	output tohost[32];
-	func_out sim_done(tohost);
+#ifdef DEBUG
 	output debug_x0[32];
 	output debug_x1[32];
 	output debug_x2[32];
@@ -100,6 +98,11 @@ declare rv32x_simulation simulation {
 	//func_in debug_disp_funcname(funcname);
 	output debug32[32];
 	func_out debug_general32(debug32);
+#endif
+
+#ifdef RISCV_TESTS
+	output tohost[32];
+	func_out sim_done(tohost);
 #endif
 }
 
@@ -165,9 +168,6 @@ module rv32x_simulation {
 		mmcsim.read_block_data = block_data;
 	}
 #ifdef DEBUG
-	func core.sim_done {
-		sim_done(core.tohost);
-	}
 	debug_x0  = core.debug_x0;
 	debug_x1  = core.debug_x1;
 	debug_x2  = core.debug_x2;
@@ -218,6 +218,12 @@ module rv32x_simulation {
 	}
 	func core.debug_general32{
 		debug_general32(core.debug32);
+	}
+#endif
+
+#ifdef RISCV_TESTS
+	func core.sim_done {
+		sim_done(core.tohost);
 	}
 #endif
 }

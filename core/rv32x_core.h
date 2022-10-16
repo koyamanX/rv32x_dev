@@ -1,6 +1,7 @@
 #ifndef RV32X_CORE_H
 #define RV32X_CORE_H
-declare rv32x_core {
+declare rv32x_core
+{
 	func_in reset();
 
 	/* I-BUS */
@@ -49,8 +50,6 @@ declare rv32x_core {
 	func_in supervisor_external_interrupt_req();
 
 #ifdef DEBUG
-	output tohost[32];
-	func_out sim_done(tohost);
 	output debug_x0[32];
 	output debug_x1[32];
 	output debug_x2[32];
@@ -102,6 +101,20 @@ declare rv32x_core {
 	output debug_mtval[32];
 	output debug_inst[32];
 	func_out debug_raise_exception(debug_cause, debug_epc, debug_mtval, debug_inst);
+#endif
+#ifdef RISCV_TESTS
+	output tohost[32];
+	func_out sim_done(tohost);
+#endif
+#ifdef CV
+	func_out debug_led_1();
+	func_out debug_led_2();
+	func_out debug_led_3();
+	func_out debug_led_4();
+	func_out debug_led_5();
+	func_out debug_led_6();
+	func_out debug_led_7();
+	func_out debug_led_8();
 #endif
 }
 #endif

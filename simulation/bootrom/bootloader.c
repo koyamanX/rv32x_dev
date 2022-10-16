@@ -11,7 +11,7 @@
 #ifdef HEAD
 #define TEXTHEAD ((volatile unsigned int *)HEAD)
 #else
-#define TEXTHEAD ((volatile unsigned int *)0x80400000)
+#define TEXTHEAD ((volatile unsigned int *)0x80000000)
 #endif
 
 /*

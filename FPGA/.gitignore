@@ -4,3 +4,4 @@ synth/*
 pll/*
 rom_1p/*
 ram_1p/*
+tests/*

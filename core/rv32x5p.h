@@ -133,5 +133,15 @@ declare rv32x5p
 	input debug_cwdata[32];
 	func_in get_csr(debug_cwadrs, debug_cwdata);
 #endif
+#ifdef CV
+	func_out debug_led_1();
+	func_out debug_led_2();
+	func_out debug_led_3();
+	func_out debug_led_4();
+	func_out debug_led_5();
+	func_out debug_led_6();
+	func_out debug_led_7();
+	func_out debug_led_8();
+#endif
 }
 #endif
