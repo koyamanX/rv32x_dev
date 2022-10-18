@@ -889,6 +889,9 @@ module rv32x_core {
 #ifdef DEBUG
 		debug_raise_exception(trap_cause, trap_pc, trap_val, debug_einst);
 #endif
+#ifdef CV
+		debug_sseg_h8({trap_cause[31:28],trap_cause[3:0]});
+#endif
 	}
 	/* fence.i */
 	func rv32x.fencei {
@@ -1194,6 +1197,12 @@ module rv32x_core {
 	}	
 	func rv32x.debug_led_5{
 		debug_led_5();
+	}
+	func rv32x.debug_pc_led{
+		debug_pc_led(rv32x.pc_led);
+	}
+	func rv32x.debug_sseg_l16{
+		debug_sseg_l16(rv32x.sseg_l16);
 	}
 #endif
 }

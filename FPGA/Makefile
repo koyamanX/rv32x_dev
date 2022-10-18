@@ -32,6 +32,7 @@ HEXS := bootrom.hex
 LIBS		= 
 RESULT		= result.txt
 TARGET	= $(SRCDIR)/tests/rv32mi-p-breakpoint
+TEST = $(filter-out %.hex,$(wildcard $(SRCDIR)/tests/*))
 
 ########
 
@@ -79,7 +80,7 @@ riscv-tests:
 		mkdir $(SRCDIR)/tests; \
 	fi
 	find $(SRCDIR)/../software/riscv-tests/isa -maxdepth 1 -perm -111 -type f | xargs -i cp -p {} $(SRCDIR)/tests
-
+	ls $(TEST) | xargs -t -i riscv32-unknown-elf-objcopy -O verilog {} {}.hex
 
 test2:
 	echo $(MIFSRCS) $(VFILES) $(HEXS)

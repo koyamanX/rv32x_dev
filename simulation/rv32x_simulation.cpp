@@ -50,9 +50,6 @@ extern "C"
 #define SUPERVISOR_EXTERNAL_INTERRUPT 0x80000009
 
 #define BLOCK_DEVICE_FILENAME "block_device.img"
-#ifndef KERNEL_ELF_LOCATION
-#define KERNEL_ELF_LOCATION "/root/software/linux/vmlinux"
-#endif
 #define STRINGIZE(x) #x
 #define STRINGIZE_VALUE_OF(x) STRINGIZE(x)
 #define START_ADDR 0x80000000
@@ -184,7 +181,11 @@ private:
 	} * procedure, *globalObject;
 	char *target_symbol = NULL;
 	int import_linux_symbol_flag = 0;
+#ifdef KERNEL_ELF_LOCATION
 	const char *vmlinux_location = STRINGIZE_VALUE_OF(KERNEL_ELF_LOCATION); //"/root/software/xv6-riscv/kernel/kernel"; //	"/root/software/busybox/busybox_unstripped"; //
+#else
+	const char *vmlinux_location = "/root/software/linux/vmlinux";
+#endif
 	int skip_procedure_search = 0;
 	int skip_object_search = 0;
 	int callDepth = 0;
@@ -467,13 +468,11 @@ public:
 				{
 					printf("status = 0x%08x\n", core->debug32);
 				}
-				/*
 				if (core->sim_done && !no_sim_exit)
 				{
 					printf("0x%08x\n", core->tohost);
 					ret = core->tohost;
 				}
-				*/
 				if (core->debug_raise_exception)
 				{
 					epc = core->debug_epc;

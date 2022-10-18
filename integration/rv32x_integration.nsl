@@ -259,19 +259,28 @@ module rv32x_integration {
 
 #ifdef CV
 	func core.debug_led_1{
-		debug_led_1();
+		//debug_led_1();
 	}	
 	func core.debug_led_2{
-		debug_led_2();
+		//debug_led_2();
 	}	
 	func core.debug_led_3{
-		debug_led_3();
+		//debug_led_3();
 	}	
 	func core.debug_led_4{
-		debug_led_4();
+		//debug_led_4();
 	}	
 	func core.debug_led_5{
-		debug_led_5();
+		//debug_led_5();
+	}
+	func core.debug_pc_led{
+		debug_pc_led(core.pc_led);
+	}
+	func core.debug_sseg_h8{
+		debug_sseg_h8(core.sseg_h8);
+	}
+	func core.debug_sseg_l16{
+		debug_sseg_l16(core.sseg_l16);
 	}
 #endif
 }

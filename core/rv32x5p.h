@@ -134,6 +134,10 @@ declare rv32x5p
 	func_in get_csr(debug_cwadrs, debug_cwdata);
 #endif
 #ifdef CV
+	output pc_led[10];
+	func_out debug_pc_led(pc_led);
+	output sseg_l16[16]; // execute stage pc low 16bit
+	func_out debug_sseg_l16(sseg_l16);
 	func_out debug_led_1();
 	func_out debug_led_2();
 	func_out debug_led_3();

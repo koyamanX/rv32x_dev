@@ -107,6 +107,12 @@ declare rv32x_core
 	func_out sim_done(tohost);
 #endif
 #ifdef CV
+	output pc_led[10];
+	func_out debug_pc_led(pc_led);
+	output sseg_h8[8];
+	func_out debug_sseg_h8(sseg_h8); // mcause
+	output sseg_l16[16];
+	func_out debug_sseg_l16(sseg_l16);
 	func_out debug_led_1();
 	func_out debug_led_2();
 	func_out debug_led_3();

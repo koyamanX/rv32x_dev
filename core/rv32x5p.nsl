@@ -86,9 +86,6 @@ module rv32x5p {
 		}
 
 		#ifdef CV
-		if(PC == 0x80000000){
-			debug_led_1();
-		}
 		#endif
 	}
 	func flush_ifetch {
@@ -496,9 +493,7 @@ module rv32x5p {
 			}
 		}
 		#ifdef CV
-		if(DEREG.illegal_instruction){
-			debug_led_3();
-		}
+			debug_sseg_l16(DEREG.pc[15:0]);
 		#endif
 	}
 	func miss_prediction {
