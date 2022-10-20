@@ -17,6 +17,7 @@ declare downclock interface{
     output HEX3[7];
     output HEX4[7];
     output HEX5[7];
+    input SW[10];
 }
 
 module downclock{
@@ -35,6 +36,7 @@ module downclock{
     HEX3 = core.HEX3;
     HEX4 = core.HEX4;
     HEX5 = core.HEX5;
+    core.SW = SW;
 }
 
 declare top_1hz{
@@ -52,6 +54,7 @@ declare top_1hz{
     output HEX3[7];
     output HEX4[7];
     output HEX5[7];
+    input SW[10];
 }
 
 module top_1hz{
@@ -75,6 +78,7 @@ module top_1hz{
     HEX3 = core.HEX3;
     HEX4 = core.HEX4;
     HEX5 = core.HEX5;
+    core.SW = SW;
 
     if(cnt == 12500000){
         cnt := 0;

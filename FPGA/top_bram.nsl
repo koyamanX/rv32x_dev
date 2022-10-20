@@ -1,12 +1,24 @@
 #include "rv32x_integration.h"
-#include "../mem/bram_ctr.h"
+#include "bram_ctr.h"
+#include "opcode.h"
 #include "top_bram.h"
 
 module top_bram {
+	reg read_cnt[2] = 0;
+	reg ptr[2] = 0;
+	mem inst_block_buf[4][2];
+	reg inst_buf[28];
     func_self reset();
 	func_self conflict();
 	func_self init_sseg();
+	wire iaddr[32];
+	wire ibyteen[3];
+	func_self imem_read(iaddr, ibyteen);
+	func_self debug_led_11();
+	func_self debug_led_12();
+	func_self debug_led_13();
 	reg led[10] = 0;
+	reg sw[10] = 0;
 	reg cnt[10] = 0;
 	mem sseg[6][7];
 	mem encode[16][7];/*={0b1111110, 0b0110000, 0b1101101, 0b1111001,
@@ -41,7 +53,7 @@ module top_bram {
 		core.reset();
 		init_sseg();
 	}
-	func init_sseg{
+	func init_sseg{	//avoid initial begin
 		integer i;
 		generate(i=0;i<6;i++){
 			sseg[i] := 0b1111111;
@@ -63,24 +75,50 @@ module top_bram {
 		encode[14] := 0b0000110;
 		encode[15] := 0b0001110;
 	}
+	func debug_led_11{
+		led := led | 10'(0x080);
+	}
+	func debug_led_12{
+		led := led | 10'(0x100);
+	}
+	func debug_led_13{
+		led := led | 10'(0x200);
+	}
+
+	func imem_read{
+		bram.read(iaddr, ibyteen, IMEM);
+	}
+
+	if(!conflict && (read_cnt != ptr)){
+		imem_read({inst_buf,inst_block_buf[ptr],2'b00}, MEM_WORD);
+		ptr++;
+	}
+
 	func core.imem_read {
-		if(!conflict){
-			bram.read(core.iaddr, core.ibyteen, IMEM);
+		if(!conflict && (read_cnt == ptr)){
+			imem_read(core.iaddr, core.ibyteen);
+		}else{
+			inst_buf := core.iaddr[31:4];
+			inst_block_buf[read_cnt] := core.iaddr[3:2];
+			read_cnt++;
 		}
 	}
 	func core.dmem_read {
 		conflict();
 		bram.read(core.daddr, core.dbyteen, DMEM);
+		//debug_led_12();
 		//led := 9'b000000010;
 	}
 	func core.dmem_write {
 		conflict();
 		bram.write(core.daddr, core.dbyteen, core.wdata);
+		//debug_led_13();
 		//led := 9'b000000100;
 	}
 	func bram.iready {
 		core.inst = bram.rdata;
 		core.imem_ready();
+		led := 10'(0x100);
 	}
 	func bram.dready {
 		core.rdata = bram.rdata;
@@ -88,33 +126,35 @@ module top_bram {
 	}
 	#ifdef RISCV_TESTS
 	func core.sim_done {
-		led :=10'(0x2AA);
+		led :=10'(0x2FF);
 	}
 	#endif
 	#ifdef CV
+    core.SW = SW;
+
 	func core.debug_led_1{
-		led := led | 10'(0x002);
+		led := 10'(0x001);
 	}
 	func core.debug_led_2{
-		led := led | 10'(0x004);
+		led := 10'(0x002);
 	}
 	func core.debug_led_3{
-		led := led | 10'(0x008);
+		led := 10'(0x004);
 	}
 	func core.debug_led_4{
-		led := led | 10'(0x010);
+		led := 10'(0x008);
 	}
 	func core.debug_led_5{
-		led := led | 10'(0x020);
+		led := 10'(0x010);
 	}
 	func core.debug_led_6{
-		led := led | 10'(0x040);
+		led := 10'(0x020);
 	}
 	func core.debug_led_7{
-		led := led | 10'(0x080);
+		led := 10'(0x040);
 	}
 	func core.debug_led_8{
-		led := led | 10'(0x100);
+		led := 10'(0x080);
 	}
 	func core.debug_pc_led{
 		led := core.pc_led;
@@ -128,6 +168,28 @@ module top_bram {
 		sseg[2] := encode[core.sseg_l16[11:8]];
 		sseg[1] := encode[core.sseg_l16[7:4]];
 		sseg[0] := encode[core.sseg_l16[3:0]];
+	}
+	func core.debug_sseg_h12{
+		sseg[5] := encode[core.sseg_h12[11:8]];
+		sseg[4] := encode[core.sseg_h12[7:4]];
+		sseg[3] := encode[core.sseg_h12[3:0]];
+	}
+	func core.debug_sseg_l12{
+		sseg[2] := encode[core.sseg_l12[11:8]];
+		sseg[1] := encode[core.sseg_l12[7:4]];
+		sseg[0] := encode[core.sseg_l12[3:0]];
+	}
+	/*
+	func bram.debug_sseg_h12{
+		sseg[5] := encode[bram.sseg_h12[11:8]];
+		sseg[4] := encode[bram.sseg_h12[7:4]];
+		sseg[3] := encode[bram.sseg_h12[3:0]];
+	}
+	*/
+	func bram.debug_sseg_l12{
+		sseg[2] := encode[bram.sseg_l12[11:8]];
+		sseg[1] := encode[bram.sseg_l12[7:4]];
+		sseg[0] := encode[bram.sseg_l12[3:0]];
 	}
 	#endif
 }

@@ -950,23 +950,45 @@ module rv32x_core {
 		lsu_tlb_flush_done		:= 1;
 	}
 	func ic.mem_read {
+		#define PREFETCH_BYTES 4
 		reg ic_read_cnt[3] = 0;
+		reg ic_prefetch_cnt[3] = 0;
 		mem ic_read_data[4][32];
-		
-		imem_read({ic.mem_addr[31:4], 4'({ic_read_cnt, 2'b00})}, MEM_WORD);
+		if(ic_prefetch_cnt < PREFETCH_BYTES){
+			imem_read({ic.mem_addr[31:4], 4'({ic_prefetch_cnt, 2'b00})}, MEM_WORD);
+			ic_prefetch_cnt++;
+		}
 		if(ic_read_cnt == 4) {
 			if(imem_ready) {
 				ic_read_cnt := 0;
+				ic_prefetch_cnt := 0;
 				ic.mem_rdata = {ic_read_data[3], ic_read_data[2], ic_read_data[1], ic_read_data[0]};
 				ic.mem_ready();
+				#ifdef CV
+					debug_sseg_h12(inst[11:0]);
+				#endif
 			}
 		} else {
 			if(imem_ready) {
 				ic_read_cnt++;
 				ic_read_data[ic_read_cnt] := inst;
+				#ifdef CV
+					debug_sseg_h12(inst[11:0]);
+				#endif
 			}
 		}
 	}
+	#ifdef CV
+	any{
+		ic_read_cnt[0]: debug_led_1();
+		ic_read_cnt[1]: debug_led_2();
+		ic_read_cnt[2]: debug_led_3();
+		ic_prefetch_cnt[0]:debug_led_4();
+		ic_prefetch_cnt[1]:debug_led_5();
+		ic_prefetch_cnt[2]:debug_led_6();
+		ic.mem_read:	debug_led_8();
+	}
+	#endif
 	func ic.walk {
 		lsu.read_tlb(ic.vaddr);
 	}
@@ -1062,13 +1084,18 @@ module rv32x_core {
 
 	func lsu.dbus_read {
 		reg lsu_read_cnt[3] = 0;
+		reg lsu_prefetch_cnt[3] = 0;
 		mem lsu_read_data[4][32];
 
 		if(lsu.dbus_size == MEM_QUADWORD) {
-			dmem_read({lsu.dbus_addr[31:4], 4'({lsu_read_cnt, 2'b00})}, MEM_WORD);
+			if(lsu_prefetch_cnt < PREFETCH_BYTES){
+				dmem_read({lsu.dbus_addr[31:4], 4'({lsu_prefetch_cnt, 2'b00})}, MEM_WORD);
+				lsu_prefetch_cnt++;
+			}
 			if(lsu_read_cnt == 4) {
 				if(dmem_ready) {
 					lsu_read_cnt := 0;
+					lsu_prefetch_cnt := 0;
 					lsu.dbus_rdata = {lsu_read_data[3], lsu_read_data[2], lsu_read_data[1], lsu_read_data[0]};
 					lsu.dbus_ready();
 				}
@@ -1097,14 +1124,13 @@ module rv32x_core {
 		mem lsu_write_data[4][32];
 		
 		if(lsu.dbus_size == MEM_QUADWORD) {
-			dmem_write({lsu.dbus_addr[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu_write_data[lsu_write_cnt]);
 			any {
 				lsu_write_cnt == 0: {
 					lsu_write_data[0] := lsu.dbus_wdata[31:0];
 					lsu_write_data[1] := lsu.dbus_wdata[63:32];
 					lsu_write_data[2] := lsu.dbus_wdata[95:64];
 					lsu_write_data[3] := lsu.dbus_wdata[127:96];
-					lsu_write_cnt++;
+					//lsu_write_cnt++;
 				}
 				lsu_write_cnt == 4: {
 					if(dmem_ready) {
@@ -1114,6 +1140,7 @@ module rv32x_core {
 				}
 				else: {
 					if(dmem_ready) {
+						dmem_write({lsu.dbus_addr[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu_write_data[lsu_write_cnt]);
 						lsu_write_cnt++;
 					}
 				}
@@ -1183,6 +1210,7 @@ module rv32x_core {
 	}
 #endif
 #ifdef CV
+	rv32x.SW = SW;
 	func rv32x.debug_led_1{
 		debug_led_1();
 	}	
@@ -1198,11 +1226,50 @@ module rv32x_core {
 	func rv32x.debug_led_5{
 		debug_led_5();
 	}
+	func rv32x.debug_led_6{
+		debug_led_6();
+	}
+	func rv32x.debug_led_7{
+		debug_led_7();
+	}
+	func rv32x.debug_led_8{
+		debug_led_8();
+	}
 	func rv32x.debug_pc_led{
 		debug_pc_led(rv32x.pc_led);
 	}
 	func rv32x.debug_sseg_l16{
 		debug_sseg_l16(rv32x.sseg_l16);
+	}
+	func rv32x.debug_sseg_l12{
+		debug_sseg_l12(rv32x.sseg_l12);
+	}
+	func rv32x.debug_sseg_h12{
+		debug_sseg_h12(rv32x.sseg_h12);
+	}
+	func ic.debug_led_1{
+		debug_led_1();
+	}	
+	func ic.debug_led_2{
+		debug_led_2();
+	}	
+	func ic.debug_led_3{
+		debug_led_3();
+	}	
+	func ic.debug_led_4{
+		debug_led_4();
+	}	
+	func ic.debug_led_5{
+		debug_led_5();
+	}
+	func ic.debug_led_6{
+		debug_led_6();
+	}
+	func ic.debug_led_7{
+		debug_led_7();
+	}
+	func ic.debug_led_8{
+		debug_led_8();
 	}
 #endif
 }

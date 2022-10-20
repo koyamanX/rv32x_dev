@@ -14,4 +14,5 @@ declare top_bram
     output HEX3[7];
     output HEX4[7];
     output HEX5[7];
+    input SW[10];
 }

@@ -87,6 +87,7 @@ set_location_assignment PIN_K9 -to MISO
 #set_location_assignment PIN_D12 -to SD_DATA[1]
 set_location_assignment PIN_E12 -to CS
 set_location_assignment PIN_C11 -to MOSI
+
 set_location_assignment PIN_AA2 -to LEDR[0]
 set_location_assignment PIN_AA1 -to LEDR[1]
 set_location_assignment PIN_W2 -to LEDR[2]
@@ -97,6 +98,7 @@ set_location_assignment PIN_U2 -to LEDR[6]
 set_location_assignment PIN_U1 -to LEDR[7]
 set_location_assignment PIN_L2 -to LEDR[8]
 set_location_assignment PIN_L1 -to LEDR[9]
+
 set_location_assignment PIN_U21 -to HEX0[0]
 set_location_assignment PIN_V21 -to HEX0[1]
 set_location_assignment PIN_W22 -to HEX0[2]
@@ -139,6 +141,17 @@ set_location_assignment PIN_P14 -to HEX5[3]
 set_location_assignment PIN_C1 -to HEX5[4]
 set_location_assignment PIN_C2 -to HEX5[5]
 set_location_assignment PIN_W19 -to HEX5[6]
+
+set_location_assignment PIN_U13 -to SW[0]
+set_location_assignment PIN_V13 -to SW[1]
+set_location_assignment PIN_T13 -to SW[2]
+set_location_assignment PIN_T12 -to SW[3]
+set_location_assignment PIN_AA15 -to SW[4]
+set_location_assignment PIN_AB15 -to SW[5]
+set_location_assignment PIN_AA14 -to SW[6]
+set_location_assignment PIN_AA13 -to SW[7]
+set_location_assignment PIN_AB13 -to SW[8]
+set_location_assignment PIN_AB12 -to SW[9]
 #============================================================
 
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to m_clock
@@ -159,6 +172,21 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to MOSI
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to CS
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to TXD
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to RXD
+
+#============================================================
+# SW
+#============================================================
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[8]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SW[9]
+
 #============================================================
 # HEX0
 #============================================================

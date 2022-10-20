@@ -66,11 +66,12 @@ mem.v: $(SRCDIR)/mem/mem.nsl
 
 bram_ctr.v: $(SRCDIR)/mem/bram_ctr.nsl
 	$(NSL2VL) $(NSLFLAGS)  $< -o $@
-	sed -i -e "97i \ \ defparam memory.filename = \"memory_0.mif\";" bram_ctr.v
-	sed -i -e "97i \ \ defparam memory_1.filename = \"memory_1.mif\";" bram_ctr.v
-	sed -i -e "97i \ \ defparam memory_2.filename = \"memory_2.mif\";" bram_ctr.v
-	sed -i -e "97i \ \ defparam memory_3.filename = \"memory_3.mif\";" bram_ctr.v
-
+	sed -i -e "s/endmodule/\ndefparam memory.filename = \"memory_0.mif\";\n\
+	defparam memory_1.filename = \"memory_1.mif\";\n\
+	defparam memory_2.filename = \"memory_2.mif\";\n\
+	defparam memory_3.filename = \"memory_3.mif\";\n\
+	\nendmodule/g" bram_ctr.v 
+	
 mifs:
 	$(SRCDIR)/test.sh $(SRCDIR) $(TARGET)
 

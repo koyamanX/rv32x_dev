@@ -18,31 +18,34 @@ module bram_ctr {
 	
 	func read {
 		generate(i=0;i<4;i++){
-			memory[i].address = addr[15:2];
+			memory[i].address = addr[14:2];
 			memory[i].wren = READ;
 		}
 		memory_read(byteen,type);
+		#ifdef CV
+			debug_sseg_l12(addr[13:2]);
+		#endif
 	}
 
 	func write {
 		any {
 			byteen == MEM_WORD: {
 				generate(i=0;i<4;i++){
-					memory[i].address = addr[15:2];
+					memory[i].address = addr[14:2];
 					memory[i].wren = WRITE;
 					memory[i].data = wdata[((i+1)*8 - 1):i*8];
 				}
 			}
 			byteen == MEM_HALFWORD: {
 				generate(i=0;i<2;i++){
-					memory[i].address = addr[15:2];
+					memory[i].address = addr[14:2];
 					memory[i].wren = WRITE;
 					memory[i].data = wdata[((i+1)*8 - 1):i*8];
 				}
 			}
 			byteen == MEM_BYTE: {
 				generate(i=0;i<1;i++){
-					memory[i].address = addr[15:2];
+					memory[i].address = addr[14:2];
 					memory[i].wren = WRITE;
 					memory[i].data = wdata[((i+1)*8 - 1):i*8];
 				}
