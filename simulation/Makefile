@@ -1,6 +1,6 @@
 TOP=rv32x_simulation
 NSL2VL=nsl2vl
-NFLAGS=-O2 -neg_res -I../core -I../integration -I../integration/mmcspi/src -DDEBUG -DRISCV_TESTS
+NFLAGS=-O2 -neg_res -I../core -I../integration -I../integration/mmcspi/src -DDEBUG
 #SIMFLAGS=-verisim2 -target $(TOP)
 INCOPT=-I../core
 NSRC := $(wildcard ../core/*.nsl) $(wildcard ../integration/*.nsl) $(wildcard ../integration/mmcspi/src/*.nsl) $(wildcard ../simulation/*.nsl)

@@ -1,7 +1,7 @@
 OUTPUT_ARCH( "riscv" )
 ENTRY(_boot)
 MEMORY {
-	ROM(rx): ORIGIN = 0x00000000, LENGTH = 1K
+	ROM(rx): ORIGIN = 0x00000000, LENGTH = 4K
 }
 
 SECTIONS
@@ -20,7 +20,7 @@ SECTIONS
   __bss_end = .;
   .zero : { 
 	  FILL(0x0); 
-	  . = 0x400-__bss_end - 1;
+	  . = 0x1000-__bss_end - 1;
 	  BYTE(0x00);
    } > ROM
 }

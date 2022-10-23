@@ -468,11 +468,13 @@ public:
 				{
 					printf("status = 0x%08x\n", core->debug32);
 				}
+				/*
 				if (core->sim_done && !no_sim_exit)
 				{
 					printf("0x%08x\n", core->tohost);
 					ret = core->tohost;
 				}
+				*/
 				if (core->debug_raise_exception)
 				{
 					epc = core->debug_epc;
