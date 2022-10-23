@@ -22,6 +22,8 @@ NSLFLAGS  	= -O2 -neg_res -I$(SRCDIR)/../core -I$(SRCDIR)/../integration -I$(SRC
 MKPROJ		= $(SRCDIR)/mkproj-$(BOARD).tcl
 Q2SH		= quartus_sh
 Q2PGM		= quartus_pgm
+Q2CDB		= quartus_cdb
+Q2ASM		= quartus_asm
 CABLE		= "USB-Blaster [USB-0]"
 PMODE		= JTAG
 NSRC := $(wildcard $(SRCDIR)/../core/*.nsl) $(wildcard $(SRCDIR)/../integration/*.nsl) $(wildcard $(SRCDIR)/../integration/mmcspi/src/*.nsl) $(wildcard $(SRCDIR)/*.nsl) $(wildcard $(SRCDIR)/mem/*.nsl)
@@ -31,8 +33,10 @@ VFILES := $(patsubst %.nsl,%.v,$(notdir $(NSRC)))
 HEXS := bootrom.hex
 LIBS		= 
 RESULT		= result.txt
-TARGET	= $(SRCDIR)/tests/rv32mi-p-breakpoint
+TARGET	= program/program	#pack to mif
+_TARGET = $(SRCDIR)/$(TARGET)
 TEST = $(filter-out %.hex,$(wildcard $(SRCDIR)/tests/*))
+TOP = top_bram	#top module
 
 ########
 
@@ -41,6 +45,8 @@ all:
 		echo mkdir $(WORKDIR); \
 		mkdir $(WORKDIR); \
 	fi
+	sed -i -e "s/TOP_LEVEL_ENTITY.*/TOP_LEVEL_ENTITY $(TOP)/g" $(MKPROJ)
+	sed -i -e "s/NUM_PARALLEL_PROCESSORS.*/NUM_PARALLEL_PROCESSORS $(shell nproc)/g" $(MKPROJ)
 	( cd $(WORKDIR); make -f ../Makefile SRCDIR=.. compile )
 
 ########
@@ -73,7 +79,16 @@ bram_ctr.v: $(SRCDIR)/mem/bram_ctr.nsl
 	\nendmodule/g" bram_ctr.v 
 	
 mifs:
-	$(SRCDIR)/test.sh $(SRCDIR) $(TARGET)
+	$(SRCDIR)/test.sh $(SRCDIR) $(_TARGET)
+#	ls *.mif | xargs -t -i mv {} $(SRCDIR)/synth/
+
+update_mifs: mifs	#after create target program hex
+	cd $(WORKDIR); make -f ../Makefile _update_mifs
+
+_update_mifs:
+	$(Q2CDB) $(DESIGN) -c $(DESIGN) --update_mif
+	$(Q2ASM) --read_settings_files=off --write_settings_files=off $(DESIGN) -c $(DESIGN)
+
 
 riscv-tests:
 	make -C $(SRCDIR)/../software/riscv-tests/isa XLEN=32

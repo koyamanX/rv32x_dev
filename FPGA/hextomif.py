@@ -36,7 +36,7 @@ def formatBig(input):
     return array
 
 
-def memGen(input):
+def memGen(input, outdir):
     addr = 0x0
     mem = []
     array = format(input)
@@ -61,11 +61,11 @@ def memGen(input):
         buf += ';\nEND;'
         # print(buf)
         buf = buf.replace('@', str(addr))
-        with open("memory_"+str(num)+".mif", 'w') as f:
+        with open(os.path.join(outdir, "memory_"+str(num)+".mif"), 'w') as f:
             f.write(buf)
 
 
-def bootromGen(input):
+def bootromGen(input, outdir):
     addr = 0x0
     array = formatBig(input)  # convert to big endian
     cnt = 0
@@ -83,13 +83,15 @@ def bootromGen(input):
     buf += ';\nEND;'
     # print(buf)
     buf = buf.replace('@', str(addr))
-    with open("bootrom.mif", 'w') as f:
+    with open(os.path.join(outdir, "bootrom.mif"), 'w') as f:
         f.write(buf)
 
 
 if __name__ == "__main__":
     input = sys.argv[1]
+    srcdir = sys.argv[2]
+    outdir = os.path.join(srcdir, "synth")
     if os.path.basename(input) == "bootrom.hex":
-        bootromGen(input)
+        bootromGen(input, outdir)
     else:
-        memGen(input)
+        memGen(input, outdir)

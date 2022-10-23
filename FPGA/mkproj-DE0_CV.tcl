@@ -20,7 +20,6 @@ if {$opt(project) == ""} {
 
 project_new $opt(project) -overwrite
 
-set_global_assignment -name TOP_LEVEL_ENTITY $opt(project)
 foreach arg $argv {
 	set_global_assignment -name VERILOG_FILE $arg
 }
@@ -30,11 +29,12 @@ if {$opt(script) != ""} {
 }
 
 ########
-
+	
+set_global_assignment -name NUM_PARALLEL_PROCESSORS 12
 set_global_assignment -name FMAX_REQUIREMENT 50MHz
 create_base_clock -fmax 50MHz -duty_cycle 50 m_clock
 
-set_global_assignment -name TOP_LEVEL_ENTITY top_1hz
+set_global_assignment -name TOP_LEVEL_ENTITY top_bram	
 
 #============================================================
 # Build by Terasic System Builder V1.0.0
@@ -82,11 +82,9 @@ set_global_assignment -name CYCLONEII_RESERVE_NCEO_AFTER_CONFIGURATION "USE AS R
 set_location_assignment PIN_P22 -to p_reset
 set_location_assignment PIN_M9 -to m_clock
 set_location_assignment PIN_H11 -to SCLK
-#set_location_assignment PIN_B11 -to SD_CMD
+set_location_assignment PIN_B11 -to MOSI
 set_location_assignment PIN_K9 -to MISO
-#set_location_assignment PIN_D12 -to SD_DATA[1]
-set_location_assignment PIN_E12 -to CS
-set_location_assignment PIN_C11 -to MOSI
+set_location_assignment PIN_C11 -to CS
 
 set_location_assignment PIN_AA2 -to LEDR[0]
 set_location_assignment PIN_AA1 -to LEDR[1]
@@ -172,6 +170,9 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to MOSI
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to CS
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to TXD
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to RXD
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to MOSI
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to MISO
+set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to CS
 
 #============================================================
 # SW
