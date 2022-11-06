@@ -1,6 +1,6 @@
 #ifndef BRAM_H
 #define BRAM_H
-declare bram_ctr
+declare mem_ctr
 {
 	input addr[32];
 	input wdata[32];

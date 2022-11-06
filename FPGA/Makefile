@@ -18,7 +18,7 @@ WORKDIR		= synth
 DESIGN		= rv32x
 BOARD		= DE0_CV
 NSL2VL    	= nsl2vl
-NSLFLAGS  	= -O2 -neg_res -I$(SRCDIR)/../core -I$(SRCDIR)/../integration -I$(SRCDIR)/../integration/mmcspi/src -I$(SRCDIR)/mem -DRISCV_TESTS -DCV
+NSLFLAGS  	= -O2 -neg_res -I$(SRCDIR)/../core -I$(SRCDIR)/../integration -I$(SRCDIR)/../integration/mmcspi/src -I$(SRCDIR)/bram -DRISCV_TESTS -DCV
 MKPROJ		= $(SRCDIR)/mkproj-$(BOARD).tcl
 Q2SH		= quartus_sh
 Q2PGM		= quartus_pgm
@@ -26,7 +26,7 @@ Q2CDB		= quartus_cdb
 Q2ASM		= quartus_asm
 CABLE		= "USB-Blaster [USB-0]"
 PMODE		= JTAG
-NSRC := $(wildcard $(SRCDIR)/../core/*.nsl) $(wildcard $(SRCDIR)/../integration/*.nsl) $(wildcard $(SRCDIR)/../integration/mmcspi/src/*.nsl) $(wildcard $(SRCDIR)/*.nsl) $(wildcard $(SRCDIR)/mem/*.nsl)
+NSRC := $(wildcard $(SRCDIR)/../core/*.nsl) $(wildcard $(SRCDIR)/../integration/*.nsl) $(wildcard $(SRCDIR)/../integration/mmcspi/src/*.nsl) $(wildcard $(SRCDIR)/*.nsl) $(wildcard $(SRCDIR)/bram/*.nsl)
 #SRCS		:= $(wildcard $(SRCDIR)/*.nsl)
 #VFILES 		= $(SRCS:$(SRCDIR)/%.nsl=%.v) 
 VFILES := $(patsubst %.nsl,%.v,$(notdir $(NSRC)))
@@ -36,7 +36,9 @@ RESULT		= result.txt
 TARGET	= program/program	#pack to mif
 _TARGET = $(SRCDIR)/$(TARGET)
 TEST = $(filter-out %.hex,$(wildcard $(SRCDIR)/tests/*))
+TEST2 = $(filter-out %.hex, $(wildcard $(SRCDIR)/bram/*.nsl))
 TOP = top_bram	#top module
+SDC = $(DESIGN).sdc
 
 ########
 
@@ -52,7 +54,7 @@ all:
 ########
 
 .SUFFIXES: .v .nsl
-.PHONY: riscv_tests test2 mifs
+.PHONY: riscv_tests test2 mifs sdc
 
 %.v: $(SRCDIR)/../integration/%.nsl 
 	$(NSL2VL) $(NSLFLAGS)  $< -o $@
@@ -66,29 +68,34 @@ all:
 %.v: $(SRCDIR)/%.nsl
 	$(NSL2VL) $(NSLFLAGS)  $< -o $@
 
-mem.v: $(SRCDIR)/mem/mem.nsl
+%.v: $(SRCDIR)/bram/%.nsl
 	$(NSL2VL) $(NSLFLAGS)  $< -o $@
-	sed -i -e "s/\"DEADBEEF\"/filename/g" mem.v
 
-bram_ctr.v: $(SRCDIR)/mem/bram_ctr.nsl
+mainmem.v: $(SRCDIR)/bram/mainmem.nsl
+	$(NSL2VL) $(NSLFLAGS)  $< -o $@
+	sed -i -e "s/\"DEADBEEF\"/filename/g" mainmem.v
+
+mem_ctr.v: $(SRCDIR)/bram/mem_ctr.nsl
 	$(NSL2VL) $(NSLFLAGS)  $< -o $@
 	sed -i -e "s/endmodule/\ndefparam memory.filename = \"memory_0.mif\";\n\
 	defparam memory_1.filename = \"memory_1.mif\";\n\
 	defparam memory_2.filename = \"memory_2.mif\";\n\
 	defparam memory_3.filename = \"memory_3.mif\";\n\
-	\nendmodule/g" bram_ctr.v 
+	\nendmodule/g" mem_ctr.v 
 	
 mifs:
 	$(SRCDIR)/test.sh $(SRCDIR) $(_TARGET)
 #	ls *.mif | xargs -t -i mv {} $(SRCDIR)/synth/
 
-update_mifs: mifs	#after create target program hex
+update_mifs: mifs	#update main memory mifs without recompile
 	cd $(WORKDIR); make -f ../Makefile _update_mifs
 
 _update_mifs:
 	$(Q2CDB) $(DESIGN) -c $(DESIGN) --update_mif
 	$(Q2ASM) --read_settings_files=off --write_settings_files=off $(DESIGN) -c $(DESIGN)
 
+sdc:
+	cp $(SRCDIR)/$(SDC) .
 
 riscv-tests:
 	make -C $(SRCDIR)/../software/riscv-tests/isa XLEN=32
@@ -99,7 +106,7 @@ riscv-tests:
 	ls $(TEST) | xargs -t -i riscv32-unknown-elf-objcopy -O verilog {} {}.hex
 
 test2:
-	echo $(MIFSRCS) $(VFILES) $(HEXS)
+	echo $(TEST2)
 
 $(DESIGN).qsf: $(VFILES) $(LIBS)
 	$(Q2SH) -t $(MKPROJ) -project $(DESIGN) $^
@@ -109,7 +116,7 @@ $(DESIGN).sof: $(DESIGN).qsf
 
 ########
 
-compile: mifs $(DESIGN).sof	#.sofでPL作成、.qsfでquartusのGUI形式生成のみできる
+compile: sdc mifs $(DESIGN).qsf	#.sofでPL作成、.qsfでquartusのGUI形式生成のみできる
 #	@echo "**** $(DESIGN).fit.summary" | tee -a $(RESULT)
 #	@cat $(DESIGN).fit.summary | tee -a $(RESULT)
 #	@echo "**** $(DESIGN).tan.rpt" | tee -a $(RESULT)

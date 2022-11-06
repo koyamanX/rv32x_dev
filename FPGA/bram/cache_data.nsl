@@ -1,4 +1,4 @@
-#include "ram_1p.h"
+#include "cache_data.h"
 
 declare altsyncram interface {
     param_int
@@ -12,20 +12,19 @@ declare altsyncram interface {
         intended_device_family,
         lpm_hint,
         lpm_type,
-        init_file,
         operation_mode,
         outdata_aclr_a,
         outdata_reg_a,
         power_up_uninitialized,
         read_during_write_mode_port_a;
-    input address_a[13];
+    input address_a[8];
     input clock0;
-    input data_a[8];
+    input data_a[128];
     input wren_a;
-    output q_a[8];
+    output q_a[128];
     input aclr0;
     input aclr1;
-    input address_b[14];
+    input address_b[8];
     input addressstall_a;
     input addressstall_b;
     input byteena_a;
@@ -35,27 +34,25 @@ declare altsyncram interface {
     input clocken1;
     input clocken2;
     input clocken3;
-    input data_b[8];
+    input data_b[128];
     output eccstatus;
-    output q_b[8];
+    output q_b[128];
     input rden_a;
     input rden_b;
     input wren_b;
 }
 
-module ram_1p {
-	wire sub_wire0[8];
-    integer i;
+module cache_data {
+	wire sub_wire0[128];
 	
 	altsyncram	altsyncram_component (
-	    widthad_a = 13,
-        width_a = 8, 
+	    widthad_a = 8,
+        width_a = 128, 
         width_byteena_a = 1,
-		numwords_a = 8192,
+		numwords_a = 256,
 		clock_enable_input_a = "BYPASS",
 		clock_enable_output_a = "BYPASS",
 		intended_device_family = "Cyclone V",
-        init_file = "DEADBEEF",
 		lpm_hint = "ENABLE_RUNTIME_MOD=NO",
 		lpm_type = "altsyncram",
 		operation_mode = "SINGLE_PORT",

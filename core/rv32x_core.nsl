@@ -482,6 +482,14 @@ module rv32x_core {
 #ifdef DEBUG
 		rv32x.get_csr(cwadrs, cwdata);
 #endif
+#ifdef CV
+	if(SW[6]){
+		if(csr_write_not_mapped){
+				debug_sseg_h12(cwadrs[11:0]);
+				debug_sseg_l12(priv_mode);
+		}
+	}
+#endif
 	}
 	func rv32x.ecall {
 		environment_call();
@@ -931,6 +939,19 @@ module rv32x_core {
 			}
 		}
 	}
+	#ifdef CV
+		if(SW[6]){
+			any{
+				ic_tlb_flush_done: debug_led_1();
+				ic_invalidate_done: debug_led_2();
+				lsu_tlb_flush_done: debug_led_3();
+				illegal_instruction_memory_stage: debug_led_4();
+				csr_read_not_mapped: debug_led_5();
+				csr_write_not_mapped: debug_led_6();
+				mstatus.tvm: debug_led_7();
+			}
+		}
+	#endif
 	func ic.instruction_page_fault {
 		instruction_page_fault();
 	}
@@ -1081,7 +1102,7 @@ module rv32x_core {
 		reg lsu_prefetch_cnt[3] = 0;
 		mem lsu_read_data[4][32];
 
-		if(lsu.dbus_size == MEM_QUADWORD) {
+		if(lsu.dbus_size == MEM_QUADWORD) { //ram read
 			if(lsu_prefetch_cnt < PREFETCH_BYTES){
 				dmem_read({lsu.dbus_addr[31:4], 4'({lsu_prefetch_cnt, 2'b00})}, MEM_WORD);
 				lsu_prefetch_cnt++;
@@ -1096,7 +1117,7 @@ module rv32x_core {
 				lsu_read_cnt++;
 				lsu_read_data[lsu_read_cnt] := rdata;
 			}
-		} else {
+		} else {	//memory mapped i/o read
 			dmem_read(lsu.dbus_addr, lsu.dbus_size);
 			if(dmem_ready) {
 				lsu.dbus_rdata = 128'(rdata);
@@ -1113,7 +1134,7 @@ module rv32x_core {
 	func lsu.dbus_write {
 		reg lsu_write_cnt[3] = 0;
 		
-		if(lsu.dbus_size == MEM_QUADWORD) {
+		if(lsu.dbus_size == MEM_QUADWORD) {	//writeback cache
 			any {
 				lsu_write_cnt == 0: dmem_write({lsu.dbus_addr[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu.dbus_wdata[31:0]);
 				lsu_write_cnt == 1: dmem_write({lsu.dbus_addr[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu.dbus_wdata[63:32]);
@@ -1125,7 +1146,7 @@ module rv32x_core {
 				}
 				dmem_ready: lsu_write_cnt++;
 			}
-		} else {
+		} else {	//memory mapped i/o write
 			dmem_write(lsu.dbus_addr, lsu.dbus_size, lsu.dbus_wdata[31:0]);
 			if(dmem_ready) {
 				lsu.dbus_ready();

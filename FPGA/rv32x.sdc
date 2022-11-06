@@ -1,0 +1,1 @@
+create_clock -period 50MHz -name m_clock m_clock

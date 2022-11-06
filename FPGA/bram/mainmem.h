@@ -1,7 +1,7 @@
 #define READ 1'b0
 #define WRITE 1'b1
 
-declare ram_1p interface {
+declare mainmem interface {
     param_str filename;
     input address[13];
     input clock;

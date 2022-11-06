@@ -168,8 +168,6 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SCLK
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to MISO
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to MOSI
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to CS
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to TXD
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to RXD
 set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to MOSI
 set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to MISO
 set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to CS

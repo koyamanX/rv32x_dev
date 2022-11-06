@@ -60,20 +60,6 @@ module rv32x_integration {
 				core.imem_pma_halfword();
 				core.imem_pma_cacheable();
 			}
-			TCM0_BASE <= core.imem_pma_addr && core.imem_pma_addr < TCM0_BASE + TCM0_LENGTH: {
-				core.imem_pma_executable();
-				core.imem_pma_readable();
-				core.imem_pma_word();
-				core.imem_pma_halfword();
-				core.imem_pma_cacheable();
-			}
-			TCM1_BASE <= core.imem_pma_addr && core.imem_pma_addr < TCM1_BASE + TCM1_LENGTH: {
-				core.imem_pma_executable();
-				core.imem_pma_readable();
-				core.imem_pma_word();
-				core.imem_pma_halfword();
-				core.imem_pma_cacheable();
-			}
 			SDRAM_BASE <= core.imem_pma_addr && core.imem_pma_addr < SDRAM_BASE + SDRAM_LENGTH: {
 				core.imem_pma_executable();
 				core.imem_pma_readable();
@@ -111,22 +97,6 @@ module rv32x_integration {
 				core.dmem_pma_atomic();
 				core.dmem_pma_word();
 			}
-			TCM0_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < TCM0_BASE + TCM0_LENGTH: {
-				core.dmem_pma_writable();
-				core.dmem_pma_readable();
-				core.dmem_pma_atomic();
-				core.dmem_pma_word();
-				core.dmem_pma_halfword();
-				core.dmem_pma_byte();
-			}
-			TCM1_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < TCM1_BASE + TCM1_LENGTH: {
-				core.dmem_pma_writable();
-				core.dmem_pma_readable();
-				core.dmem_pma_atomic();
-				core.dmem_pma_word();
-				core.dmem_pma_halfword();
-				core.dmem_pma_byte();
-			}
 			SDRAM_BASE <= core.dmem_pma_addr && core.dmem_pma_addr < SDRAM_BASE + SDRAM_LENGTH: {
 				core.dmem_pma_writable();
 				core.dmem_pma_readable();
@@ -134,6 +104,7 @@ module rv32x_integration {
 				core.dmem_pma_word();
 				core.dmem_pma_halfword();
 				core.dmem_pma_byte();
+				core.dmem_pma_cacheable();
 			}
 			else: core.dmem_pma_empty();
 		}

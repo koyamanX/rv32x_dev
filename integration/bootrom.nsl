@@ -20,112 +20,19 @@ module bootrom {
 
 #else
 
-declare rom_1p interface {
-    input address[10];
-    input clock;
-    output q[32];
-}
-
-declare altsyncram interface {
-    param_int
-        widthad_a,
-        width_a,
-        width_byteena_a,
-        numwords_a;
-    param_str
-        clock_enable_input_a,
-        clock_enable_output_a,
-        intended_device_family,
-        lpm_hint,
-        lpm_type,
-        init_file,
-        operation_mode,
-        outdata_aclr_a,
-        outdata_reg_a;
-    input address_a[10];
-    input clock0;
-    input data_a[32];
-    input wren_a;
-    output q_a[32];
-    input aclr0;
-    input aclr1;
-    input address_b[10];
-    input addressstall_a;
-    input addressstall_b;
-    input byteena_a;
-    input byteena_b;
-    input clock1;
-    input clocken0;
-    input clocken1;
-    input clocken2;
-    input clocken3;
-    input data_b[32];
-    output eccstatus;
-    output q_b[32];
-    input rden_a;
-    input rden_b;
-    input wren_b;
-}
-
-module rom_1p {
-	wire sub_wire0[32];
-	
-	altsyncram	altsyncram_component (
-	    widthad_a = 10,
-        width_a = 32, 
-        width_byteena_a = 1,
-		numwords_a = 1024,
-		clock_enable_input_a = "BYPASS",
-		clock_enable_output_a = "BYPASS",
-		intended_device_family = "Cyclone V",
-        init_file = "bootrom.mif",
-		lpm_hint = "ENABLE_RUNTIME_MOD=NO",
-		lpm_type = "altsyncram",
-		operation_mode = "ROM",
-		outdata_aclr_a = "NONE",
-		outdata_reg_a = "UNREGISTERED");
-
-	q = sub_wire0;
-
-	altsyncram_component.address_a=address;
-	altsyncram_component.clock0=clock;
-	altsyncram_component.aclr0=1'b0;
-	altsyncram_component.aclr1=1'b0;
-	altsyncram_component.address_b=1'b1;
-	altsyncram_component.addressstall_a=1'b0;
-	altsyncram_component.addressstall_b=1'b0;
-	altsyncram_component.byteena_a=1'b1;
-	altsyncram_component.byteena_b=1'b1;
-	altsyncram_component.clock1=1'b1;
-	altsyncram_component.clocken0=1'b1;
-	altsyncram_component.clocken1=1'b1;
-	altsyncram_component.clocken2=1'b1;
-	altsyncram_component.clocken3=1'b1;
-	altsyncram_component.data_a=32'b1;
-	altsyncram_component.data_b=1'b1;
-	altsyncram_component.rden_a=1'b1;
-	altsyncram_component.rden_b=1'b1;
-	altsyncram_component.wren_a=1'b0;
-	altsyncram_component.wren_b=1'b0;
-
-	sub_wire0=altsyncram_component.q_a;
-}
+#include "bootrom_bram.h"
 
 module bootrom {
-	proc_name rom_read();
 	rom_1p rom;
 
 	rom.clock = m_clock;
 
-	func read{
+	func read seq{
 		rom.address = addr[11:2];
-		rom_read();
-	}
-
-	proc rom_read{
-		rdata = rom.q;
-		ready();
-		finish();
+		{
+			rdata = rom.q;
+			ready();
+		}
 	}
 }
 #endif

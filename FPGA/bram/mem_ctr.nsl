@@ -1,15 +1,15 @@
-#include "bram_ctr.h"
-#include "ram_1p.h"
+#include "mem_ctr.h"
+#include "mainmem.h"
 #include "opcode.h"
 
-module bram_ctr {
+module mem_ctr {
 
 	reg memory_byteen[3];
 	reg memory_type[2];
 	proc_name memory_read(memory_byteen, memory_type);
 	proc_name memory_write();
 
-	ram_1p memory[4];
+	mainmem memory[4];
 	integer i;
 	
 	generate(i=0; i<4; i++){

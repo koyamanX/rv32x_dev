@@ -195,6 +195,9 @@ private:
 	unsigned int nProc = 0;
 	unsigned int nObject = 0;
 	int dump_memory_flag = 0;
+	long start_print_inst = 0;
+	long end_print_inst = 0;
+	int donePrintCondCheck = 1;
 
 public:
 	processor_t(const char *name)
@@ -526,6 +529,10 @@ public:
 		{
 			inst_counter++;
 		}
+		if (!donePrintCondCheck)
+		{
+			printCondCheck();
+		}
 		retire_pc = core->debug_retire_pc;
 		retire_inst = core->debug_retire_inst;
 		if ((got_exception == 0) && exception_output_flag)
@@ -634,36 +641,7 @@ public:
 		if (retire_pc == KERNEL_START_ADDR)
 		{
 			printf("Done bootloading\n");
-			// print_entry_flag = 1;
-			// exception_output_flag = 1;
-			// writeback_output_flag = 1;
-			// disasm_output_flag = 1;
-			// trace_output_flag = 1;
-			//     memory_output_flag = 1;
-			//       print_entry_flag = 1;
-			//       print_blkrw_flag = 1;
-			//   dump_memory_flag = 1;
-			//   exit(0);
 		}
-
-		/*
-		if (inst_counter == 609000)
-		{
-			printf("st!\n");
-			exception_output_flag = 1;
-			writeback_output_flag = 1;
-			disasm_output_flag = 1;
-			trace_output_flag = 1;
-		}
-		if (inst_counter == 609300)
-		{
-			printf("ed!\n");
-			exception_output_flag = 0;
-			writeback_output_flag = 0;
-			disasm_output_flag = 0;
-			trace_output_flag = 0;
-		}
-		*/
 
 		return ret;
 	};
@@ -884,14 +862,14 @@ public:
 	void parseLogOpts(int argc, char **argv)
 	{
 		int opt, longindex;
-		char *Darg = NULL, *larg = NULL, *symfile = NULL;
+		char *Darg = NULL, *aarg = NULL, *symfile = NULL;
 		struct option longopts[] = {
 			{"print-exception", no_argument, NULL, 'e'},
 			{"print-writeback", no_argument, NULL, 'w'},
 			{"print-disasm", no_argument, NULL, 'd'},
 			{"print-memory-write", no_argument, NULL, 'm'},
 			{"print-inst-trace", no_argument, NULL, 'i'},
-			{"print-all", no_argument, NULL, 'a'},
+			{"print-all", optional_argument, NULL, 'a'},
 			{"no-sim-exit", no_argument, NULL, 'n'},
 			{"dump-vcd", optional_argument, NULL, 'D'},
 			{"print-entry", no_argument, NULL, 'E'},
@@ -921,6 +899,11 @@ public:
 				break;
 			case 'a':
 				print_all_flag = 1;
+				if (optarg != NULL)
+				{
+					aarg = (char *)malloc(sizeof(char) * strlen(optarg) + 1);
+					strcpy(aarg, optarg);
+				}
 				break;
 			case 'n':
 				no_sim_exit = 1;
@@ -963,13 +946,7 @@ public:
 		}
 		if (print_all_flag)
 		{
-			exception_output_flag = 1;
-			writeback_output_flag = 1;
-			disasm_output_flag = 1;
-			memory_output_flag = 1;
-			trace_output_flag = 1;
-			print_entry_flag = 1;
-			print_blkrw_flag = 1;
+			printSetting(aarg);
 		}
 	};
 	void setSymbolAddr(int flag)
@@ -995,6 +972,83 @@ public:
 			{
 				globalObject[i].addr = globalObject[i].pma;
 			}
+		}
+	};
+	void printCondCheck()
+	{
+		if (start_print_inst == inst_counter)
+		{
+			exception_output_flag = 1;
+			writeback_output_flag = 1;
+			disasm_output_flag = 1;
+			memory_output_flag = 1;
+			trace_output_flag = 1;
+			print_entry_flag = 1;
+			print_blkrw_flag = 1;
+			printf("startPrint\n");
+		}
+		else if (end_print_inst == inst_counter)
+		{
+			exception_output_flag = 0;
+			writeback_output_flag = 0;
+			disasm_output_flag = 0;
+			memory_output_flag = 0;
+			trace_output_flag = 0;
+			print_entry_flag = 0;
+			print_blkrw_flag = 0;
+
+			donePrintCondCheck = 1;
+			printf("endPrint\n");
+		}
+	};
+	void printSetting(char *aarg)
+	{
+		if (aarg != NULL)
+		{
+			donePrintCondCheck = 0;
+			char *comma;
+			comma = strstr(aarg, ",");
+			if (comma == NULL || comma != aarg + 1 || *(aarg + 2) == '\0')
+			{
+				printf("illegal print-all arg\nexample:\n --print-all=i,<start(option)>-<end(option)>\n --print-all\n");
+				exit(1);
+			}
+			else if (*aarg == 'i')
+			{
+				char *range = NULL, *bar = NULL;
+				range = aarg + 2;
+				bar = strstr(range, "-");
+				if (bar != NULL)
+				{
+					*bar = '\0';
+					start_print_inst = strtol(range, NULL, 0);
+					end_print_inst = strtol(bar + 1, NULL, 0);
+					if (start_print_inst == 0 && end_print_inst != 0)
+					{
+						start_print_inst = 1;
+					}
+					else if (start_print_inst != 0 && end_print_inst == 0)
+					{
+						end_print_inst = start_print_inst + 10000;
+					}
+					*bar = '-';
+				}
+			}
+			else
+			{
+				printf("illegal print-all arg\nexample:\n --print-all=i,<start(option)>-<end(option)>\n --print-all\n");
+				exit(1);
+			}
+		}
+		else
+		{
+			exception_output_flag = 1;
+			writeback_output_flag = 1;
+			disasm_output_flag = 1;
+			memory_output_flag = 1;
+			trace_output_flag = 1;
+			print_entry_flag = 1;
+			print_blkrw_flag = 1;
 		}
 	};
 	void dumpSetting(char *Darg)
