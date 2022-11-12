@@ -53,7 +53,7 @@ module cache_tag {
 		clock_enable_input_a = "BYPASS",
 		clock_enable_output_a = "BYPASS",
 		intended_device_family = "Cyclone V",
-		lpm_hint = "ENABLE_RUNTIME_MOD=YES,INSTANCE_NAME=NONE",
+		lpm_hint = "ENABLE_RUNTIME_MOD=NO",
 		lpm_type = "altsyncram",
 		operation_mode = "SINGLE_PORT",
 		outdata_aclr_a = "NONE",

@@ -30,7 +30,7 @@ if {$opt(script) != ""} {
 
 ########
 	
-set_global_assignment -name NUM_PARALLEL_PROCESSORS 12
+set_global_assignment -name NUM_PARALLEL_PROCESSORS 4
 set_global_assignment -name FMAX_REQUIREMENT 50MHz
 create_base_clock -fmax 50MHz -duty_cycle 50 m_clock
 
@@ -71,6 +71,14 @@ set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -
 set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -fall
 set_global_assignment -name ACTIVE_SERIAL_CLOCK FREQ_100MHZ
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
+
+set_global_assignment -name ENABLE_SIGNALTAP ON
+set_global_assignment -name USE_SIGNALTAP_FILE rv32x.stp
+set_global_assignment -name SIGNALTAP_FILE rv32x.stp
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 
 ######## Pin assignemnt
 

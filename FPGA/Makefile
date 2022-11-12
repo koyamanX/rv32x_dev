@@ -39,6 +39,7 @@ TEST = $(filter-out %.hex,$(wildcard $(SRCDIR)/tests/*))
 TEST2 = $(filter-out %.hex, $(wildcard $(SRCDIR)/bram/*.nsl))
 TOP = top_bram	#top module
 SDC = $(DESIGN).sdc
+STP = $(DESIGN).stp
 
 ########
 
@@ -95,7 +96,7 @@ _update_mifs:
 	$(Q2ASM) --read_settings_files=off --write_settings_files=off $(DESIGN) -c $(DESIGN)
 
 sdc:
-	cp $(SRCDIR)/$(SDC) .
+	cp $(SRCDIR)/$(SDC) $(SRCDIR)/$(STP) .
 
 riscv-tests:
 	make -C $(SRCDIR)/../software/riscv-tests/isa XLEN=32
