@@ -648,7 +648,7 @@ module cache {
 		if(mem_ready) {
 			refill(mem_rdata);
 			cache_hit(mem_rdata, cache_lru_entry);	//writeはなんもしない、readの場合、r/w,byteenなどはcompare_tag procでセット済み
-			finish();
+			idle();
 		}
 	}
 	func refill {
