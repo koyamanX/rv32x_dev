@@ -75,10 +75,6 @@ set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_
 set_global_assignment -name ENABLE_SIGNALTAP ON
 set_global_assignment -name USE_SIGNALTAP_FILE rv32x.stp
 set_global_assignment -name SIGNALTAP_FILE rv32x.stp
-set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
-set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
-set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
-set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
 
 ######## Pin assignemnt
 
@@ -93,6 +89,11 @@ set_location_assignment PIN_H11 -to SCLK
 set_location_assignment PIN_B11 -to MOSI
 set_location_assignment PIN_K9 -to MISO
 set_location_assignment PIN_C11 -to CS
+
+set_location_assignment PIN_R15 -to RXD
+set_location_assignment PIN_R16 -to TXD
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to RXD
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to TXD
 
 set_location_assignment PIN_AA2 -to LEDR[0]
 set_location_assignment PIN_AA1 -to LEDR[1]
@@ -259,5 +260,9 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to HEX5[3]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to HEX5[4]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to HEX5[5]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to HEX5[6]
+
+set_location_assignment PIN_K19 -to reserved_gnd
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to reserved_gnd
+set_instance_assignment -name RESERVE_PIN AS_OUTPUT_DRIVING_GROUND -to reserved_gnd
 
 project_close
