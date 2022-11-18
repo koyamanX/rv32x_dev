@@ -72,17 +72,9 @@ all:
 %.v: $(SRCDIR)/bram/%.nsl
 	$(NSL2VL) $(NSLFLAGS)  $< -o $@
 
-mainmem.v: $(SRCDIR)/bram/mainmem.nsl
+mainmem.v: $(SRCDIR)/bram/mainmem.nsl mifs
 	$(NSL2VL) $(NSLFLAGS)  $< -o $@
-	sed -i -e "s/\"DEADBEEF\"/filename/g" mainmem.v
-
-mem_ctr.v: $(SRCDIR)/bram/mem_ctr.nsl
-	$(NSL2VL) $(NSLFLAGS)  $< -o $@
-	sed -i -e "s/endmodule/\ndefparam memory.filename = \"memory_0.mif\";\n\
-	defparam memory_1.filename = \"memory_1.mif\";\n\
-	defparam memory_2.filename = \"memory_2.mif\";\n\
-	defparam memory_3.filename = \"memory_3.mif\";\n\
-	\nendmodule/g" mem_ctr.v 
+	sed -i -e "s/DEADBEEF/$(notdir $(TARGET)).mif/g" mainmem.v
 	
 mifs:
 	$(SRCDIR)/test.sh $(SRCDIR) $(_TARGET)

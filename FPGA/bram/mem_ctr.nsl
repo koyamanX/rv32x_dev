@@ -7,20 +7,14 @@ module mem_ctr {
 	reg memory_byteen[3];
 	reg memory_type[2];
 	proc_name memory_read(memory_byteen, memory_type);
-	proc_name memory_write();
 
-	mainmem memory[4];
-	integer i;
-	
-	generate(i=0; i<4; i++){
-		memory[i].clock = m_clock;
-	}
+	mainmem memory;
+
+	memory.clock = m_clock;
 	
 	func read {
-		generate(i=0;i<4;i++){
-			memory[i].address = addr[14:2];
-			memory[i].wren = READ;
-		}
+		memory.address = addr[14:2];
+		memory.wren = READ;
 		memory_read(byteen,type);
 		#ifdef CV
 		if(SW[4]){
@@ -29,44 +23,18 @@ module mem_ctr {
 		#endif
 	}
 
-	func write {
-		any {
-			byteen == MEM_WORD: {
-				generate(i=0;i<4;i++){
-					memory[i].address = addr[14:2];
-					memory[i].wren = WRITE;
-					memory[i].data = wdata[((i+1)*8 - 1):i*8];
-				}
-			}
-			byteen == MEM_HALFWORD: {
-				generate(i=0;i<2;i++){
-					memory[i].address = addr[14:2];
-					memory[i].wren = WRITE;
-					memory[i].data = wdata[((i+1)*8 - 1):i*8];
-				}
-			}
-			byteen == MEM_BYTE: {
-				generate(i=0;i<1;i++){
-					memory[i].address = addr[14:2];
-					memory[i].wren = WRITE;
-					memory[i].data = wdata[((i+1)*8 - 1):i*8];
-				}
-			}
+	func write seq {
+		{
+		memory.address = addr[14:2];
+		memory.wren = WRITE;
+		memory.data = wdata;
 		}
-		memory_write();
+		dready();
 	}
 
 	proc memory_read{
+		rdata = memory.q;
 		any {
-			memory_byteen == MEM_WORD: {
-				rdata = {memory[3].q,memory[2].q,memory[1].q,memory[0].q};
-			} 
-			memory_byteen == MEM_HALFWORD: {
-				rdata = {0x0000, memory[1].q, memory[0].q};
-			} 
-			memory_byteen == MEM_BYTE: {
-				rdata = {0x000000, memory[0].q};
-			} 
 			memory_type == IMEM: {
 				iready();
 			}
@@ -74,11 +42,6 @@ module mem_ctr {
 				dready();
 			}
 		}
-		finish();
-	}
-
-	proc memory_write{
-		dready();
 		finish();
 	}
 }

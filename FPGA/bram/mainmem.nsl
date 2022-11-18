@@ -20,12 +20,12 @@ declare altsyncram interface {
         read_during_write_mode_port_a;
     input address_a[13];
     input clock0;
-    input data_a[8];
+    input data_a[32];
     input wren_a;
-    output q_a[8];
+    output q_a[32];
     input aclr0;
     input aclr1;
-    input address_b[14];
+    input address_b[13];
     input addressstall_a;
     input addressstall_b;
     input byteena_a;
@@ -35,21 +35,21 @@ declare altsyncram interface {
     input clocken1;
     input clocken2;
     input clocken3;
-    input data_b[8];
+    input data_b[32];
     output eccstatus;
-    output q_b[8];
+    output q_b[32];
     input rden_a;
     input rden_b;
     input wren_b;
 }
 
 module mainmem {
-	wire sub_wire0[8];
+	wire sub_wire0[32];
     integer i;
 	
 	altsyncram	altsyncram_component (
 	    widthad_a = 13,
-        width_a = 8, 
+        width_a = 32, 
         width_byteena_a = 1,
 		numwords_a = 8192,
 		clock_enable_input_a = "BYPASS",
