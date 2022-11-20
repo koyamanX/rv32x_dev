@@ -247,11 +247,13 @@ module cache {
 				any {
 					(cache_hit_lru == 1'b0): {
 						cache_data_way0[index] := new_cache_data_entry;
+						cache_tag_way0[index] := tag;
 						cache_valid_way0[index] := VALID;
 						cache_dirty_way0[index] := DIRTY;
 					}
 					(cache_hit_lru == 1'b1): {
 						cache_data_way1[index] := new_cache_data_entry;
+						cache_tag_way1[index] := tag;
 						cache_valid_way1[index] := VALID;
 						cache_dirty_way1[index] := DIRTY;
 					}
@@ -286,20 +288,12 @@ module cache {
 
 		mem_read({tag, index, 4'b0000}, MEM_QUADWORD);
 		if(mem_ready) {
-			refill(mem_rdata);
-			refilled_cache_block = mem_rdata;
-			any {
-				cache_lru_entry == 1'b0: {
-					compare_tag(refilled_cache_block, tag, VALID, CLEAN,
-								cache_data_entry1, cache_tag_entry1, cache_valid_entry1, cache_dirty_entry1,
-								cache_lru_entry, cache_addr, cache_byteen, cache_wdata, cache_op);
-				}
-				cache_lru_entry == 1'b1: {
-					compare_tag(cache_data_entry0, cache_tag_entry0, cache_valid_entry0, cache_dirty_entry0,
-								refilled_cache_block, tag, VALID, CLEAN,
-								cache_lru_entry, cache_addr, cache_byteen, cache_wdata, cache_op);
-				}
+			if(read){
+				refill(mem_rdata);
 			}
+			refilled_cache_block = mem_rdata;
+			cache_hit(refilled_cache_block, cache_lru_entry);
+			idle();
 		}
 	}
 	func refill {
@@ -411,6 +405,7 @@ module cache {
 
 	generate(c=0; c<2; c++){
 		cache_data_way[c].clock = m_clock;
+		cache_tag_way[c].clock = m_clock;
 	}
 
 	func reset {
@@ -624,10 +619,9 @@ module cache {
 						new_cache_data_entry[31:0] = cache_hit_data[31:0];
 					}
 				}
-				if(!refill){	//prevent write_line conflict
-					write_line(cache_hit_way, index, new_cache_data_entry, tag);
-					cache_dirty_way[{cache_hit_way,index}] := DIRTY;
-				}
+				write_line(cache_hit_way, index, new_cache_data_entry, tag);
+				cache_dirty_way[{cache_hit_way,index}] := DIRTY;
+				cache_valid_way[{cache_hit_way,index}] := VALID;
 				ready();
 			}
 		}
@@ -646,7 +640,9 @@ module cache {
 	proc allocate {
 		mem_read({tag, index, 4'b0000}, MEM_QUADWORD);
 		if(mem_ready) {
-			refill(mem_rdata);
+			if(read){
+				refill(mem_rdata);
+			}
 			cache_hit(mem_rdata, cache_lru_entry);	//writeはなんもしない、readの場合、r/w,byteenなどはcompare_tag procでセット済み
 			idle();
 		}

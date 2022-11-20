@@ -17,29 +17,29 @@ declare altsyncram interface {
         outdata_reg_a,
         power_up_uninitialized,
         read_during_write_mode_port_a;
-    input wren_b;
-    input rden_b;
-    input rden_a;
-    output q_b[20];
-    output eccstatus;
-    input data_b[20];
-    input clocken3;
-    input clocken2;
-    input clocken1;
-    input clocken0;
-    input clock1;
-    input byteena_b;
-    input byteena_a;
-    input addressstall_b;
-    input addressstall_a;
-    input address_b[8];
-    input aclr1;
-    input aclr0;
-    output q_a[20];
-    input wren_a;
-    input data_a[20];
-    input clock0;
     input address_a[8];
+    input clock0;
+    input data_a[20];
+    input wren_a;
+    output q_a[20];
+    input aclr0;
+    input aclr1;
+    input address_b[8];
+    input addressstall_a;
+    input addressstall_b;
+    input byteena_a;
+    input byteena_b;
+    input clock1;
+    input clocken0;
+    input clocken1;
+    input clocken2;
+    input clocken3;
+    input data_b[20];
+    output eccstatus;
+    output q_b[20];
+    input rden_a;
+    input rden_b;
+    input wren_b;
 }
 
 module cache_tag {
