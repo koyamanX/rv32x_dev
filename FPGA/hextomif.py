@@ -8,12 +8,23 @@ def formatBig(input):
     array = []
     cnt = 0
     ptr = -1
+    paddinglen = 0
     with open(input, 'r') as f:
         l = f.readlines()
-        for i in [i for i in l if '@' not in i]:
+        for i in l:  # [i for i in l if '@' not in i]:
             a = i.split()
-            while (len(a) < 4):
-                a.append('00')
+            if '@' in i:
+                sec_end_addr = int(i.replace('@', ''), 16)
+                a = []
+                if(cnt != 0):
+                    i = 0
+                    paddinglen = (sec_end_addr - sec_start_addr) - \
+                        (cnt - sec_start_cnt)
+                    while (i < paddinglen):
+                        a.append('00')
+                        i += 1
+                sec_start_cnt = cnt + paddinglen
+                sec_start_addr = sec_end_addr
             for j in a:
                 if cnt % 4 != 0:
                     array.insert(ptr, j)
