@@ -2,7 +2,7 @@
 #define WRITE 1'b1
 
 declare mainmem interface {
-    input address[13];
+    input address[14];
     input clock;
     input data[32];
     input wren;

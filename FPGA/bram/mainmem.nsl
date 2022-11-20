@@ -18,14 +18,14 @@ declare altsyncram interface {
         outdata_reg_a,
         power_up_uninitialized,
         read_during_write_mode_port_a;
-    input address_a[13];
+    input address_a[14];
     input clock0;
     input data_a[32];
     input wren_a;
     output q_a[32];
     input aclr0;
     input aclr1;
-    input address_b[13];
+    input address_b[14];
     input addressstall_a;
     input addressstall_b;
     input byteena_a;
@@ -48,10 +48,10 @@ module mainmem {
     integer i;
 	
 	altsyncram	altsyncram_component (
-	    widthad_a = 13,
+	    widthad_a = 14,
         width_a = 32, 
         width_byteena_a = 1,
-		numwords_a = 8192,
+		numwords_a = 16384,
 		clock_enable_input_a = "BYPASS",
 		clock_enable_output_a = "BYPASS",
 		intended_device_family = "Cyclone V",
