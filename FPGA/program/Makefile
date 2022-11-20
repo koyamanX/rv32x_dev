@@ -3,7 +3,7 @@ AS=$(RISCV_PREFIX)as
 LD=$(RISCV_PREFIX)ld
 GCC=$(RISCV_PREFIX)gcc
 OBJCOPY=$(RISCV_PREFIX)objcopy
-MIFS=bootrom.hex program.hex
+MIFS=bootrom.hex program.hex mmcWrite.hex
 
 all: $(MIFS)
 
@@ -14,9 +14,12 @@ bootrom.elf: bootrom.s
 
 program.elf: test.c
 	$(GCC) test.c -mabi=ilp32 -e main -nostdinc -nostdlib -fno-builtin -T program.ld -o program.elf
+	
+mmcWrite.elf: mmcWrite.c
+	$(GCC) mmcWrite.c -mabi=ilp32 -e main -nostdinc -nostdlib -fno-builtin -T mmcWrite.ld -o mmcWrite.elf
 
 %.hex: %.elf
 	$(OBJCOPY) -O verilog $< $@
 	
 clean:
-	@rm -f bootrom.hex bootrom.elf program.hex program.elf
+	@rm -f bootrom.hex bootrom.elf program.hex program.elf mmcWrite.elf mmcWrite.hex
