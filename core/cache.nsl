@@ -643,7 +643,7 @@ module cache {
 			if(read){
 				refill(mem_rdata);
 			}
-			cache_hit(mem_rdata, cache_lru_entry);	//writeはなんもしない、readの場合、r/w,byteenなどはcompare_tag procでセット済み
+			cache_hit(mem_rdata, cache_lru_entry);
 			idle();
 		}
 	}
