@@ -18,7 +18,12 @@ WORKDIR		= synth
 DESIGN		= rv32x
 BOARD		= DE0_CV
 NSL2VL    	= nsl2vl
-NSLFLAGS  	= -O2 -neg_res -I$(SRCDIR)/../core -I$(SRCDIR)/../integration -I$(SRCDIR)/../integration/mmcspi/src -I$(SRCDIR)/bram -DRISCV_TESTS -DCV
+NSLFLAGS  	= -O2 -neg_res -I$(SRCDIR)/../core \
+-I$(SRCDIR)/../integration \
+-I$(SRCDIR)/../integration/mmcspi/src \
+-I$(SRCDIR)/bram \
+-I$(SRCDIR)/SDRAM_Controler \
+-DRISCV_TESTS -DCV
 MKPROJ		= $(SRCDIR)/mkproj-$(BOARD).tcl
 Q2SH		= quartus_sh
 Q2PGM		= quartus_pgm
@@ -26,7 +31,12 @@ Q2CDB		= quartus_cdb
 Q2ASM		= quartus_asm
 CABLE		= "USB-Blaster [USB-0]"
 PMODE		= JTAG
-NSRC := $(wildcard $(SRCDIR)/../core/*.nsl) $(wildcard $(SRCDIR)/../integration/*.nsl) $(wildcard $(SRCDIR)/../integration/mmcspi/src/*.nsl) $(wildcard $(SRCDIR)/*.nsl) $(wildcard $(SRCDIR)/bram/*.nsl)
+NSRC := $(wildcard $(SRCDIR)/../core/*.nsl) \
+ $(wildcard $(SRCDIR)/../integration/*.nsl) \
+ $(wildcard $(SRCDIR)/../integration/mmcspi/src/*.nsl) \
+ $(wildcard $(SRCDIR)/*.nsl) \
+ $(wildcard $(SRCDIR)/bram/*.nsl) \
+ $(wildcard $(SRCDIR)/SDRAM_Controler/*.nsl)
 #SRCS		:= $(wildcard $(SRCDIR)/*.nsl)
 #VFILES 		= $(SRCS:$(SRCDIR)/%.nsl=%.v) 
 VFILES := $(patsubst %.nsl,%.v,$(notdir $(NSRC)))
@@ -37,7 +47,7 @@ TARGET	= program/program	#pack to mif
 _TARGET = $(SRCDIR)/$(TARGET)
 TEST = $(filter-out %.hex,$(wildcard $(SRCDIR)/tests/*))
 TEST2 = $(filter-out %.hex, $(wildcard $(SRCDIR)/bram/*.nsl))
-TOP = top_bram	#top module
+TOP = top_sdram	#top module
 SDC = $(DESIGN).sdc
 STP = $(DESIGN).stp
 
@@ -55,7 +65,7 @@ all:
 ########
 
 .SUFFIXES: .v .nsl
-.PHONY: riscv_tests test2 mifs sdc
+.PHONY: riscv_tests test2 mifs sdc pll
 
 %.v: $(SRCDIR)/../integration/%.nsl 
 	$(NSL2VL) $(NSLFLAGS)  $< -o $@
@@ -70,6 +80,9 @@ all:
 	$(NSL2VL) $(NSLFLAGS)  $< -o $@
 
 %.v: $(SRCDIR)/bram/%.nsl
+	$(NSL2VL) $(NSLFLAGS)  $< -o $@
+
+%.v: $(SRCDIR)/SDRAM_Controler/%.nsl
 	$(NSL2VL) $(NSLFLAGS)  $< -o $@
 
 mainmem.v: $(SRCDIR)/bram/mainmem.nsl mifs
@@ -90,6 +103,10 @@ _update_mifs:
 sdc:
 	cp $(SRCDIR)/$(SDC) $(SRCDIR)/$(STP) .
 
+pll: 
+	$(SRCDIR)/SDRAM_Controler/PLLgen.sh
+	cp pll/pll.v ./
+	
 riscv-tests:
 	make -C $(SRCDIR)/../software/riscv-tests/isa XLEN=32
 	if [ ! -d $(SRCDIR)/tests ]; then \
@@ -109,7 +126,7 @@ $(DESIGN).sof: $(DESIGN).qsf
 
 ########
 
-compile: sdc mifs $(DESIGN).qsf	#.sofでPL作成、.qsfでquartusのGUI形式生成のみできる
+compile: sdc mifs pll $(DESIGN).qsf	#.sofでPL作成、.qsfでquartusのGUI形式生成のみできる
 #	@echo "**** $(DESIGN).fit.summary" | tee -a $(RESULT)
 #	@cat $(DESIGN).fit.summary | tee -a $(RESULT)
 #	@echo "**** $(DESIGN).tan.rpt" | tee -a $(RESULT)

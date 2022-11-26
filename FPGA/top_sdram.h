@@ -1,3 +1,13 @@
+#define IMEM 2'b01
+#define DMEM 2'b10
+#define ICACHE 2'b01
+#define DCACHE 2'b10
+#define EMPTY 2'b00
+#define IR 2'b01
+#define DR 2'b10
+#define DW 2'b11
+#define READ 1'b1
+#define WRITE 1'b0
 
 declare top_sdram
 {

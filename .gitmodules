@@ -16,3 +16,6 @@
 [submodule "integration/mmcspi"]
 	path = integration/mmcspi
 	url = https://github.com/twinkletia/mmcspi
+[submodule "FPGA/SDRAM_Controler"]
+	path = FPGA/SDRAM_Controler
+	url = https://github.com/twinkletia/SDRAM_Controler

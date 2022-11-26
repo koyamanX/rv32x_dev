@@ -1,19 +1,19 @@
 #include "rv32x_integration.h"
-#include "bram_ctr.h"
 #include "opcode.h"
-#include "top_bram.h"
+#include "top_sdram.h"
+#include "SDRAM_CTR.inc"
+#include "ASYNCTX.inc"
+#include "pll.inc"
 
-module top_bram {
-	reg read_cnt[2] = 0;
-	reg ptr[2] = 0;
-	mem inst_block_buf[4][2];
-	reg inst_buf[28];
+module top_sdram {
     func_self reset();
 	func_self conflict();
 	func_self init_sseg();
+	wire data[32];
+	func_self ready(data);
+	
 	wire iaddr[32];
 	wire ibyteen[3];
-	func_self imem_read(iaddr, ibyteen);
 
 	func_self debug_led_1();
 	func_self debug_led_2();
@@ -30,6 +30,20 @@ module top_bram {
 	wire sseg_h12[12];
 	func_self debug_sseg_h12(sseg_h12);
 
+	
+	reg req_flag = 1;
+	reg write_flag = 0;
+	reg bank[2], row[13], column[10];
+	reg sdram_busy = 0; 
+	reg type[2] = 0;
+	reg location[2] = 0;
+	reg pending[2] = 0;	// 00 - empty, 01 - read, 10 - write
+	reg addrbuf[32]  = 0;
+	mem writeback_data[8][16];
+	mem rdata[4][32];
+	proc_name sdram_write(bank, row, column);
+	proc_name sdram_read(bank, row, column);
+
 	reg led[10] = 0;
 	reg sw[10] = 0;
 	reg cnt[10] = 0;
@@ -40,10 +54,11 @@ module top_bram {
 						0b1001110, 0b0111101, 0b1001111, 0b1000111};*/
 
 	rv32x_integration core;
-    bram_ctr bram;
+	pll pll_i;
+	SDRAM_CTR sdram;
+	ASYNCTX tx;
 	
     core.SW = SW;
-	bram.SW = SW;
 	TXD = core.TXD;
 	core.RXD = RXD;
 	SCLK = core.SCLK;
@@ -58,8 +73,6 @@ module top_bram {
 	HEX4 = sseg[4];
 	HEX5 = sseg[5];
     
-	if(write_flag) DRAM_DQ = sdram.DRAM_DO;
-	else           sdram.DRAM_DI = DRAM_DQ;
 	DRAM_ADDR  = sdram.DRAM_A;
 	DRAM_BA    = sdram.DRAM_BA;
 	DRAM_LDQM  = sdram.DRAM_LDQM;
@@ -69,6 +82,19 @@ module top_bram {
 	DRAM_CKE   = sdram.DRAM_CKE;
 	DRAM_WE_N  = sdram.DRAM_WE;
 	DRAM_CS_N  = sdram.DRAM_CS;
+	
+	// SDRAM用クロック
+	pll_i.rst     = ~p_reset;
+	pll_i.refclk  = m_clock;
+	sdram.m_clock = pll_i.outclk_0;
+	DRAM_CLK      = pll_i.outclk_1;
+
+	// モジュール間IF
+	tx.aTxIn = sdram.rxout;
+	sdram.rxin = tx.aTxOut;
+
+	if(write_flag) DRAM_DQ = sdram.DRAM_DO;
+	else           sdram.DRAM_DI = DRAM_DQ;
 
 	any{
 		cnt == 1: reset();
@@ -76,7 +102,6 @@ module top_bram {
 	}
 
 	func reset {
-		//bram.reset();
 		core.reset();
 		init_sseg();
 	}
@@ -103,47 +128,128 @@ module top_bram {
 		encode[15] := 0b0001110;
 	}
 
-	func imem_read{
-		bram.read(iaddr, ibyteen, IMEM);
+	proc sdram_write{
+		if(req_flag){
+			tx.aTxReq();
+			req_flag := 0;
+		}
+
+		// 書込み完了まで送信し続ける
+		write_flag    := 1;
+		sdram.rw_mode = WRITE;
+		sdram.bank    = bank;
+		sdram.row     = row;
+		sdram.column  = column;
+		sdram.datai0   = writeback_data[0];
+		sdram.datai1   = writeback_data[1];
+		sdram.datai2   = writeback_data[2];
+		sdram.datai3   = writeback_data[3];
+		sdram.datai4   = writeback_data[4];
+		sdram.datai5   = writeback_data[5];
+		sdram.datai6   = writeback_data[6];
+		sdram.datai7   = writeback_data[7];
 	}
 
-	if(!conflict && (read_cnt != ptr)){
-		imem_read({inst_buf,inst_block_buf[ptr],2'b00}, MEM_WORD);
-		ptr++;
+	proc sdram_read{
+		if(req_flag){
+			tx.aTxReq();
+			req_flag := 0;
+		}
+
+		// 読込み完了まで送信し続ける
+		sdram.rw_mode = READ;
+		sdram.bank    = bank;
+		sdram.row     = row;
+		sdram.column  = column;
+	}
+
+	func tx.aTxAck seq{
+		{
+			sdram_write.finish();
+			sdram_read.finish();
+			req_flag := 1;
+			write_flag := 0;
+			sdram_busy := 0;
+			location := type;
+			rdata[0] := {sdram.datao1[7:0],sdram.datao1[15:8],sdram.datao0[7:0],sdram.datao0[15:8]};
+			rdata[1] := {sdram.datao3[7:0],sdram.datao3[15:8],sdram.datao2[7:0],sdram.datao2[15:8]};
+			rdata[2] := {sdram.datao5[7:0],sdram.datao5[15:8],sdram.datao4[7:0],sdram.datao4[15:8]};
+			rdata[3] := {sdram.datao7[7:0],sdram.datao7[15:8],sdram.datao6[7:0],sdram.datao6[15:8]};
+		}
+		ready(rdata[0]);
+		ready(rdata[1]);
+		ready(rdata[2]);
+		ready(rdata[3]);
+	}
+
+	if(pending && !sdram_busy){
+		any{
+			pending == IR:{
+				type := IMEM;
+				sdram_read(addrbuf[25:24],addrbuf[23:11],{addrbuf[10:4],3'b000});
+			}
+			pending == DR:{
+				type := DMEM;
+				sdram_read(addrbuf[25:24],addrbuf[23:11],{addrbuf[10:4],3'b000});
+			}
+			pending == DW:{
+				type := DMEM;
+				sdram_write(addrbuf[25:24],addrbuf[23:11],{addrbuf[10:4],3'b000});
+			}
+		}
+		sdram_busy := 1;
+		pending := 0;
 	}
 
 	func core.imem_read {
-		if(!conflict && (read_cnt == ptr)){
-			imem_read(core.iaddr, core.ibyteen);
-		}else{
-			inst_buf := core.iaddr[31:4];
-			inst_block_buf[read_cnt] := core.iaddr[3:2];
-			read_cnt++;
+		if(!sdram_busy && !conflict && !pending){
+			sdram_busy := 1;
+			type := IMEM;
+			sdram_read(core.iaddr[25:24],core.iaddr[23:11],{core.iaddr[10:4],3'b000});
+		}else if(core.iaddr[1:0] == 2'b00){
+			pending := IR;
+			addrbuf := core.iaddr;
 		}
 	}
 	func core.dmem_read {
 		conflict();
-		bram.read(core.daddr, core.dbyteen, DMEM);
-		//debug_led_12();
-		//led := 9'b000000010;
+		if(!sdram_busy && !pending){
+			sdram_busy := 1;
+			type := DMEM;
+			sdram_read(core.daddr[25:24],core.daddr[23:11],{core.daddr[10:4],3'b000});
+		}else if(core.daddr[1:0] == 2'b00){
+			pending := DR;
+			addrbuf := core.daddr;
+		}
 	}
 	func core.dmem_write {
 		conflict();
-		bram.write(core.daddr, core.dbyteen, core.wdata);
-		//debug_led_13();
-		//led := 9'b000000100;
+		if(!sdram_busy && !pending && core.daddr[1:0] == 2'b11){
+			sdram_busy := 1;
+			type := DMEM;
+			sdram_write(core.daddr[25:24],core.daddr[23:11],{core.daddr[10:4],3'b000});
+		}else if(core.daddr[1:0] == 2'b11){
+			pending := DW;
+			addrbuf := core.daddr;
+		}
+		writeback_data[{core.daddr[1:0],1'b0}] := {core.wdata[7:0],core.wdata[15:8]};
+		writeback_data[{core.daddr[1:0],1'b1}] := {core.wdata[23:16],core.wdata[31:24]};
 	}
-	func bram.iready {
-		core.inst = bram.rdata;
-		core.imem_ready();
-	}
-	func bram.dready {
-		core.rdata = bram.rdata;
-		core.dmem_ready();
+	func ready{
+		any{
+			location == ICACHE:{
+				core.inst = data;
+				core.imem_ready();
+			}
+			location == DCACHE:{
+				core.rdata = data;
+				core.dmem_ready();
+			}
+		}
 	}
 	#ifdef RISCV_TESTS
 	func core.sim_done {
-		//debug_led_10();
+		debug_led_10();
 	}
 	#endif
 	#ifdef CV
@@ -235,16 +341,6 @@ module top_bram {
 		sseg[2] := encode[core.sseg_l12[11:8]];
 		sseg[1] := encode[core.sseg_l12[7:4]];
 		sseg[0] := encode[core.sseg_l12[3:0]];
-	}
-	func bram.debug_sseg_h12{
-		sseg[5] := encode[bram.sseg_h12[11:8]];
-		sseg[4] := encode[bram.sseg_h12[7:4]];
-		sseg[3] := encode[bram.sseg_h12[3:0]];
-	}
-	func bram.debug_sseg_l12{
-		sseg[2] := encode[bram.sseg_l12[11:8]];
-		sseg[1] := encode[bram.sseg_l12[7:4]];
-		sseg[0] := encode[bram.sseg_l12[3:0]];
 	}
 	#endif
 }
