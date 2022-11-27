@@ -36,25 +36,11 @@
 
 	plic0: interrupt-controller@c000000 {
 		#interrupt-cells = <1>;
-		compatible = "sifive,plic-1.0.0";
-		reg = <0x0 0xc000000 0x0 0x4000000>;
-		riscv,ndev = <53>;
-		interrupt-controller;
-		interrupts-extended = <
-			&cpu0_intc 0xffffffff
-			&cpu1_intc 0xffffffff &cpu1_intc 9
-			&cpu2_intc 0xffffffff &cpu2_intc 9
-			&cpu3_intc 0xffffffff &cpu3_intc 9
-			&cpu4_intc 0xffffffff &cpu4_intc 9>;
-	};
-	plic0: interrupt-controller@c000000 {
-		#interrupt-cells = <1>;
 		interrupt-controller;
 		compatible = "riscv,plic0";
 		reg = <0xC000000 0x4000000>;
-		interrupts-extended = <&cpu0_intc 11>, <&cpu0_intc 0xffffffff>,
-					<&cpu1_intc 11>, <&cpu1_intc 0xffffffff>;
-		riscv,ndev = <65>;
+		interrupts-extended = <&cpu0_intc 11 &cpu0_intc 9>,
+		riscv,ndev = <31>;
 		riscv,max-priority = <7>;
 	};
 
@@ -62,12 +48,8 @@
 		#interrupt-cells = <1>;
 		compatible = "riscv,clint0";
 		reg = <0x2000000 0xC000>;
-		interrupts-extended =  <&cpu0_intc 3 &cpu0_intc 7
-					&cpu1_intc 3 &cpu1_intc 7>;
-		clocks = <&sysctl K210_CLK_ACLK>;
+		interrupts-extended =  <&cpu0_intc 3 &cpu0_intc 7>;
 	};
-
-
 
 	mmc@40001000 {
 		status = "okay";
