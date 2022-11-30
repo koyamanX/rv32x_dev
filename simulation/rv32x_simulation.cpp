@@ -100,6 +100,53 @@ extern "C"
 using namespace std;
 // extern disassembler_ftype riscv_get_disassembler(bfd *);
 
+const char *skip_procs[] = {
+	"clear_bss",
+	"___might_sleep",
+	"__might_sleep",
+	"do_raw_spin_unlock",
+	"do_raw_spin_lock",
+	"_raw_spin_unlock",
+	"__cpuidle_text_end",
+	"__memset",
+	"__memcpy",
+	"should_failslab",
+	"mutex_unlock",
+	"mutex_lock",
+	"format_decode",
+	"kmem_cache_alloc",
+	"__list_add_valid",
+	"rb_insert_color",
+	"_raw_spin_unlock_irqrestore",
+	"__raw_spin_lock_init",
+	"kstrdup_const",
+	"kernfs_name_hash",
+	"delete_node",
+	"__list_del_entry_valid",
+	"__radix_tree_replace",
+	"node_tag_clear",
+	"idr_get_free",
+	"set_iter_tags",
+	"radix_tree_iter_replace",
+	"radix_tree_iter_tag_clear",
+	"idr_alloc_u32",
+	"idr_alloc_cyclic",
+	"idr_preload",
+	"__radix_tree_preload.constprop.0",
+	"riscv_clocksource_rdtime",
+	"_raw_spin_lock_irqsave",
+	"kernfs_new_node",
+	"do_swap",
+	"__virt_to_phys",
+	"simple_strtoul",
+	"_parse_integer",
+	"_parse_integer_fixup_radix",
+	"sbi_console_putchar",
+	"jump_label_cmp",
+	"_raw_spin_lock_irq",
+	"_raw_spin_unlock_irq",
+	NULL};
+
 const char *abi_reg_strs[] = {
 	"zero", "ra", "sp", "gp",
 	"tp", "t0", "t1", "t2",
@@ -1131,6 +1178,20 @@ public:
 		// dump_vcd_flag = 0; // uart debug
 	}
 
+	int skipLogging(const char *proc)
+	{
+		const char **p = skip_procs;
+		while (*p != NULL)
+		{
+			if (!strcmp(proc, *p))
+			{
+				return 1;
+			}
+			p++;
+		}
+		return 0;
+	}
+
 	void fetchSymboltable(void)
 	{
 		long storage_needed = 0;
@@ -1190,7 +1251,7 @@ public:
 		for (int i = 0; i < number_of_symbols; i++)
 		{
 			if (symbol_table[i]->value != 0 && !(symbol_table[i]->flags & (BSF_FILE | BSF_OBJECT)) &&
-				(!(symbol_table[i]->section->flags & SEC_DATA)))
+				(!(symbol_table[i]->section->flags & SEC_DATA)) && !skipLogging(symbol_table[i]->name))
 			{
 				procedure[pCounter].name = (char *)malloc(sizeof(char) * strlen(symbol_table[i]->name) + 1);
 #ifndef NO_TARGET
