@@ -7,7 +7,7 @@
 	//model = "ck,rv32xsoc";
 
 	chosen {
-		//bootargs = "";
+		bootargs = "root=/dev/mmcblk0 console=hvc earlycon=sbi";
 		//stdout-path = "";
 	};
 	cpus {
@@ -34,30 +34,36 @@
 		reg = <0x80000000 0x04000000>;
 	};
 
-	plic0: interrupt-controller@c000000 {
-		#interrupt-cells = <1>;
-		interrupt-controller;
-		compatible = "riscv,plic0";
-		reg = <0xC000000 0x4000000>;
-		interrupts-extended = <&cpu0_intc 11 &cpu0_intc 9>,
-		riscv,ndev = <31>;
-		riscv,max-priority = <7>;
-	};
+	soc {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		compatible = "simple-bus";
+		ranges;
+		/*
+		plic0: interrupt-controller@c000000 {
+			#interrupt-cells = <1>;
+			interrupt-controller;
+			compatible = "riscv,plic0";
+			reg = <0xC000000 0x4000000>;
+			interrupts-extended = <&CPU0_intc 11 &CPU0_intc 9>;
+			riscv,ndev = <31>;
+			riscv,max-priority = <7>;
+		};
 
-	clint0: clint@2000000 {
-		#interrupt-cells = <1>;
-		compatible = "riscv,clint0";
-		reg = <0x2000000 0xC000>;
-		interrupts-extended =  <&cpu0_intc 3 &cpu0_intc 7>;
-	};
+		clint0: clint@2000000 {
+			#interrupt-cells = <1>;
+			compatible = "riscv,clint0";
+			reg = <0x2000000 0xC000>;
+			interrupts-extended =  <&CPU0_intc 3 &CPU0_intc 7>;
+		};
+		*/
 
-	mmc@40001000 {
-		status = "okay";
-		compatible = "mmc-spi-slot";
-		reg = <0x40001000 0x1000>;
-		spi-max-frequency = <25000000>;
-		voltage-ranges = <3300 3300>;
-        interrupts = <4>;
-		interrupt-parent = <&plic0>;
+		mmc0: mmc@40001000 {
+			compatible = "rv32x-mmcspi";
+			reg = <0x40001000 0x1000>;
+			no-sdio;
+			no-sd;
+			disable-wp;
+		};
 	};
 };
