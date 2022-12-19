@@ -18,6 +18,7 @@ void main(void)
     readBlock(0);
     cpyToMem((volatile unsigned int *)0x80004000); // 4byte offset, 128*4=512
     *((volatile unsigned int *)0x80004000) = 0xDEADBEEF;
+    *((volatile unsigned int *)0x800041FC) = 0xABABDEED;
     writeBlock((volatile unsigned int *)0x80004000, 0);
     while (1)
     {
@@ -36,7 +37,7 @@ void cpyToMem(volatile unsigned int *memaddr)
 {
     for (int i = 0; i < SECTORSIZE; i += 4)
     {
-        *(memaddr + (i >> 2)) = SD_DATA_BASE[127 - (i >> 2)]; // 4byte offset
+        *(memaddr + (i >> 2)) = SD_DATA_BASE[0 + (i >> 2)]; // 4byte offset
     }
 }
 
@@ -51,7 +52,7 @@ void writeBlock(volatile unsigned int *memaddr, unsigned int sector)
 {
     for (int i = 0; i < SECTORSIZE; i += 4)
     {
-        SD_DATA_BASE[127 - (i >> 2)] = *(memaddr + (i >> 2)); // 4byte offset
+        SD_DATA_BASE[0 + (i >> 2)] = *(memaddr + (i >> 2)); // 4byte offset
     }
     *SD_ADRS = sector;
     *SD_OP = 0x00000002;
