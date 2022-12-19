@@ -55,7 +55,7 @@ module mainmem {
 		clock_enable_input_a = "BYPASS",
 		clock_enable_output_a = "BYPASS",
 		intended_device_family = "Cyclone V",
-        init_file = "DEADBEEF",
+        init_file = "mainmem.mif",
 		lpm_hint = "ENABLE_RUNTIME_MOD=NO",
 		lpm_type = "altsyncram",
 		operation_mode = "SINGLE_PORT",

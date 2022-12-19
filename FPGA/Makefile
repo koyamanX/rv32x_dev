@@ -84,10 +84,6 @@ all:
 
 %.v: $(SRCDIR)/SDRAM_Controler/%.nsl
 	$(NSL2VL) $(NSLFLAGS)  $< -o $@
-
-mainmem.v: $(SRCDIR)/bram/mainmem.nsl mifs
-	$(NSL2VL) $(NSLFLAGS)  $< -o $@
-	sed -i -e "s/DEADBEEF/$(notdir $(TARGET)).mif/g" mainmem.v
 	
 mifs:
 	$(SRCDIR)/test.sh $(SRCDIR) $(_TARGET)

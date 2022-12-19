@@ -16,7 +16,7 @@ def formatBig(input):
             if '@' in i:
                 sec_end_addr = int(i.replace('@', ''), 16)
                 a = []
-                if(cnt != 0):
+                if (cnt != 0):
                     i = 0
                     paddinglen = (sec_end_addr - sec_start_addr) - \
                         (cnt - sec_start_cnt)
@@ -55,7 +55,7 @@ def mifGen(input, outdir):
     buf += ';\nEND;'
     # print(buf)
     buf = buf.replace('@', str(addr))
-    with open(os.path.join(outdir, os.path.splitext(os.path.basename(input))[0] + ".mif"), 'w') as f:
+    with open(os.path.join(outdir, "bootrom.mif" if os.path.basename(input) == "bootrom.hex" else "mainmem.mif"), 'w') as f:
         f.write(buf)
 
 
