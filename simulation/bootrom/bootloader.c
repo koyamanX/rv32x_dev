@@ -1,23 +1,25 @@
 
-#define SD_BASE 0x40001000
-#define SD_STATUS ((volatile unsigned int *)(SD_BASE + 0x200))
-#define SD_ADRS ((volatile unsigned int *)(SD_BASE + 0x214))
-#define SD_OP ((volatile unsigned int *)(SD_BASE + 0x210))
-#define SD_DATA_BASE ((volatile unsigned int *)(SD_BASE + 0x0))
+#define MMC_BASE 0x40001000
+#define MMC_STATUS ((volatile unsigned int *)(MMC_BASE + 0x200))
+#define MMC_R1STAT ((volatile unsigned int *)(MMC_BASE + 0x204))
+#define MMC_RESP ((volatile unsigned int *)(MMC_BASE + 0x208))
+#define MMC_CMD ((volatile unsigned int *)(MMC_BASE + 0x20C))
+#define MMC_ARG ((volatile unsigned int *)(MMC_BASE + 0x210))
+#define MMC_DATA_BASE ((volatile unsigned int *)(MMC_BASE + 0x0))
+#define INITED 0x1
+#define IDLE 0x2
+#define EXEC 0x4
+#define INTR_EN 0x8
+#define OK (INITED | IDLE)
 #define SECTORSIZE 512
 #ifndef BINSTART
-#define BINSTART 256
+#define BINSTART 0
 #endif
 #ifdef HEAD
 #define TEXTHEAD ((volatile unsigned int *)HEAD)
 #else
 #define TEXTHEAD ((volatile unsigned int *)0x80000000)
 #endif
-
-/*
-BINSTART 256 //xv6 fsend=255
-TEXTHEAD    //xv6 link.ldとmemlayoutの kernbase=0x80000000
-*/
 
 extern void _boot();
 void spiWait();
@@ -26,12 +28,12 @@ void loadBin(unsigned int);
 
 void main(void)
 {
-
     unsigned int sector = BINSTART;
 #if BINSIZE != 0
     spiWait();
     loadBin(sector);
 #endif
+    asm volatile("fence.i");
     asm volatile("lui ra, %0"
                  :
                  : "i"((unsigned int)(TEXTHEAD) >> 12));
@@ -40,7 +42,7 @@ void main(void)
 
 void spiWait()
 {
-    while ((*SD_STATUS) != 0x3)
+    while ((*MMC_STATUS) != OK)
     {
         asm volatile("nop");
     }
@@ -50,17 +52,20 @@ void fetchSector(volatile unsigned int *memaddr)
 {
     for (int i = 0; i < SECTORSIZE; i += 4)
     {
-        *(memaddr + (i >> 2)) = SD_DATA_BASE[127 - (i >> 2)]; // 4byte offset
+        //*(memaddr + (i >> 2)) = MMC_DATA_BASE[127 - (i >> 2)];
+        *(memaddr + (i >> 2)) = MMC_DATA_BASE[0 + (i >> 2)]; // 4byte offset
     }
 }
 
 void loadBin(unsigned int sector)
 {
     unsigned int offset = 0;
-    while (((sector - BINSTART) * SECTORSIZE) < BINSIZE)
+    while ((sector - BINSTART) < BINSIZE)
     {
-        *SD_ADRS = sector++;
-        *SD_OP = 0x00000001;
+        *MMC_CMD = 17;
+        *MMC_ARG = sector;
+        sector += SECTORSIZE;
+        *MMC_STATUS = *MMC_STATUS | EXEC;
         spiWait();
         fetchSector(TEXTHEAD + 128 * offset++); // 4byte offset, 128*4=512
     }

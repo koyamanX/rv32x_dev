@@ -1,60 +1,134 @@
+#include <stdio.h>
 
-#define SD_BASE 0x40001000
-#define SD_STATUS ((volatile unsigned int *)(SD_BASE + 0x200))
-#define SD_ADRS ((volatile unsigned int *)(SD_BASE + 0x214))
-#define SD_OP ((volatile unsigned int *)(SD_BASE + 0x210))
-#define SD_DATA_BASE ((volatile unsigned int *)(SD_BASE + 0x0))
-#define SECTORSIZE 512
-#define TEXTHEAD ((volatile unsigned int *)0x80000000)
+#define MMC_BASE 0x40001000
+#define MMC_STATUS ((volatile unsigned int *)(MMC_BASE + 0x200))
+#define MMC_R1STAT ((volatile unsigned int *)(MMC_BASE + 0x204))
+#define MMC_RESP ((volatile unsigned int *)(MMC_BASE + 0x208))
+#define MMC_CMD ((volatile unsigned int *)(MMC_BASE + 0x20C))
+#define MMC_ARG ((volatile unsigned int *)(MMC_BASE + 0x210))
+#define MMC_CD_BASE ((volatile unsigned int *)(MMC_BASE + 0x214)) // csd cid
+#define MMC_DATA_BASE ((volatile unsigned int *)(MMC_BASE + 0x0))
+#define INITED 0x1
+#define IDLE 0x2
+#define EXEC 0x4
+#define INTR_EN 0x8
+#define OK (INITED | IDLE)
+#define R1 1
+#define R1b 1
+#define R2 2
+#define R3 3
 
+extern void _boot();
 void spiWait();
-void cpyToMem(volatile unsigned int *);
-void readBlock(unsigned int);
-void writeBlock(volatile unsigned int *, unsigned int);
+void exeCMD(unsigned, unsigned);
+void printResult(unsigned);
+void printData(unsigned);
+void printResp(unsigned);
+void printCD();
 
 void main(void)
 {
     spiWait();
-    readBlock(0);
-    cpyToMem((volatile unsigned int *)0x80004000); // 4byte offset, 128*4=512
-    *((volatile unsigned int *)0x80004000) = 0xDEADBEEF;
-    *((volatile unsigned int *)0x800041FC) = 0xABABDEED;
-    writeBlock((volatile unsigned int *)0x80004000, 0);
+    exeCMD(58, 0);
+    exeCMD(9, 0);
+    exeCMD(10, 0);
+    exeCMD(13, 0);
+    exeCMD(17, 512);
     while (1)
-    {
-    }
+        ;
 }
 
 void spiWait()
 {
-    while ((*SD_STATUS) != 0x3)
+    while ((*MMC_STATUS) != 0x3)
     {
         asm volatile("nop");
     }
 }
 
-void cpyToMem(volatile unsigned int *memaddr)
+void exeCMD(unsigned cmd, unsigned arg)
 {
-    for (int i = 0; i < SECTORSIZE; i += 4)
+    spiWait();
+    *MMC_CMD = cmd;
+    *MMC_ARG = arg;
+    printf("CMD%u, arg=0x%08x\n", *MMC_CMD, *MMC_ARG);
+    *MMC_STATUS = *MMC_STATUS | EXEC;
+    spiWait();
+    printResult(cmd);
+}
+
+void printResult(unsigned cmd)
+{
+    switch (cmd)
     {
-        *(memaddr + (i >> 2)) = SD_DATA_BASE[0 + (i >> 2)]; // 4byte offset
+    case 9:
+        printResp(R1);
+        printf("CSD:\n");
+        printCD();
+        break;
+    case 10:
+        printResp(R1);
+        printf("CID:\n");
+        printCD();
+        break;
+    case 13:
+        printResp(R2);
+        break;
+    case 17:
+        printResp(R1);
+        printData(512);
+        break;
+    // 18,24,25 is TODO
+    case 58:
+        printResp(R3);
+        break;
+    default:
+        printResp(R1);
+        break;
     }
 }
 
-void readBlock(unsigned int sector)
+void printData(unsigned len)
 {
-    *SD_ADRS = sector;
-    *SD_OP = 0x00000001;
-    spiWait();
+    printf("Data length: %u\n", len);
+    printf("Data:\n");
+    for (int i = 0; i < (len / 4); i++)
+    {
+        printf("%08x ", *(MMC_DATA_BASE + i));
+        if ((i + 1) % 4 == 0)
+        {
+            printf("\n");
+        }
+    }
+    printf("\n");
 }
 
-void writeBlock(volatile unsigned int *memaddr, unsigned int sector)
+void printResp(unsigned resType)
 {
-    for (int i = 0; i < SECTORSIZE; i += 4)
+    switch (resType)
     {
-        SD_DATA_BASE[0 + (i >> 2)] = *(memaddr + (i >> 2)); // 4byte offset
+    case R1: // and R1b
+        printf("resp type: R1\n");
+        printf("resp: %02x\n", *MMC_R1STAT);
+        break;
+    case R2:
+        printf("resp type: R2\n");
+        printf("resp: %02x %02x\n", *MMC_R1STAT, *MMC_RESP);
+        break;
+    case R3:
+        printf("resp type: R3\n");
+        printf("resp: %02x %08x\n", *MMC_R1STAT,
+               *MMC_RESP);
+        break;
     }
-    *SD_ADRS = sector;
-    *SD_OP = 0x00000002;
-    spiWait();
+    printf("\n");
+}
+
+void printCD()
+{
+    printf("%08x ", *(MMC_CD_BASE));
+    printf("%08x ", *(MMC_CD_BASE + 1));
+    printf("%08x ", *(MMC_CD_BASE + 2));
+    printf("%08x\n", *(MMC_CD_BASE + 3));
+    printf("\n");
 }
