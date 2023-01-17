@@ -1,0 +1,468 @@
+#include "rv32x_integration.h"
+#include "opcode.h"
+#include "SDRAM_CTR.inc"
+#include "ASYNCTX.inc"
+#include "sdr.inc"
+
+#include "uart_receiver.h"
+#include "uart_sender.h"
+#include "fifo_8_8.h"
+#include "mmcspi_slave.h"
+
+#define IMEM 2'b01
+#define DMEM 2'b10
+#define ICACHE 2'b01
+#define DCACHE 2'b10
+#define EMPTY 2'b00
+#define IR 2'b01
+#define DR 2'b10
+#define DW 2'b11
+#define READ 1'b1
+#define WRITE 1'b0
+
+declare debug_uart_sender {
+	input addr[10];
+	input wdata[32];
+	output rdata[32];
+	output TXD;
+	func_in read(addr) : rdata;
+	func_in write(addr, wdata);
+	func_out ready();
+	func_in reset();
+	func_out done();
+}
+
+declare topsd_sim
+{
+	input	sdrclk;
+	input	sdrclk1;
+
+	func_in reset();
+	input block_data[4096];
+	output write_block_data[4096];
+	output block_adrs[32];
+	func_in block_data_valid();
+	func_out read_block(block_adrs);
+	func_out write_block(block_adrs,write_block_data);
+	output uart_data[8];
+	func_out uart_done();
+	input uart_wdata[8];
+	func_in uart_write(uart_wdata);
+#ifdef DEBUG
+	output debug_x0[32];
+	output debug_x1[32];
+	output debug_x2[32];
+	output debug_x3[32];
+	output debug_x4[32];
+	output debug_x5[32];
+	output debug_x6[32];
+	output debug_x7[32];
+	output debug_x8[32];
+	output debug_x9[32];
+	output debug_x10[32];
+	output debug_x11[32];
+	output debug_x12[32];
+	output debug_x13[32];
+	output debug_x14[32];
+	output debug_x15[32];
+	output debug_x16[32];
+	output debug_x17[32];
+	output debug_x18[32];
+	output debug_x19[32];
+	output debug_x20[32];
+	output debug_x21[32];
+	output debug_x22[32];
+	output debug_x23[32];
+	output debug_x24[32];
+	output debug_x25[32];
+	output debug_x26[32];
+	output debug_x27[32];
+	output debug_x28[32];
+	output debug_x29[32];
+	output debug_x30[32];
+	output debug_x31[32];
+    output debug_pc[32];
+	output debug_retire_inst[32];
+	output debug_retire_pc[32];
+	func_out debug_retire(debug_retire_pc, debug_retire_inst);
+	output debug_wb_rd[5];
+	output debug_wb_data[32];
+	func_out debug_wb(debug_wb_rd, debug_wb_data);
+	output debug_csr_write_num[12];
+	output debug_csr_write_data[32];
+	func_out debug_csr_write(debug_csr_write_num, debug_csr_write_data);
+	output debug_mem_adrs[32];
+	output debug_mem_data[32];
+	output debug_mem_byteen[3];
+	func_out debug_mem_write(debug_mem_adrs, debug_mem_byteen, debug_mem_data);
+	output debug_cause[32];
+	output debug_epc[32];
+	output debug_mtval[32];
+	output debug_inst[32];
+	func_out debug_raise_exception(debug_cause, debug_epc, debug_mtval, debug_inst);
+	input funcname[128];
+	//func_in debug_disp_funcname(funcname);
+	output debug32[32];
+	func_out debug_general32(debug32);
+#endif
+
+#ifdef RISCV_TESTS
+	output tohost[32];
+	func_out sim_done(tohost);
+#endif
+}
+
+module topsd_sim {
+	func_self conflict();
+	wire data[32];
+	func_self ready(data);
+	func_self ff_wait();
+
+	reg req_flag = 1;
+	reg bank[2], row[13], column[10];
+	reg sdram_busy = 1; 
+	reg loc[2] = 0;
+	reg dest[2] = 0;
+	reg pending[2] = 0;	// 00 - empty, 01 - read, 10 - write
+	reg addrbuf[32]  = 0;
+	mem writeback_data[8][16];
+	mem rdata[4][32];
+	proc_name sdram_write(bank, row, column);
+	proc_name sdram_read(bank, row, column);
+	reg res_flag = 0;
+
+	rv32x_integration core;
+	uart_receiver ur;
+	debug_uart_sender us;	/* same as uart_sender.nsl except for status.en is 1 at reset */
+	mmcspi_slave mmcsim;
+	sdr sdrmodel;
+	SDRAM_CTR sdram;
+	ASYNCTX tx;
+	
+	ur.RXD = core.TXD;
+	core.RXD = us.TXD;
+	mmcsim.SCLK = core.SCLK;
+	mmcsim.CS = core.CS;
+	mmcsim.MOSI = core.MOSI;
+	core.MISO = mmcsim.MISO;
+	sdram.m_clock = sdrclk;
+
+	sdrmodel.Clk   = sdrclk1;
+	sdrmodel.Cke   = sdram.DRAM_CKE;
+	sdrmodel.Addr  = sdram.DRAM_A;
+	sdrmodel.Ba    = sdram.DRAM_BA;
+	sdrmodel.Dqm   = {sdram.DRAM_UDQM, sdram.DRAM_LDQM};
+	sdrmodel.Cs_n  = sdram.DRAM_CS;
+	sdrmodel.Ras_n = sdram.DRAM_RAS;
+	sdrmodel.Cas_n = sdram.DRAM_CAS;
+	sdrmodel.We_n  = sdram.DRAM_WE;
+
+	// モジュール間IF
+	tx.aTxIn = sdram.rxout;
+	sdram.rxin = tx.aTxOut;
+
+	if(!res_flag && sdram.finish_init){
+		res_flag := 1;
+		sdram_busy := 0;
+	}
+
+	if(sdram_write) sdrmodel.Dq = sdram.DRAM_DO;
+	else{
+		//sdrmodel.Dq = 16'hZZZZ;
+		sdram.DRAM_DI = sdrmodel.Dq;
+	}
+
+	func ur.done {
+		uart_done();
+		uart_data = ur.received_char;
+		ur.read(10'(0x0));
+		_write("%c", ur.received_char);
+	}
+	func uart_write {
+		us.write(10'(0x0), 32'(uart_wdata));
+	}
+	func reset {
+		core.reset();
+		ur.write(10'(0x4), 1);
+		ur.reset();
+		us.reset();
+	}
+
+	
+
+	proc sdram_write{
+		if(req_flag){
+			tx.aTxReq();
+			req_flag := 0;
+		}
+
+		// 書込み完了まで送信し続ける
+		sdram.rw_mode = WRITE;
+		sdram.bank    = bank;
+		sdram.row     = row;
+		sdram.column  = column;
+		sdram.datai0   = writeback_data[0];
+		sdram.datai1   = writeback_data[1];
+		sdram.datai2   = writeback_data[2];
+		sdram.datai3   = writeback_data[3];
+		sdram.datai4   = writeback_data[4];
+		sdram.datai5   = writeback_data[5];
+		sdram.datai6   = writeback_data[6];
+		sdram.datai7   = writeback_data[7];
+	}
+
+	proc sdram_read{
+		if(req_flag){
+			tx.aTxReq();
+			req_flag := 0;
+		}
+
+		// 読込み完了まで送信し続ける
+		sdram.rw_mode = READ;
+		sdram.bank    = bank;
+		sdram.row     = row;
+		sdram.column  = column;
+	}
+
+	func tx.aTxAck{
+			sdram_write.finish();
+			sdram_read.finish();
+			req_flag := 1;
+			sdram_busy := 0;
+			dest := loc;
+			rdata[0] := {sdram.datao1[7:0],sdram.datao1[15:8],sdram.datao0[7:0],sdram.datao0[15:8]};
+			rdata[1] := {sdram.datao3[7:0],sdram.datao3[15:8],sdram.datao2[7:0],sdram.datao2[15:8]};
+			rdata[2] := {sdram.datao5[7:0],sdram.datao5[15:8],sdram.datao4[7:0],sdram.datao4[15:8]};
+			rdata[3] := {sdram.datao7[7:0],sdram.datao7[15:8],sdram.datao6[7:0],sdram.datao6[15:8]};
+
+			any{
+				sdram_read: seq{
+					ff_wait();
+					ready(rdata[0]);
+					ready(rdata[1]);
+					ready(rdata[2]);
+					ready(rdata[3]);
+				}
+				sdram_write: seq{
+					ff_wait();
+					ready(0);
+				}
+			}
+	}
+
+	if(pending && !sdram_busy){
+		any{
+			pending == IR:{
+				loc := IMEM;
+				sdram_read(addrbuf[25:24],addrbuf[23:11],{addrbuf[10:4],3'b000});
+			}
+			pending == DR:{
+				loc := DMEM;
+				sdram_read(addrbuf[25:24],addrbuf[23:11],{addrbuf[10:4],3'b000});
+			}
+			pending == DW:{
+				loc := DMEM;
+				sdram_write(addrbuf[25:24],addrbuf[23:11],{addrbuf[10:4],3'b000});
+			}
+		}
+		sdram_busy := 1;
+		pending := 0;
+	}
+
+	func core.imem_read {
+		if(!sdram_busy && !conflict && !pending){
+			sdram_busy := 1;
+			loc := IMEM;
+			sdram_read(core.iaddr[25:24],core.iaddr[23:11],{core.iaddr[10:4],3'b000});
+		}else if(core.iaddr[3:2] == 2'b00){
+			pending := IR;
+			addrbuf := core.iaddr;
+		}
+	}
+	func core.dmem_read {
+		conflict();
+		if(!sdram_busy && !pending){
+			sdram_busy := 1;
+			loc := DMEM;
+			sdram_read(core.daddr[25:24],core.daddr[23:11],{core.daddr[10:4],3'b000});
+		}else if(core.daddr[3:2] == 2'b00){
+			pending := DR;
+			addrbuf := core.daddr;
+		}
+	}
+	func core.dmem_write {
+		conflict();
+		if(!sdram_busy && !pending && core.daddr[3:2] == 2'b11){
+			sdram_busy := 1;
+			loc := DMEM;
+			sdram_write(core.daddr[25:24],core.daddr[23:11],{core.daddr[10:4],3'b000});
+		}else if(core.daddr[3:2] == 2'b11){
+			pending := DW;
+			addrbuf := core.daddr;
+		}
+		writeback_data[{core.daddr[3:2],1'b0}] := {core.wdata[7:0],core.wdata[15:8]};
+		writeback_data[{core.daddr[3:2],1'b1}] := {core.wdata[23:16],core.wdata[31:24]};
+	}
+	func ready{
+		any{
+			dest == ICACHE:{
+				core.inst = data;
+				core.imem_ready();
+			}
+			dest == DCACHE:{
+				core.rdata = data;
+				core.dmem_ready();
+			}
+		}
+	}
+
+
+	func mmcsim.read {
+		read_block(mmcsim.adrs);
+	}
+	func mmcsim.write{
+		write_block(mmcsim.adrs, mmcsim.write_block_data);
+	}
+	func block_data_valid {
+		mmcsim.block_data_valid();
+		mmcsim.read_block_data = block_data;
+	}
+#ifdef DEBUG
+	debug_x0  = core.debug_x0;
+	debug_x1  = core.debug_x1;
+	debug_x2  = core.debug_x2;
+	debug_x3  = core.debug_x3;
+	debug_x4  = core.debug_x4;
+	debug_x5  = core.debug_x5;
+	debug_x6  = core.debug_x6;
+	debug_x7  = core.debug_x7;
+	debug_x8  = core.debug_x8;
+	debug_x9  = core.debug_x9;
+	debug_x10 = core.debug_x10;
+	debug_x11 = core.debug_x11;
+	debug_x12 = core.debug_x12;
+	debug_x13 = core.debug_x13;
+	debug_x14 = core.debug_x14;
+	debug_x15 = core.debug_x15;
+	debug_x16 = core.debug_x16;
+	debug_x17 = core.debug_x17;
+	debug_x18 = core.debug_x18;
+	debug_x19 = core.debug_x19;
+	debug_x20 = core.debug_x20;
+	debug_x21 = core.debug_x21;
+	debug_x22 = core.debug_x22;
+	debug_x23 = core.debug_x23;
+	debug_x24 = core.debug_x24;
+	debug_x25 = core.debug_x25;
+	debug_x26 = core.debug_x26;
+	debug_x27 = core.debug_x27;
+	debug_x28 = core.debug_x28;
+	debug_x29 = core.debug_x29;
+	debug_x30 = core.debug_x30;
+	debug_x31 = core.debug_x31;
+	debug_pc = core.debug_pc;
+	func core.debug_retire {
+		debug_retire(core.debug_retire_pc, core.debug_retire_inst);
+	}
+	func core.debug_wb {
+		debug_wb(core.debug_wb_rd, core.debug_wb_value);
+	}
+	func core.debug_csr_write {
+		debug_csr_write(core.debug_csr_write_num, core.debug_csr_write_data);
+	}
+	func core.debug_mem_write {
+		debug_mem_write(core.debug_mem_adrs, core.debug_mem_byteen, core.debug_mem_data);
+	}
+	func core.debug_raise_exception {
+		debug_raise_exception(core.debug_cause, core.debug_epc, core.debug_mtval, core.debug_inst);
+	}
+	func core.debug_general32{
+		debug_general32(core.debug32);
+	}
+#endif
+
+#ifdef RISCV_TESTS
+	func core.sim_done {
+		sim_done(core.tohost);
+	}
+#endif
+}
+
+
+module debug_uart_sender {
+	reg buffer[8];
+	reg readbuffer[8];
+	reg cnt[32] = 0;
+	reg txd = 1;
+	reg idx[3] = 0;
+	fifo_8_8 fifo;
+	proc_name idle();
+	proc_name send_start_bit(buffer);
+	proc_name send_data_bit(buffer);
+	proc_name send_stop_bit;
+	uart_tx_stat_t reg status = 1;
+
+	TXD = txd;
+	status.empty := fifo.empty;
+	status.full := fifo.full;
+
+	func reset {
+		idle();
+	}
+	proc idle {
+		if(status.en && ~status.busy && ~fifo.empty) {
+			status.busy := 1;
+			send_start_bit(fifo.read());	
+			readbuffer := fifo.rdata;
+		}
+	}
+	proc send_start_bit {
+		if(cnt == TX_BAUD_RATE_CNT) {
+			cnt := 0;
+			send_data_bit(buffer);
+		} else {
+			cnt++;
+		}
+		txd := 0;
+	}
+	proc send_data_bit {
+		if(cnt == TX_BAUD_RATE_CNT) {
+			if(idx == 7) {
+				send_stop_bit();
+				idx := 0;
+			} else {
+				idx++;
+			}
+			cnt := 0;
+		} else {
+			cnt++;
+		}
+		txd := buffer[idx];
+	}
+	proc send_stop_bit {
+		if(cnt == TX_BAUD_RATE_CNT) {
+			idle();
+			done();
+			status.busy := 0;
+			cnt := 0;
+		} else {
+			cnt++;
+		}
+		txd := 1;
+	}
+	
+	func read {
+		any {
+			addr == 10'(0x0): return 32'(readbuffer);
+			addr == 10'(0x4): return 32'(status);
+		}
+		ready();
+	}
+	func write {
+		any {
+			addr == 10'(0x0): fifo.write(wdata[7:0]);
+			addr == 10'(0x4): status.en := wdata[0];
+		}
+		ready();
+	}
+}
