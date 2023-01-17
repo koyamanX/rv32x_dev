@@ -367,7 +367,7 @@ module cache {
 	proc_name idle();
 	proc_name compare_tag(cache_lru_entry, cache_addr, cache_byteen, cache_wdata, cache_op);
 	proc_name flush_cache();
-	proc_name buffering_flush_data();
+	proc_name read_flush_data();
 	proc_name allocate(cache_addr);
 	proc_name writeback(cache_writeback_entry, cache_addr, flushing);
 	proc_name noncacheable_memop(noncacheable_memop_addr, noncacheable_memop_byteen, noncacheable_memop_wdata, noncacheable_memop_op);
@@ -385,6 +385,10 @@ module cache {
 	wire newtag[20];
 	func_self read_line(line_addr);
 	func_self write_line(way, line_addr, newdata, newtag);
+	reg cache_flush_cnt[10];
+	wire cache_flush_index[8];
+	wire cache_flush_way;
+	
 
 	wire tag[20];
 	wire index[8];
@@ -401,7 +405,8 @@ module cache {
 	integer c;
 
 	. {tag, index, blockoffset, byteoffset} = cache_addr;
-
+	cache_flush_index = cache_flush_cnt[7:0];
+	cache_flush_way = cache_flush_cnt[8];
 
 	generate(c=0; c<2; c++){
 		cache_data_way[c].clock = m_clock;
@@ -447,7 +452,7 @@ module cache {
 
 		i = addr[11:4];
 		if(cache_flush) {
-			flush_cache();
+			read_flush_data();
 		} else if(read || write) {
 			pma_check(addr);
 
@@ -631,7 +636,7 @@ module cache {
 		mem_write({tag, index, 4'b0000}, MEM_QUADWORD, cache_writeback_entry);
 		if(mem_ready) {
 			if(flushing) {
-				flush_cache();
+				read_flush_data();
 			} else {
 				allocate(addr);
 			}
@@ -654,32 +659,31 @@ module cache {
 	}
 
 	proc flush_cache {
-		reg cache_flush_index[9];
-		
-		if(cache_flush_index == 256) {
-			cache_flush_index := 0;
+		if(cache_flush_cnt == 512) {
+			cache_flush_cnt := 0;
 			flushing := 0;
 			cache_flush_done();
 			idle();
 		}
-		read_line(cache_flush_index);
-		buffering_flush_data();
-		any{
-			(cache_dirty_way[{1'b0,8'(cache_flush_index)}] == DIRTY):{
-				writeback(cache_data_buf[0], {cache_tag_buf[0], index, 4'b0000}, 1);
-			}
-			(cache_dirty_way[{1'b1,8'(cache_flush_index)}] == DIRTY):{
-				writeback(cache_data_buf[1], {cache_tag_buf[1], index, 4'b0000}, 1);
-			}
+		else{
+			any{
+				cache_dirty_way[{cache_flush_way,cache_flush_index}] == DIRTY && cache_flush_way == 0:{
+					writeback(cache_data_way[0].q, {cache_tag_way[0].q, cache_flush_index, 4'b0000}, 1);
+					cache_dirty_way[{cache_flush_way,cache_flush_index}] := CLEAN;
+				} 
+				cache_dirty_way[{cache_flush_way,cache_flush_index}] == DIRTY && cache_flush_way == 1:{
+					writeback(cache_data_way[1].q, {cache_tag_way[1].q, cache_flush_index, 4'b0000}, 1);
+					cache_dirty_way[{cache_flush_way,cache_flush_index}] := CLEAN;
+				} 
+				else: read_flush_data();
+			}	
+			cache_flush_cnt++;
 		}
 	}
 
-	proc buffering_flush_data{
-		cache_data_buf[0] := cache_data_way[0].q;
-		cache_data_buf[1] := cache_data_way[1].q;
-		cache_tag_buf[0] := cache_tag_way[0].q;
-		cache_tag_buf[1] := cache_tag_way[1].q;
-		finish();
+	proc read_flush_data{
+		read_line(cache_flush_index);
+		flush_cache();
 	}
 }
 
