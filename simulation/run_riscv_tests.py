@@ -55,7 +55,7 @@ def run_tests(tests_list, tests_assertion):
 			if NO_LOG == "no_log":
 				subprocess.run([simulator, riscv_tests_directory+t], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=10)
 			else:
-				subprocess.run([simulator, riscv_tests_directory+t, '--print-inst-trace', '--print-exception', '--print-disasm', '--print-memory-write', '--print-writeback', '--dump-vcd'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=10)
+				subprocess.run([simulator, riscv_tests_directory+t, '--print-all'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=10)
 				
 		except subprocess.CalledProcessError as err:
 			if(a == 'should_be_passed'):

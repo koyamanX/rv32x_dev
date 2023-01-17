@@ -23,7 +23,7 @@ lint: $(VFILES)
 	
 run_riscv_tests: $(TOP)_test bootrom.hex
 	make -C ../software/riscv-tests/isa XLEN=32
-	./run_riscv_tests.py no_log
+	./run_riscv_tests.py log
 check: run_riscv_tests
 out/%.v: ../integration/%.nsl 
 	if [ ! -d out ]; then \
@@ -54,7 +54,7 @@ $(TOP): $(TOP).cpp obj_dir $(VFILES) bootrom.hex
 	cd obj_dir && make -f V$(TOP).mk V$(TOP)
 	cp obj_dir/V$(TOP) $(TOP)
 $(TOP)_test: 
-	make $(TOP) NFLAGS=-O2\ -neg_res\ -I../core\ -I../integration\ -I../integration/mmcspi/src\ -DRISCV_TESTS SIMOPT=-DFAST_SIM -B
+	make $(TOP) NFLAGS=-O2\ -neg_res\ -I../core\ -I../integration\ -I../integration/mmcspi/src\ -DDEBUG\ -DRISCV_TESTS SIMOPT=-DRISCV_TESTS -B
 	
 bootrom.hex: 
 	make -C bootrom -B
