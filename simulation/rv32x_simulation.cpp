@@ -172,6 +172,45 @@ static void cpy(void *dest, void *src, size_t n)
 	}
 }
 
+static void reverse(void *dest, void *src, size_t n)
+{
+	uint8_t *d = (uint8_t *)dest, *s = (uint8_t *)src;
+	uint8_t x;
+	for (size_t i = 0; i < n; i++)
+	{
+		x = s[i];
+		x = (x & 0xF0) >> 4 | (x & 0x0F) << 4;
+		x = (x & 0xCC) >> 2 | (x & 0x33) << 2;
+		x = (x & 0xAA) >> 1 | (x & 0x55) << 1;
+		d[i] = x;
+	}
+}
+
+static void erase(FILE *block_device, unsigned head, unsigned tail, unsigned *erase_exclusion, unsigned excnt)
+{
+	unsigned ptr;
+	char zero[512];
+	unsigned exclude_flag = 0;
+	memset(zero, 0, 512);
+	for (ptr = head; ptr < tail; ptr += 512)
+	{
+		fseek(block_device, ptr, SEEK_SET);
+		for (int i = 0; i < excnt; i++)
+		{
+			if (ptr == erase_exclusion[excnt])
+			{
+				exclude_flag = 1;
+				break;
+			}
+		}
+		if (!exclude_flag)
+		{
+			fwrite(zero, sizeof(uint8_t), 512, block_device);
+		}
+		exclude_flag = 0;
+	}
+}
+
 class processor_t
 {
 private:
@@ -211,7 +250,7 @@ private:
 	uint8_t buf[512];
 	FILE *block_device;
 	int block_device_avail = 0;
-	unsigned int inst_counter = 1; //最初0x00000000なので、条件の都合上1
+	unsigned int inst_counter = 1; // 最初0x00000000なので、条件の都合上1
 	int dump_vcd_flag = 0;
 	long start_dump_inst = 0;
 	long end_dump_inst = 0;
@@ -245,6 +284,8 @@ private:
 	long start_print_inst = 0;
 	long end_print_inst = 0;
 	int donePrintCondCheck = 1;
+	int lsu_wcnt = 0;
+	unsigned int mmc_erase_exclusion[16];
 
 public:
 	processor_t(const char *name)
@@ -451,11 +492,11 @@ public:
 					{
 						size_t len;
 
-						fseek(block_device, core->block_adrs * 512, SEEK_SET);
+						fseek(block_device, core->block_adrs, SEEK_SET);
 						len = fread(buf, sizeof(uint8_t), 512, block_device);
 						if (print_blkrw_flag)
 						{
-							fprintf(logfile, "\nread sector %d(byte offset:0x%x), inst=%d\n", core->block_adrs, core->block_adrs * 512, inst_counter);
+							fprintf(logfile, "\nread mmc address 0x%x(block:0x%x), inst=%d\n", core->block_adrs, core->block_adrs / 512, inst_counter);
 							for (int i = 0; i < 512; i += 4)
 							{
 								if (i % 16 == 0)
@@ -466,16 +507,16 @@ public:
 							}
 							fprintf(logfile, "\n");
 						}
-						cpy(core->block_data, buf, 512);
+						reverse(core->block_data, buf, 512);
 						core->block_data_valid = 1;
 					}
 					else if (core->write_block)
 					{
-						fseek(block_device, core->block_adrs * 512, SEEK_SET);
+						fseek(block_device, core->block_adrs, SEEK_SET);
 						cpy(buf, core->write_block_data, 512);
 						if (print_blkrw_flag)
 						{
-							fprintf(logfile, "\nwrite block %d(byte offset:0x%x), inst=%d\n", core->block_adrs, core->block_adrs * 512, inst_counter);
+							fprintf(logfile, "\nwrite mmc address 0x%x(block:0x%x), inst=%d\n", core->block_adrs, core->block_adrs / 512, inst_counter);
 							for (int i = 0; i < 512; i += 4)
 							{
 								if (i % 16 == 0)
@@ -491,6 +532,15 @@ public:
 					else
 					{
 						core->block_data_valid = 0;
+					}
+
+					if (core->erase)
+					{
+						for (int i = 0; i < core->excnt; i++)
+						{
+							mmc_erase_exclusion[i] = *(((uint32_t *)(core->exclusion)) + i);
+						}
+						erase(block_device, core->head, core->tail, mmc_erase_exclusion, core->excnt);
 					}
 				}
 			}
@@ -518,13 +568,12 @@ public:
 				{
 					printf("status = 0x%08x\n", core->debug32);
 				}
-				/*
+#ifdef RISCV_TESTS
 				if (core->sim_done && !no_sim_exit)
 				{
-					printf("0x%08x\n", core->tohost);
 					ret = core->tohost;
 				}
-				*/
+#endif
 				if (core->debug_raise_exception)
 				{
 					epc = core->debug_epc;
@@ -600,7 +649,7 @@ public:
 			retire_pc = epc;
 			retire_inst = einst;
 		}
-		if (core->debug_csr_write && core->debug_csr_write_num == SATP && print_entry_flag)
+		if (core->debug_csr_write && core->debug_csr_write_num == SATP)
 		{
 			if (!sv32_enabled && (core->debug_csr_write_data & SATP_MODE))
 			{
@@ -830,6 +879,7 @@ public:
 					core->uart_write = 0;
 				}
 			}
+#ifdef RISCV_TESTS
 			if (rising_edge)
 			{
 				if (core->sim_done)
@@ -838,6 +888,7 @@ public:
 					break;
 				}
 			}
+#endif
 		}
 		return ret;
 	};

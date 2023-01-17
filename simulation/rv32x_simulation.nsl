@@ -38,6 +38,11 @@ declare rv32x_simulation simulation {
 	func_in block_data_valid();
 	func_out read_block(block_adrs);
 	func_out write_block(block_adrs,write_block_data);
+	output head[32];
+    output tail[32];
+    output excnt[4];
+    output exclusion[512];
+    func_out erase(head, tail, excnt, exclusion);
 	output uart_data[8];
 	func_out uart_done();
 	input uart_wdata[8];
@@ -157,6 +162,9 @@ module rv32x_simulation {
 	}
 	func mmcsim.write{
 		write_block(mmcsim.adrs, mmcsim.write_block_data);
+	}
+	func mmcsim.erase{
+		erase(mmcsim.head, mmcsim.tail, mmcsim.excnt, mmcsim.exclusion);
 	}
 	func block_data_valid {
 		mmcsim.block_data_valid();
