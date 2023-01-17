@@ -7,8 +7,7 @@
 	//model = "ck,rv32xsoc";
 
 	chosen {
-		bootargs = "root=/dev/mmcblk0 console=hvc earlycon=sbi";
-		//stdout-path = "";
+		bootargs ="root=/dev/mmcblk0 blkdevparts=mmcblk0:100M(kernel),1G(root) console=hvc earlycon=sbi";
 	};
 	cpus {
 		#address-cells = <1>;
@@ -39,24 +38,6 @@
 		#size-cells = <1>;
 		compatible = "simple-bus";
 		ranges;
-		/*
-		plic0: interrupt-controller@c000000 {
-			#interrupt-cells = <1>;
-			interrupt-controller;
-			compatible = "riscv,plic0";
-			reg = <0xC000000 0x4000000>;
-			interrupts-extended = <&CPU0_intc 11 &CPU0_intc 9>;
-			riscv,ndev = <31>;
-			riscv,max-priority = <7>;
-		};
-
-		clint0: clint@2000000 {
-			#interrupt-cells = <1>;
-			compatible = "riscv,clint0";
-			reg = <0x2000000 0xC000>;
-			interrupts-extended =  <&CPU0_intc 3 &CPU0_intc 7>;
-		};
-		*/
 
 		mmc0: mmc@40001000 {
 			compatible = "rv32x-mmcspi";
