@@ -287,11 +287,7 @@ module rv32x_core {
 		}
 	}
 	func rv32x.csr_write {
-		if(rv32x.csr_write_uimm) {
-			csr_write(rv32x.cwadrs, {csr_read(rv32x.cwadrs)[31:5], rv32x.cwdata[4:0]});
-		} else {
-			csr_write(rv32x.cwadrs, rv32x.cwdata);
-		}
+		csr_write(rv32x.cwadrs, rv32x.cwdata);
 		if(csr_write_not_mapped) {
 			illegal_instruction_memory_stage();
 		}
@@ -646,8 +642,8 @@ module rv32x_core {
 		rv32x.flush_execute();
 		rv32x.flush_memory();
 		any {
-			medeleg.store_amo_page_fault:	trap(SUPERVISOR, STORE_AMO_PAGE_FAULT, rv32x.epc, rv32x.daddr);
-			~medeleg.store_amo_page_fault:	trap(MACHINE, STORE_AMO_PAGE_FAULT, rv32x.epc, rv32x.daddr);
+			priv_mode <= SUPERVISOR && medeleg.store_amo_page_fault:	trap(SUPERVISOR, STORE_AMO_PAGE_FAULT, rv32x.epc, rv32x.daddr);
+			else:	trap(MACHINE, STORE_AMO_PAGE_FAULT, rv32x.epc, rv32x.daddr);
 		}
 	}
 	func load_page_fault_exception {
@@ -662,8 +658,8 @@ module rv32x_core {
 		rv32x.flush_execute();
 		rv32x.flush_memory();
 		any {
-			medeleg.load_page_fault:	trap(SUPERVISOR, LOAD_PAGE_FAULT, rv32x.epc, rv32x.daddr);
-			~medeleg.load_page_fault:	trap(MACHINE, LOAD_PAGE_FAULT, rv32x.epc, rv32x.daddr);
+			priv_mode <= SUPERVISOR && medeleg.load_page_fault:	trap(SUPERVISOR, LOAD_PAGE_FAULT, rv32x.epc, rv32x.daddr);
+			else:	trap(MACHINE, LOAD_PAGE_FAULT, rv32x.epc, rv32x.daddr);
 		}
 	}
 	func store_amo_access_fault_exception {
@@ -678,8 +674,8 @@ module rv32x_core {
 		rv32x.flush_execute();
 		rv32x.flush_memory();
 		any {
-			medeleg.store_amo_access_fault: trap(SUPERVISOR, STORE_AMO_ACCESS_FAULT, rv32x.epc, rv32x.daddr);
-			~medeleg.store_amo_access_fault: trap(MACHINE, STORE_AMO_ACCESS_FAULT, rv32x.epc, rv32x.daddr);
+			priv_mode <= SUPERVISOR && medeleg.store_amo_access_fault: trap(SUPERVISOR, STORE_AMO_ACCESS_FAULT, rv32x.epc, rv32x.daddr);
+			else: trap(MACHINE, STORE_AMO_ACCESS_FAULT, rv32x.epc, rv32x.daddr);
 		}
 	}
 	func load_access_fault_exception {
@@ -694,8 +690,8 @@ module rv32x_core {
 		rv32x.flush_execute();
 		rv32x.flush_memory();
 		any {
-			medeleg.load_access_fault:	trap(SUPERVISOR, LOAD_ACCESS_FAULT, rv32x.epc, rv32x.daddr);
-			~medeleg.load_access_fault:	trap(MACHINE, LOAD_ACCESS_FAULT, rv32x.epc, rv32x.daddr);
+			priv_mode <= SUPERVISOR && medeleg.load_access_fault:	trap(SUPERVISOR, LOAD_ACCESS_FAULT, rv32x.epc, rv32x.daddr);
+			else:	trap(MACHINE, LOAD_ACCESS_FAULT, rv32x.epc, rv32x.daddr);
 		}
 	}
 	func illegal_instruction_execute_stage_exception {
@@ -755,11 +751,11 @@ module rv32x_core {
 	}
 	func environment_break_exception {
 		any {
-			~medeleg.breakpoint: {
-				trap(MACHINE, BREAKPOINT, rv32x.epc, rv32x.epc);
-			}
-			medeleg.breakpoint: {
+			priv_mode <= SUPERVISOR && medeleg.breakpoint: {
 				trap(SUPERVISOR, BREAKPOINT, rv32x.epc, rv32x.epc);
+			}
+			else: {
+				trap(MACHINE, BREAKPOINT, rv32x.epc, rv32x.epc);
 			}
 		}
 		exception();
@@ -774,8 +770,8 @@ module rv32x_core {
 	}
 	func instruction_address_misaligned_exception {
 		any {
-			~medeleg.instruction_address_misaligned: trap(MACHINE, INSTRUCTION_ADDRESS_MISALIGNED, rv32x.epc, rv32x.misaligned_target_address);
-			medeleg.instruction_address_misaligned: trap(SUPERVISOR, INSTRUCTION_ADDRESS_MISALIGNED, rv32x.epc, rv32x.misaligned_target_address);
+			priv_mode <= SUPERVISOR && medeleg.instruction_address_misaligned: trap(SUPERVISOR, INSTRUCTION_ADDRESS_MISALIGNED, rv32x.epc, rv32x.misaligned_target_address);
+			else: trap(MACHINE, INSTRUCTION_ADDRESS_MISALIGNED, rv32x.epc, rv32x.misaligned_target_address);
 		}
 		exception();
 		rv32x.get_pc_execute();	
@@ -796,8 +792,8 @@ module rv32x_core {
 		rv32x.stall_ifetch_req();
 		rv32x.flush_ifetch();
 		any {
-			medeleg.instruction_page_fault:	trap(SUPERVISOR, INSTRUCTION_PAGE_FAULT, rv32x.epc, rv32x.iaddr);
-			~medeleg.instruction_page_fault:	trap(MACHINE, INSTRUCTION_PAGE_FAULT, rv32x.epc, rv32x.iaddr);
+			priv_mode <= SUPERVISOR && medeleg.instruction_page_fault:	trap(SUPERVISOR, INSTRUCTION_PAGE_FAULT, rv32x.epc, rv32x.iaddr);
+			else:	trap(MACHINE, INSTRUCTION_PAGE_FAULT, rv32x.epc, rv32x.iaddr);
 		}
 	}
 	func instruction_access_fault_exception {
@@ -945,8 +941,8 @@ module rv32x_core {
 				ic_tlb_flush_done: debug_led_1();
 				ic_invalidate_done: debug_led_2();
 				lsu_tlb_flush_done: debug_led_3();
-				illegal_instruction_memory_stage: debug_led_4();
-				csr_read_not_mapped: debug_led_5();
+				lsu_cache_flush_done: debug_led_4();
+				rv32x.fencei: debug_led_5();
 				csr_write_not_mapped: debug_led_6();
 				mstatus.tvm: debug_led_7();
 			}
@@ -1140,11 +1136,19 @@ module rv32x_core {
 				lsu_write_cnt == 1: dmem_write({lsu.dbus_addr[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu.dbus_wdata[63:32]);
 				lsu_write_cnt == 2: dmem_write({lsu.dbus_addr[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu.dbus_wdata[95:64]);
 				lsu_write_cnt == 3: dmem_write({lsu.dbus_addr[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu.dbus_wdata[127:96]);
+#ifdef DEBUG	//simulation only (0 clock ram r/w)
 				lsu_write_cnt == 4: {
 					lsu_write_cnt := 0;
 					lsu.dbus_ready();
 				}
 				dmem_ready: lsu_write_cnt++;
+#else
+				(lsu_write_cnt == 4 && dmem_ready): {
+					lsu_write_cnt := 0;
+					lsu.dbus_ready();
+				}
+				lsu_write_cnt < 4: lsu_write_cnt++;
+#endif
 			}
 		} else {	//memory mapped i/o write
 			dmem_write(lsu.dbus_addr, lsu.dbus_size, lsu.dbus_wdata[31:0]);

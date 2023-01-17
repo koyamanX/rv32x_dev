@@ -590,6 +590,7 @@ module rv32x5p {
 			mwreg.wb_value = if(EMREG.load || EMREG.amo) loaded_value else if(EMREG.csrrw || EMREG.csrrc || EMREG.csrrs) crdata else EMREG.alu_q;
 			mwreg.wb = EMREG.wb;
 			mwreg.amo = EMREG.amo;
+			mwreg.nextpc = EMREG.nextpc;
 		} else {
 			mwreg = 0;
 		}
@@ -708,9 +709,6 @@ module rv32x5p {
 	}
 	func csrrw {
 		csr_wb_data = if(EMREG.uimm) 32'(EMREG.rs1) else EMREG.rs1_data;
-		if(EMREG.uimm) {
-			csr_write_uimm();
-		}
 		if(EMREG.rd != 5'b00000) {
 			csr_read(EMREG.funct12);
 		}
@@ -719,28 +717,18 @@ module rv32x5p {
 	func csrrs {
 		csr_wb_data = if(EMREG.uimm) 32'(EMREG.rs1) else EMREG.rs1_data;
 		csr_read(EMREG.funct12);
-		if(EMREG.uimm) {
-			csr_write_uimm();
-		}
 		if(EMREG.rs1 != 5'b00000) {
 			if((csr_wb_data != 0x00000000)) {
 				csr_write(EMREG.funct12, (csr_wb_data | 32'(crdata)));
-			} else {
-				csr_write(EMREG.funct12, 32'(crdata));
 			}
 		}
 	}
 	func csrrc {
 		csr_wb_data = if(EMREG.uimm) 32'(EMREG.rs1) else EMREG.rs1_data;
 		csr_read(EMREG.funct12);
-		if(EMREG.uimm) {
-			csr_write_uimm();
-		}
 		if(EMREG.rs1 != 5'b00000) {
 			if((csr_wb_data != 0x00000000)) {
 				csr_write(EMREG.funct12, (~csr_wb_data & 32'(crdata)));
-			} else {
-				csr_write(EMREG.funct12, 32'(crdata));
 			}
 		}
 	}
@@ -804,7 +792,7 @@ module rv32x5p {
 		return EMREG.inst;
 	}
 	func get_pc_trap{
-		return EMREG.nextpc;
+		return MWREG.nextpc;
 	}
 #ifdef DEBUG
 	debug_x0  = rv32x_reg32.debug_x0;
