@@ -101,6 +101,7 @@ struct mwreg_t {
 	wb_value[32];
 	wb;
 	amo;
+	nextpc[32];
 #ifdef DEBUG
 	debug_mem_write;
 	debug_mem_adrs[32];
