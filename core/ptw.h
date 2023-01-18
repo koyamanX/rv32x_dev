@@ -1,6 +1,7 @@
 #ifndef PTW_H
 #define PTW_H
-declare ptw {
+declare ptw
+{
 	func_in reset();
 	input satp[32];
 	input vaddr[32];
@@ -14,5 +15,6 @@ declare ptw {
 	input mem_rdata[32];
 	func_out mem_read(mem_addr);
 	func_in mem_ready;
+	func_in interrupt();
 }
 #endif

@@ -28,6 +28,7 @@ module cache {
 	reg noncacheable_memop_op;
 
 	reg cache_writeback_entry[128];
+	reg cache_flush_cnt[10] = 0;
 	reg flushing = 0;
 
 	proc_name idle();
@@ -63,10 +64,21 @@ module cache {
 
 	. {tag, index, blockoffset, byteoffset} = cache_addr;
 
+	func interrupt{
+		cache_flush_cnt := 0;
+		//idle.finish();
+		compare_tag.finish();
+		allocate.finish();
+		writeback.finish();
+		flush_cache.finish();
+		noncacheable_memop.finish();
+		idle();
+	}
+
 	func reset {
 		idle();
 	}
-	proc idle {
+	proc idle if(!interrupt){
 		wire i[8];
 
 		i = addr[11:4];
@@ -93,7 +105,7 @@ module cache {
 			}
 		}
 	}
-	proc noncacheable_memop {
+	proc noncacheable_memop if(!interrupt){
 		any {
 			noncacheable_memop_op == CACHE_READ: mem_read(noncacheable_memop_addr, noncacheable_memop_byteen);
 			noncacheable_memop_op == CACHE_WRITE: mem_write(noncacheable_memop_addr, noncacheable_memop_byteen, 128'(noncacheable_memop_wdata));
@@ -105,7 +117,7 @@ module cache {
 			idle();
 		}
 	}
-	proc compare_tag {
+	proc compare_tag if(!interrupt){
 		any {
 			(cache_valid_entry0 && (cache_tag_entry0 == tag)): {
 				idle();
@@ -263,7 +275,7 @@ module cache {
 		}
 		cache_lru[index] := ~cache_hit_lru;
 	}
-	proc writeback {
+	proc writeback if(!interrupt){
 		mem_write({tag, index, 4'b0000}, MEM_QUADWORD, cache_writeback_entry);
 		if(mem_ready) {
 			if(flushing) {
@@ -283,7 +295,7 @@ module cache {
 			}
 		}
 	}
-	proc allocate {
+	proc allocate if(!interrupt){
 		wire refilled_cache_block[128];
 
 		mem_read({tag, index, 4'b0000}, MEM_QUADWORD);
@@ -312,8 +324,7 @@ module cache {
 			}
 		}
 	}
-	proc flush_cache {
-		reg cache_flush_cnt[10] = 0;
+	proc flush_cache if(!interrupt){
 		wire cache_flush_index[8];
 		wire cache_flush_way;
 
@@ -408,6 +419,18 @@ module cache {
 	cache_flush_index = cache_flush_cnt[7:0];
 	cache_flush_way = cache_flush_cnt[8];
 
+	func interrupt{
+		cache_flush_cnt := 0;
+		//idle.finish();
+		compare_tag.finish();
+		allocate.finish();
+		writeback.finish();
+		flush_cache.finish();
+		read_flush_data.flush();
+		noncacheable_memop.finish();
+		idle();
+	}
+
 	generate(c=0; c<2; c++){
 		cache_data_way[c].clock = m_clock;
 		cache_tag_way[c].clock = m_clock;
@@ -447,7 +470,7 @@ module cache {
 		}
 	}
 	
-	proc idle {
+	proc idle if(!interrupt){
 		wire i[8];
 
 		i = addr[11:4];
@@ -485,7 +508,7 @@ module cache {
 			idle();
 		}
 	}
-	proc compare_tag {
+	proc compare_tag if(!interrupt){
 		any {
 			(cache_valid_way[{1'b0, index}] && (cache_tag_way[0].q == tag)): {	//tag bypass
 				idle();
@@ -632,7 +655,7 @@ module cache {
 		}
 		cache_lru[index] := ~cache_hit_way;
 	}
-	proc writeback {
+	proc writeback if(!interrupt){
 		mem_write({tag, index, 4'b0000}, MEM_QUADWORD, cache_writeback_entry);
 		if(mem_ready) {
 			if(flushing) {
@@ -642,7 +665,7 @@ module cache {
 			}
 		}
 	}
-	proc allocate {
+	proc allocate if(!interrupt){
 		mem_read({tag, index, 4'b0000}, MEM_QUADWORD);
 		if(mem_ready) {
 			if(read){
@@ -658,7 +681,7 @@ module cache {
 		cache_valid_way[{cache_lru_entry,index}] := VALID;
 	}
 
-	proc flush_cache {
+	proc flush_cache if(!interrupt){
 		if(cache_flush_cnt == 512) {
 			cache_flush_cnt := 0;
 			flushing := 0;
@@ -681,7 +704,7 @@ module cache {
 		}
 	}
 
-	proc read_flush_data{
+	proc read_flush_data if(!interrupt){
 		read_line(cache_flush_index);
 		flush_cache();
 	}

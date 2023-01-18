@@ -23,6 +23,11 @@ module rv32x_core {
 	reg valid_context;
 	func_self abandon_context();
 	
+	reg ic_read_cnt[3] = 0;
+	reg ic_prefetch_cnt[3] = 0;
+	reg lsu_read_cnt[3] = 0;
+	reg lsu_prefetch_cnt[3] = 0;
+
 	/* Trap */
 	reg trap_cause[32];
 	reg trap_pc[32];
@@ -561,11 +566,19 @@ module rv32x_core {
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
 		rv32x.stall_execute_req();
+		rv32x.stall_memory_req();
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 		rv32x.flush_execute();
+		rv32x.flush_memory();
 		rv32x.get_pc_trap();
 		abandon_context();
+		ic.interrupt();
+		lsu.interrupt();
+		ic_read_cnt := 0;
+		ic_prefetch_cnt := 0;
+		lsu_read_cnt := 0;
+		lsu_prefetch_cnt := 0;
 	}
 	func exception{
 		abandon_context();
@@ -968,8 +981,6 @@ module rv32x_core {
 	}
 	func ic.mem_read {
 		#define PREFETCH_BYTES 4
-		reg ic_read_cnt[3] = 0;
-		reg ic_prefetch_cnt[3] = 0;
 		mem ic_read_data[4][32];
 		if(ic_prefetch_cnt < PREFETCH_BYTES){
 			imem_read({ic.mem_addr[31:4], 4'({ic_prefetch_cnt, 2'b00})}, MEM_WORD);
@@ -1094,8 +1105,6 @@ module rv32x_core {
 	}
 
 	func lsu.dbus_read {
-		reg lsu_read_cnt[3] = 0;
-		reg lsu_prefetch_cnt[3] = 0;
 		mem lsu_read_data[4][32];
 
 		if(lsu.dbus_size == MEM_QUADWORD) { //ram read

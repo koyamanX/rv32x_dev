@@ -6,10 +6,11 @@
 #define VALID 1'b1
 #define INVALID 1'b0
 
-#define CACHE_WRITE	1'b1
-#define CACHE_READ	1'b0
+#define CACHE_WRITE 1'b1
+#define CACHE_READ 1'b0
 
-declare cache {
+declare cache
+{
 	input addr[32];
 	output rdata[32];
 	input wdata[32];
@@ -39,5 +40,6 @@ declare cache {
 	func_out mem_read(mem_addr, mem_size);
 	func_out mem_write(mem_addr, mem_size, mem_wdata);
 	func_in mem_ready;
+	func_in interrupt();
 }
 #endif

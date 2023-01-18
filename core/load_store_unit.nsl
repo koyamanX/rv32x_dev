@@ -63,13 +63,25 @@ module load_store_unit {
 
 	sv32 = (satp_mode && (priv_mode != MACHINE));
 
+	func interrupt{
+		dcache.interrupt();
+		walker.interrupt();
+		//idle.finish();
+		cacheable_read.finish();
+		cacheable_write.finish();
+		flush_tlb.finish();
+		page_table_walk.finish();
+		amo_op_exe.finish();
+		idle();
+	}
+
 	func reset {
 		reservation.valid := 0;
 		dcache.reset();
 		walker.reset();
 		idle();
 	}
-	proc idle {
+	proc idle if(!interrupt){
 		wire sv32_va[32];
 		wire sv32_pa[32];
 		wire amo_addr_va[32];
@@ -176,7 +188,7 @@ module load_store_unit {
 			return 1;
 		}
 	}
-	proc flush_cache {
+	proc flush_cache if(!interrupt){
 		dcache.cache_flush();
 
 		if(dcache.cache_flush_done) {
@@ -184,12 +196,12 @@ module load_store_unit {
 			idle();
 		}
 	}
-	proc flush_tlb {
+	proc flush_tlb if(!interrupt){
 		dtlb.flush();
 		tlb_flush_done();
 		idle();
 	}
-	proc cacheable_read {
+	proc cacheable_read if(!interrupt){
 		dcache.read(cacheable_addr, cacheable_byteen);	
 
 		if(dcache.ready) {
@@ -201,7 +213,7 @@ module load_store_unit {
 			idle();
 		}
 	}
-	proc cacheable_write {
+	proc cacheable_write if(!interrupt){
 		dcache.write(cacheable_addr, cacheable_byteen, cacheable_wdata);	
 
 		if(dcache.ready) {
@@ -214,7 +226,7 @@ module load_store_unit {
 			idle();
 		}
 	}
-	proc page_table_walk {
+	proc page_table_walk if(!interrupt){
 		walker.walk({satp_mode, satp_asid, satp_ppn}, ptw_addr);
 
 		if(walker.pte_valid) {
@@ -228,7 +240,7 @@ module load_store_unit {
 			idle();
 		}
 	}
-	proc amo_op_exe {
+	proc amo_op_exe if(!interrupt){
 		state_name amo_read, amo_alu_op, amo_writeback;
 		reg rs1_data[32];
 		wire rs2_data[32];

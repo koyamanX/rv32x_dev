@@ -11,10 +11,16 @@ module ptw {
 	proc_name page_table_walk(levels, pa_pte_addr, va_vpn0);
 	proc_name pte_check(levels, va_vpn0, page_table_entry);
 
+	func interrupt{
+		//idle.finish();
+		page_table_walk.finish();
+		pte_check.finish();
+		idle();
+	}
 	func reset {
 		idle();
 	}
-	proc idle {
+	proc idle if(!interrupt){
 		wire satp_mode;
 		wire satp_asid[9];
 		wire satp_ppn[22];
@@ -26,13 +32,13 @@ module ptw {
 			page_table_walk(LEVELS-1, 34'({satp_ppn, sv32_va.vpn1, 2'b00}), sv32_va.vpn0);
 		}
 	}
-	proc page_table_walk {
+	proc page_table_walk if(!interrupt){
 		mem_read(pa_pte_addr);
 		if(mem_ready) {
 			pte_check(levels, va_vpn0, mem_rdata);
 		}
 	}
-	proc pte_check {
+	proc pte_check if(!interrupt){
 		sv32_pte_t wire sv32_pte;
 		
 		sv32_pte = page_table_entry;

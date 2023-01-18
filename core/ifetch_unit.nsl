@@ -23,6 +23,7 @@ module ifetch_unit {
 	proc_name page_table_walk(ptw_vaddr);
 	proc_name flush_tlb();
 	proc_name invalidate_cache();
+	reg invalidate_cnt[9] = 0;
 
 	tlb_4 itlb;
 
@@ -48,10 +49,21 @@ module ifetch_unit {
 
 	sv32 = (satp_mode && (priv_mode != MACHINE));
 
+	func interrupt{
+		invalidate_cnt := 0;
+		//idle.finish();
+		compare_tag.finish();
+		allocate.finish();
+		page_table_walk.finish();
+		flush_tlb.finish();
+		invalidate_cache.finish();
+		idle();
+	}
+
 	func reset {
 		idle();
 	}
-	proc idle {
+	proc idle if(!interrupt){
 		sv32_pte_t wire sv32_pte;
 
 		if(invalidate) {
@@ -79,12 +91,12 @@ module ifetch_unit {
 			compare_tag(cache_data[index], cache_tag[index], cache_valid[index], tag, index);
 		}
 	}
-	proc flush_tlb {
+	proc flush_tlb if(!interrupt){
 		itlb.flush();
 		tlb_flush_done();
 		idle();
 	}
-	proc page_table_walk {
+	proc page_table_walk if(!interrupt){
 		walk({satp_mode, satp_asid, satp_ppn}, ptw_vaddr);
 		if(pte_ready) {
 			itlb.refill(ptw_vaddr[31:12], pte_levels, pte);
@@ -96,7 +108,7 @@ module ifetch_unit {
 			instruction_access_fault();
 		}
 	}
-	proc compare_tag {
+	proc compare_tag if(!interrupt){
 		/* checking (cache_index_accessing == index) is required, to support cancellation of read operation in this stage 
 			if not above equation holds, then read is cancelled implicitly by changing `addr` during `read` (in the case of
 			branch, jump and trap), so restart from idle();
@@ -130,7 +142,7 @@ module ifetch_unit {
 			ready();
 		}
 	}
-	proc allocate {
+	proc allocate if(!interrupt){
 		wire allocate_tag[20];
 		wire allocate_index[8];
 		wire allocate_blockoffset[2];
@@ -149,18 +161,16 @@ module ifetch_unit {
 		cache_tag[refill_index] := refill_tag;
 		cache_valid[refill_index] := VALID;
 	}
-	proc invalidate_cache seq {
-		reg invalidate_cnt[9] = 0;
+	proc invalidate_cache if(!interrupt){
 		wire invalidate_index[8];
-
-		/* no dirty cache entry, just invaldate all entry */
-		for(invalidate_cnt := 0; invalidate_cnt < 256; invalidate_cnt++) {
-			invalidate_index = invalidate_cnt[7:0];
-			cache_valid[invalidate_index] := INVALID;
-		}
-		{
+		if(invalidate_cnt == 256){
+			invalidate_cnt := 0;
 			invalidate_done();
 			idle();
+		}else{
+			invalidate_index = invalidate_cnt[7:0];
+			cache_valid[invalidate_index] := INVALID;
+			invalidate_cnt++;
 		}
 	}
 }
