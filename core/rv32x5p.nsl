@@ -22,6 +22,7 @@ module rv32x5p {
 	proc_name execute(DEREG);
 	proc_name memory(EMREG);
 	proc_name writeback(MWREG);
+	func_self stop_ifetch();	//prevent ifetch unit state machine transiition from idle state
 	func_self stall_ifetch();
 	func_self stall_decode();
 	func_self stall_execute();
@@ -63,7 +64,9 @@ module rv32x5p {
 		inc32 rv32x_inc32;
 
 		rv32x_btb.predict(PC);
-		imem_read(PC, MEM_WORD);
+		if(!stop_ifetch){
+			imem_read(PC, MEM_WORD);
+		}
 		pc4 = rv32x_inc32.exe(PC);
 		if(rv32x_btb.predict_as_taken) {
 			predicted_new_pc = rv32x_btb.predicted_new_pc;
@@ -409,14 +412,17 @@ module rv32x5p {
 			alt {
 				(DEREG.mret): {
 					emreg.nextpc=mret();
+					stop_ifetch();
 					memory(emreg);	/* for logging and update link register */
 					}
 				(DEREG.sret): {
 					emreg.nextpc=sret();
+					stop_ifetch();
 					memory(emreg);	/* for logging and update link register */
 					}
 				/* Branch and jump instructions */
 				(DEREG.jump  && !stall_execute): {
+					stop_ifetch();
 					stall_ifetch();
 					stall_decode();
 					ifetch_nop();
@@ -429,6 +435,7 @@ module rv32x5p {
 				} 
 				((not_taken && DEREG.predict_as_taken) && !stall_execute): {
 					miss_prediction();	/* update branch target address */
+					stop_ifetch();
 					stall_ifetch();
 					stall_decode();
 					ifetch_nop();
@@ -441,6 +448,7 @@ module rv32x5p {
 				}
 				((taken && DEREG.predict_as_not_taken) && !stall_execute): {
 					miss_prediction();	/* update branch target address */
+					stop_ifetch();
 					stall_ifetch();
 					stall_decode();
 					ifetch_nop();
