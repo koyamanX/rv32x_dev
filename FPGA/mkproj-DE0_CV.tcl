@@ -34,7 +34,7 @@ set_global_assignment -name NUM_PARALLEL_PROCESSORS 12
 set_global_assignment -name FMAX_REQUIREMENT 50MHz
 create_base_clock -fmax 50MHz -duty_cycle 50 m_clock
 
-set_global_assignment -name TOP_LEVEL_ENTITY top_sdram	
+set_global_assignment -name TOP_LEVEL_ENTITY top_sdram
 
 #============================================================
 # Build by Terasic System Builder V1.0.0
@@ -72,7 +72,7 @@ set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -
 set_global_assignment -name ACTIVE_SERIAL_CLOCK FREQ_100MHZ
 set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top
 
-set_global_assignment -name ENABLE_SIGNALTAP ON
+set_global_assignment -name ENABLE_SIGNALTAP OFF
 set_global_assignment -name USE_SIGNALTAP_FILE rv32x.stp
 set_global_assignment -name SIGNALTAP_FILE rv32x.stp
 

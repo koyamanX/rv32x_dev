@@ -426,7 +426,7 @@ module cache {
 		allocate.finish();
 		writeback.finish();
 		flush_cache.finish();
-		read_flush_data.flush();
+		read_flush_data.finish();
 		noncacheable_memop.finish();
 		idle();
 	}
