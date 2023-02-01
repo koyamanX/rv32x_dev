@@ -97,7 +97,7 @@ _update_mifs:
 	$(Q2ASM) --read_settings_files=off --write_settings_files=off $(DESIGN) -c $(DESIGN)
 
 sdc:
-	cp $(SRCDIR)/$(SDC) $(SRCDIR)/$(STP) .
+	cp $(SRCDIR)/$(SDC) .
 
 pll: 
 	$(SRCDIR)/SDRAM_Controler/PLLgen.sh
@@ -122,7 +122,7 @@ $(DESIGN).sof: $(DESIGN).qsf
 
 ########
 
-compile: sdc mifs pll $(DESIGN).qsf	#.sofでPL作成、.qsfでquartusのGUI形式生成のみできる
+compile: sdc mifs pll $(DESIGN).sof	#.sofでPL作成、.qsfでquartusのGUI形式生成のみできる
 #	@echo "**** $(DESIGN).fit.summary" | tee -a $(RESULT)
 #	@cat $(DESIGN).fit.summary | tee -a $(RESULT)
 #	@echo "**** $(DESIGN).tan.rpt" | tee -a $(RESULT)
