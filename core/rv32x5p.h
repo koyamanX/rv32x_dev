@@ -44,9 +44,14 @@ declare rv32x5p
 	func_out mret() : mepc; /* Indicating mret is issued */
 	input sepc[32];
 	func_out sret() : sepc; /* Indicating sret is issued */
-	input uepc[32];
-	func_out uret() : uepc; /* Indicating uret is issued */
 	func_out wfi();			/* indicating Wait-For-Interrupt is issued */
+	input ifetch_exception[5];
+	input execute_exception[5];
+	input memory_exception[5];
+	output exception_cause[4];
+	func_out exception_req(exception_cause);
+	func_out trap_mret();
+	func_out trap_sret();
 
 	/* Trap */
 	input vector[32]; /* New PC on trap */
@@ -82,6 +87,7 @@ declare rv32x5p
 
 	/* Instruction is retired, increment instret register */
 	func_out instret();
+
 #ifdef DEBUG
 	output debug_x0[32];
 	output debug_x1[32];

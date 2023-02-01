@@ -10,6 +10,7 @@ struct idreg_t {
 	inst[32];
 	predict_as_taken;
 	predict_as_not_taken;
+	exception[5];
 };
 struct dereg_t {
 	pc[32];
@@ -58,6 +59,7 @@ struct dereg_t {
 	predict_as_taken;
 	predict_as_not_taken;
 	amo;
+	exception[5];
 };
 struct emreg_t {
 	pc[32];
@@ -83,7 +85,10 @@ struct emreg_t {
 	csrrs;
 	csrrc;
 	amo;
+	mret;
+	sret;
 	nextpc[32];
+	exception[5];
 };
 struct mwreg_t {
 	pc[32];
@@ -101,7 +106,10 @@ struct mwreg_t {
 	wb_value[32];
 	wb;
 	amo;
+	mret;
+	sret;
 	nextpc[32];
+	exception[5];
 #ifdef DEBUG
 	debug_mem_write;
 	debug_mem_adrs[32];

@@ -9,6 +9,8 @@
 #include "regs5p.h"
 #include "btb.h"
 
+#define EXCEPTION_OCCURRED 1'b1
+
 module rv32x5p {
 	/* Pipeline registers (see regs5.h) */
 	reg PC[32];
@@ -39,6 +41,7 @@ module rv32x5p {
 	func_self nop();							/* no-op (indicating unimplemented instruction) */
 	wire execute_alu_a[32];						/* forward-path to ALU input A in execute stage */
 	wire execute_alu_b[32];						/* forward-path to ALU input B in execute stage */
+	wire trap_ret_pc[32];						/* epc source */
 	reg32 rv32x_reg32;							/* General-purpose registers(written value is forwarded to read ports 
 													if rd==rs1 or rd==rs2 in same cycle) */
 	munit32 rv32x_munit32;						/* Extension unit for M-Extensions, may require some cycle to complete its operations */
@@ -61,10 +64,12 @@ module rv32x5p {
 	proc ifetch {
 		wire pc4[32];
 		wire predicted_new_pc[32];
+		wire exception[5];
+		
 		inc32 rv32x_inc32;
-
+		exception = ifetch_exception;
 		rv32x_btb.predict(PC);
-		if(!stop_ifetch){
+		if(!ifetch_nop){
 			imem_read(PC, MEM_WORD);
 		}
 		pc4 = rv32x_inc32.exe(PC);
@@ -80,12 +85,16 @@ module rv32x5p {
 #define NOP (0x00000013)
 				ifetch(predicted_new_pc);
 				if(ifetch_nop) {
-					decode({PC, pc4, NOP, 1'b0, 1'b0});
+					decode({PC, pc4, NOP, 1'b0, 1'b0, 5'b00000});
 				} else {
 					/* feedback to predictor(at execute stage where actual branch condition calculates) */
-					decode({PC, pc4, inst, rv32x_btb.predict_as_taken, rv32x_btb.predict_as_not_taken});
+					decode({PC, pc4, inst, rv32x_btb.predict_as_taken, rv32x_btb.predict_as_not_taken, 5'b00000});
 				}
 			}
+		}
+
+		if(exception[4] == EXCEPTION_OCCURRED){
+			decode({PC, pc4, NOP, 1'b0, 1'b0, exception});
 		}
 
 		#ifdef CV
@@ -189,6 +198,7 @@ module rv32x5p {
 			dereg.predict_as_taken = IDREG.predict_as_taken;
 			dereg.predict_as_not_taken = IDREG.predict_as_not_taken;
 			dereg.amo = rv32x_inst_dec.amo;
+			dereg.exception = IDREG.exception;
 		} else {
 			dereg = 0;
 		}
@@ -384,13 +394,18 @@ module rv32x5p {
 			emreg.csrrs = DEREG.csrrs;
 			emreg.csrrc = DEREG.csrrc;
 			emreg.amo = DEREG.amo;
+			emreg.mret = DEREG.mret;
+			emreg.sret = DEREG.sret;
+			emreg.exception = DEREG.exception;
+			emreg.nextpc= if(taken || DEREG.jump) target_address else DEREG.pc4;
 		} else {
 			emreg = 0;
 		}
+		emreg.exception = execute_exception;
 		target_address = if(DEREG.branch) DEREG.nextpc else alu_q;
 		not_taken = (!taken && DEREG.branch);
 
-		if(!load_interlock) {
+		if(!load_interlock && (DEREG.exception[4] != EXCEPTION_OCCURRED)) {
 			/* both Operands are ready */
 			any {
 				DEREG.alu_sel == ALU: {
@@ -408,70 +423,15 @@ module rv32x5p {
 				(DEREG.ecall): {ecall();}
 				(DEREG.ebreak): {ebreak();}
 				(DEREG.wfi): {wfi();}
+				(DEREG.mret): {mret();}
+				(DEREG.sret): {sret();}
 			}
-			alt {
-				(DEREG.mret): {
-					emreg.nextpc=mret();
-					stop_ifetch();
-					memory(emreg);	/* for logging and update link register */
-					}
-				(DEREG.sret): {
-					emreg.nextpc=sret();
-					stop_ifetch();
-					memory(emreg);	/* for logging and update link register */
-					}
-				/* Branch and jump instructions */
-				(DEREG.jump  && !stall_execute): {
-					stop_ifetch();
-					stall_ifetch();
-					stall_decode();
-					ifetch_nop();
-					ifetch.finish();
-					decode_nop();
-					decode.finish();
-					ifetch(target_address);
-					emreg.nextpc=target_address;
-					memory(emreg);	/* for logging and update link register */
-				} 
-				((not_taken && DEREG.predict_as_taken) && !stall_execute): {
+			any {
+				(!i_misaligned && ((taken && DEREG.predict_as_not_taken) || (not_taken && DEREG.predict_as_taken))): {
 					miss_prediction();	/* update branch target address */
-					stop_ifetch();
-					stall_ifetch();
-					stall_decode();
-					ifetch_nop();
-					ifetch.finish();
-					decode_nop();
-					decode.finish();
-					ifetch(DEREG.pc4);
-					emreg.nextpc=DEREG.pc4;
-					memory(emreg);	/* for logging */
 				}
-				((taken && DEREG.predict_as_not_taken) && !stall_execute): {
-					miss_prediction();	/* update branch target address */
-					stop_ifetch();
-					stall_ifetch();
-					stall_decode();
-					ifetch_nop();
-					ifetch.finish();
-					decode_nop();
-					decode.finish();
-					ifetch(target_address);
-					emreg.nextpc=target_address;
-					memory(emreg);	/* for logging */
-				}
-				(((taken && DEREG.predict_as_taken) || (not_taken && DEREG.predict_as_not_taken)) && !stall_execute): {
+				((taken && DEREG.predict_as_taken) || (not_taken && DEREG.predict_as_not_taken)): {
 					correct_prediction();
-					emreg.nextpc= if(taken) target_address else DEREG.pc4;
-					memory(emreg);	/* for logging */
-				}
-				/* ALU and M-Ext instructions */
-				((DEREG.alu_sel == ALU) && !stall_execute): {
-					emreg.nextpc=DEREG.pc4;
-					memory(emreg);	/* for logging */
-				}
-				((DEREG.alu_sel == MUNIT) && rv32x_munit32.done && !stall_execute): {
-					emreg.nextpc=DEREG.pc4;
-					memory(emreg);	/* for logging */
 				}
 			}
 			if((DEREG.jump || taken) && ((target_address[1:0] & ialign) != 2'b00)) {
@@ -497,6 +457,18 @@ module rv32x5p {
 				taken: rv32x_btb.taken();
 				not_taken: rv32x_btb.not_taken();
 			}
+		}
+		if(!stall_execute){
+			if((emreg.exception[4] != EXCEPTION_OCCURRED) && (DEREG.jump || miss_prediction)){
+				stall_ifetch();
+				stall_decode();
+				ifetch_nop();	//stop ifetch_unit state machine
+				ifetch.finish();
+				decode_nop();
+				decode.finish();
+				ifetch(emreg.nextpc);
+			}
+			memory(emreg);
 		}
 		#ifdef CV
 			debug_sseg_l16(DEREG.pc[15:0]);
@@ -590,7 +562,10 @@ module rv32x5p {
 			mwreg.wb_value = if(EMREG.load || EMREG.amo) loaded_value else if(EMREG.csrrw || EMREG.csrrc || EMREG.csrrs) crdata else EMREG.alu_q;
 			mwreg.wb = EMREG.wb;
 			mwreg.amo = EMREG.amo;
+			mwreg.mret = EMREG.mret;
+			mwreg.sret = EMREG.sret;
 			mwreg.nextpc = EMREG.nextpc;
+			mwreg.exception = EMREG.exception;
 		} else {
 			mwreg = 0;
 		}
@@ -602,13 +577,26 @@ module rv32x5p {
 		ordering_rl = EMREG.funct7[0];
 		lr_w = (EMREG.funct7[6:2] == LR_W) && (EMREG.rs2 == 0) && EMREG.amo;
 		sc_w = (EMREG.funct7[6:2] == SC_W) && EMREG.amo;
+		mwreg.exception = memory_exception;
 
-		any {
-			EMREG.store: {
+		any {	//LARGE_CHAR.exception[4] bit positive equal to exception occured previous stage. small_char.exception[4] is includes current stage exception.
+			EMREG.exception[4] != EXCEPTION_OCCURRED && EMREG.store: {
 				dmem_write(mem_adrs, mem_byteen, mem_data);
 			}
-			EMREG.load: {
+			EMREG.exception[4] != EXCEPTION_OCCURRED && EMREG.load: {
 				dmem_read(mem_adrs, mem_byteen);
+			}
+			EMREG.exception[4] != EXCEPTION_OCCURRED && EMREG.amo && !(lr_w || sc_w): {
+				/* daddr can be used as badaddr, so set on amo_exe */
+				amo_exe(EMREG.rs2_data, EMREG.rs1_data, EMREG.funct7[6:2], ordering_aq, ordering_rl, mem_byteen, EMREG.rs1_data);
+			}
+			EMREG.exception[4] != EXCEPTION_OCCURRED && lr_w: {
+				load_reserved();
+				dmem_read(EMREG.rs1_data, mem_byteen);
+			}
+			EMREG.exception[4] != EXCEPTION_OCCURRED && sc_w: {
+				store_conditional();
+				dmem_write(EMREG.rs1_data, mem_byteen, EMREG.rs2_data);
 			}
 			EMREG.csrrw: {
 				csrrw();
@@ -649,20 +637,11 @@ module rv32x5p {
 				rv32x_btb.flush();
 				fence();
 			}
-			lr_w: {
-				load_reserved();
-				dmem_read(EMREG.rs1_data, mem_byteen);
-			}
-			sc_w: {
-				store_conditional();
-				dmem_write(EMREG.rs1_data, mem_byteen, EMREG.rs2_data);
-			}
-			EMREG.amo && !(lr_w || sc_w): {
-				/* daddr can be used as badaddr, so set on amo_exe */
-				amo_exe(EMREG.rs2_data, EMREG.rs1_data, EMREG.funct7[6:2], ordering_aq, ordering_rl, mem_byteen, EMREG.rs1_data);
-			}
 		}
 		alt {
+			mwreg.exception[4] == EXCEPTION_OCCURRED: {
+				writeback(mwreg);
+			}
 			(!EMREG.store && !EMREG.load && !EMREG.fencei && !EMREG.fence && !EMREG.sfence_vma && !EMREG.amo && !stall_memory): {
 				writeback(mwreg);
 				valid_context();
@@ -672,17 +651,7 @@ module rv32x5p {
 				writeback(mwreg);
 				valid_context();
 			}
-			(dmem_ready && !stall_memory && EMREG.sfence_vma): {
-				ifetch(EMREG.pc4);
-				writeback(mwreg);
-				valid_context();
-			}
-			(dmem_ready && !stall_memory && EMREG.fence): {
-				ifetch(EMREG.pc4);
-				writeback(mwreg);
-				valid_context();
-			}
-			(dmem_ready && !stall_memory && EMREG.fencei): {
+			(dmem_ready && !stall_memory && (EMREG.sfence_vma ||  EMREG.fence || EMREG.fencei)): {
 				ifetch(EMREG.pc4);
 				writeback(mwreg);
 				valid_context();
@@ -751,14 +720,29 @@ module rv32x5p {
 	func stall_memory_req {
 		stall_memory();
 	}
+
+	if(MWREG.exception[4] == EXCEPTION_OCCURRED){
+		trap_ret_pc = MWREG.pc;
+	}else{
+		trap_ret_pc = MWREG.nextpc;
+	}
+
 	proc writeback {
 		wire wb_value[32];
-		
 		wb_value = MWREG.wb_value;
-		if(MWREG.wb) {
-			instret();	/* not precise but for now, use this */
-			rv32x_reg32.writea(MWREG.rd, wb_value);
+		
+		if(MWREG.exception[4] == EXCEPTION_OCCURRED){
+			exception_req(MWREG.exception[3:0]);
 		}
+		any{
+			(MWREG.exception[4] != EXCEPTION_OCCURRED) && MWREG.mret: trap_mret();
+			(MWREG.exception[4] != EXCEPTION_OCCURRED) && MWREG.sret: trap_sret();
+			((MWREG.exception[4] != EXCEPTION_OCCURRED) && MWREG.wb):{
+				instret();	/* not precise but for now, use this */
+				rv32x_reg32.writea(MWREG.rd, wb_value);
+			}
+		}
+
 #ifdef DEBUG
 		if(MWREG.debug_mem_write) {
 			debug_mem_write(MWREG.debug_mem_adrs, MWREG.debug_mem_byteen, MWREG.debug_mem_data);
@@ -778,6 +762,7 @@ module rv32x5p {
 		}
 		#endif
 	}
+
 	func get_pc_memory {
 		return EMREG.pc; 
 	}
@@ -797,7 +782,7 @@ module rv32x5p {
 		return EMREG.inst;
 	}
 	func get_pc_trap{
-		return MWREG.nextpc;
+		return trap_ret_pc;
 	}
 #ifdef DEBUG
 	debug_x0  = rv32x_reg32.debug_x0;
