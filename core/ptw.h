@@ -15,6 +15,5 @@ declare ptw
 	input mem_rdata[32];
 	func_out mem_read(mem_addr);
 	func_in mem_ready;
-	func_in interrupt();
 }
 #endif

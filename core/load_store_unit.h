@@ -107,8 +107,6 @@ declare load_store_unit
 	func_out pbus_flush();
 	func_in pbus_flush_done();
 
-	func_in interrupt();
-
 #ifdef RISCV_TESTS
 	output tohost[32];
 	func_out sim_done(tohost);

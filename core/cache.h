@@ -40,6 +40,5 @@ declare cache
 	func_out mem_read(mem_addr, mem_size);
 	func_out mem_write(mem_addr, mem_size, mem_wdata);
 	func_in mem_ready;
-	func_in interrupt();
 }
 #endif
