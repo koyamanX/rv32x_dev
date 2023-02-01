@@ -98,13 +98,18 @@ void printData(unsigned len)
 {
     printf("Data length: %u\n", len);
     printf("Data:\n");
-    for (int i = 0; i < (len / 4); i++)
+    for (int i = 0; i < len; i++)
     {
-        printf("%08x ", *(MMC_DATA_BASE + i));
+        printf("%02x", *((unsigned char*)(MMC_DATA_BASE) + i));
         if ((i + 1) % 4 == 0)
+        {
+            printf(" ");
+        }
+        if ((i + 1) % 16 == 0)
         {
             printf("\n");
         }
+        
     }
     printf("\n");
 }
