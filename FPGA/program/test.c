@@ -6,7 +6,6 @@
 #define MMC_RESP ((volatile unsigned int *)(MMC_BASE + 0x208))
 #define MMC_CMD ((volatile unsigned int *)(MMC_BASE + 0x20C))
 #define MMC_ARG ((volatile unsigned int *)(MMC_BASE + 0x210))
-#define MMC_CD_BASE ((volatile unsigned int *)(MMC_BASE + 0x214)) // csd cid
 #define MMC_DATA_BASE ((volatile unsigned int *)(MMC_BASE + 0x0))
 #define INITED 0x1
 #define IDLE 0x2
@@ -32,6 +31,8 @@ void main(void)
     exeCMD(58, 0);
     exeCMD(9, 0);
     exeCMD(10, 0);
+    exeCMD(55, 0);
+    exeCMD(51, 0);
     exeCMD(13, 0);
     exeCMD(17, 512);
     while (1)
@@ -79,6 +80,11 @@ void printResult(unsigned cmd)
         printData(512);
         break;
     // 18,24,25 is TODO
+    case 51:
+        printResp(R1);
+        printf("SCR:\n");
+        printCD();
+        break;
     case 58:
         printResp(R3);
         break;
@@ -126,9 +132,16 @@ void printResp(unsigned resType)
 
 void printCD()
 {
-    printf("%08x ", *(MMC_CD_BASE));
-    printf("%08x ", *(MMC_CD_BASE + 1));
-    printf("%08x ", *(MMC_CD_BASE + 2));
-    printf("%08x\n", *(MMC_CD_BASE + 3));
+    unsigned int buf[4] = {*(MMC_DATA_BASE), *(MMC_DATA_BASE + 1), *(MMC_DATA_BASE + 2), *(MMC_DATA_BASE + 3)};
+    unsigned int conv;
+    for (int i = 0; i < 4; i++)
+    {
+        conv = 0;
+        conv |= buf[i] >> 24 & 0x000000FF;
+        conv |= buf[i] >> 8 & 0x0000FF00;
+        conv |= buf[i] << 8 & 0x00FF0000;
+        conv |= buf[i] << 24 & 0xFF000000;
+        printf("%08x ", conv);
+    }
     printf("\n");
 }
