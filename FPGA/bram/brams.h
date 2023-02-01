@@ -19,7 +19,7 @@ declare cache_tag interface {
 
 declare mainmem interface {
     param_str filename;
-    input address[16];
+    input address[15];
     input clock;
     input data[32];
     input wren;
