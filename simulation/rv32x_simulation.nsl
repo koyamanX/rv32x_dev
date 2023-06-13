@@ -42,7 +42,8 @@ declare rv32x_simulation simulation {
     output tail[32];
     output excnt[4];
     output exclusion[512];
-    func_out erase(head, tail, excnt, exclusion);
+	output erase_group_en;
+    func_out erase(head, tail, excnt, exclusion, erase_group_en);
 	output uart_data[8];
 	func_out uart_done();
 	input uart_wdata[8];
@@ -164,7 +165,7 @@ module rv32x_simulation {
 		write_block(mmcsim.adrs, mmcsim.write_block_data);
 	}
 	func mmcsim.erase{
-		erase(mmcsim.head, mmcsim.tail, mmcsim.excnt, mmcsim.exclusion);
+		erase(mmcsim.head, mmcsim.tail, mmcsim.excnt, mmcsim.exclusion, mmcsim.erase_group_en);
 	}
 	func block_data_valid {
 		mmcsim.block_data_valid();

@@ -6,7 +6,7 @@
 #include "clint.h"
 #include "mmio_dev.h"
 #include "plic.h"
-#include "mmcspi.h"
+#include "mmc_interface.h"
 
 module rv32x_integration {
 	rv32x_core core;
@@ -14,7 +14,7 @@ module rv32x_integration {
 	clint rv32x_clint;
 	mmio_dev rv32x_mmio_dev;
 	plic rv32x_plic;
-	mmcspi rv32x_mmcspi;
+	mmc_interface rv32x_mmcspi;
 
 	func reset {
 		core.reset();

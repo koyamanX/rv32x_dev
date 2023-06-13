@@ -147,6 +147,13 @@ const char *skip_procs[] = {
 	"_raw_spin_unlock_irq",
 	NULL};
 
+/*xv6	 							&& !((!strcmp(procedure[idx].name, "push_off")) ||
+									  (!strcmp(procedure[idx].name, "pop_off")) ||
+									  (!strcmp(procedure[idx].name, "mycpu")) ||
+									  (!strcmp(procedure[idx].name, "acquire")) ||
+									  (!strcmp(procedure[idx].name, "holding")) ||
+									  (!strcmp(procedure[idx].name, "release")))*/
+
 const char *abi_reg_strs[] = {
 	"zero", "ra", "sp", "gp",
 	"tp", "t0", "t1", "t2",
@@ -186,13 +193,18 @@ static void reverse(void *dest, void *src, size_t n)
 	}
 }
 
-static void erase(FILE *block_device, unsigned head, unsigned tail, unsigned *erase_exclusion, unsigned excnt)
+static void erase(FILE *block_device, unsigned head, unsigned tail, unsigned *erase_exclusion, unsigned excnt, unsigned group_flag)
 {
 	unsigned ptr;
-	char zero[512];
+	char *zero;
 	unsigned exclude_flag = 0;
-	memset(zero, 0, 512);
-	for (ptr = head; ptr < tail; ptr += 512)
+	unsigned erase_size = 0x200;
+	if (group_flag)
+	{
+		erase_size = 0x10000;
+	}
+	zero = (char *)calloc(erase_size, sizeof(char));
+	for (ptr = head; ptr < tail; ptr += erase_size)
 	{
 		fseek(block_device, ptr, SEEK_SET);
 		for (int i = 0; i < excnt; i++)
@@ -205,10 +217,11 @@ static void erase(FILE *block_device, unsigned head, unsigned tail, unsigned *er
 		}
 		if (!exclude_flag)
 		{
-			fwrite(zero, sizeof(uint8_t), 512, block_device);
+			fwrite(zero, sizeof(uint8_t), erase_size, block_device);
 		}
 		exclude_flag = 0;
 	}
+	free(zero);
 }
 
 class processor_t
@@ -538,9 +551,9 @@ public:
 					{
 						for (int i = 0; i < core->excnt; i++)
 						{
-							mmc_erase_exclusion[i] = *(((uint32_t *)(core->exclusion)) + i);
+							mmc_erase_exclusion[i] = (uint32_t)(core->exclusion)[i];
 						}
-						erase(block_device, core->head, core->tail, mmc_erase_exclusion, core->excnt);
+						erase(block_device, core->head, core->tail, mmc_erase_exclusion, core->excnt, core->erase_group_en);
 					}
 				}
 			}
@@ -687,12 +700,7 @@ public:
 				dump_vcd_flag = 1;
 				procedure[idx].dumpflag = 0;
 			}
-			if (print_entry_flag && !((!strcmp(procedure[idx].name, "push_off")) ||
-									  (!strcmp(procedure[idx].name, "pop_off")) ||
-									  (!strcmp(procedure[idx].name, "mycpu")) ||
-									  (!strcmp(procedure[idx].name, "acquire")) ||
-									  (!strcmp(procedure[idx].name, "holding")) ||
-									  (!strcmp(procedure[idx].name, "release"))))
+			if (print_entry_flag)
 			{
 				fprintf(logfile, "\nDepth=%d, entry: %s(0x%x)", callDepth, procedure[idx].name, retire_pc);
 				fprintf(logfile, "\tinst_counter = %d\n", inst_counter);
