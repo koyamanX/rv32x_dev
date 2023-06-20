@@ -104,7 +104,11 @@ void printData(unsigned len)
     printf("Data:\n");
     for (int i = 0; i < len; i++)
     {
+<<<<<<< HEAD
         printf("%02x", *((unsigned char *)(MMC_DATA_BASE) + i));
+=======
+        printf("%02x", *((unsigned char*)(MMC_DATA_BASE) + i));
+>>>>>>> 944fce29a2f8df9b4e37cf27afde4a2b1109ef96
         if ((i + 1) % 4 == 0)
         {
             printf(" ");
@@ -113,6 +117,7 @@ void printData(unsigned len)
         {
             printf("\n");
         }
+        
     }
     printf("\n");
 }
