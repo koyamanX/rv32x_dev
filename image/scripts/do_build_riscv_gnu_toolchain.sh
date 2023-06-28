@@ -1,7 +1,7 @@
 #!/bin/bash
 set -ex
 
-git -c submodule."qemu".update=none clone -b 2021.08.11 --depth=1 --recurse-submodules --shallow-submodules -j4 https://github.com/riscv/riscv-gnu-toolchain
+git -c submodule."qemu".update=none clone -b 2021.08.11 --depth=1 --recurse-submodules -j4 https://github.com/riscv/riscv-gnu-toolchain
 pushd riscv-gnu-toolchain &> /dev/null
 	mkdir build
 	pushd build &> /dev/null
