@@ -12,6 +12,7 @@ AS=$(RISCV_PREFIX)as
 LD=$(RISCV_PREFIX)ld
 OBJCOPY=$(RISCV_PREFIX)objcopy
 RISCV_INSTALL_DIR=/opt/riscv/x86_64-pc-linux-gnu/riscv32-elflittle
+LIBSFRAME_DIR=/opt/riscv/lib
 SIMOPT=
 
 .PHONY: clean all obj_dir $(TOP)
@@ -48,7 +49,7 @@ out/$(TOP).v: $(TOP).nsl
 obj_dir: $(TOP).cpp $(VFILES) 
 	make out/$(TOP).v SIMFLAGS=
 	make -C elfloader libelfloader.a
-	verilator --cc -Wno-lint -Wno-UNOPTFLAT --trace --trace-underscore out/*.v --top-module $(TOP) --exe $(TOP).cpp -O3 --autoflush -LDFLAGS "-L../elfloader -L$(RISCV_INSTALL_DIR)/lib -lelfloader -lopcodes -lbfd -liberty -lz -ldl" -CFLAGS "-I$(RISCV_INSTALL_DIR)/include -O2 -static -ggdb $(SIMOPT)"
+	verilator --cc -Wno-lint -Wno-UNOPTFLAT --trace --trace-underscore out/*.v --top-module $(TOP) --exe $(TOP).cpp -O3 --autoflush -LDFLAGS "-L../elfloader -L$(LIBSFRAME_DIR) -L$(RISCV_INSTALL_DIR)/lib -lelfloader -lopcodes -lbfd -lsframe -liberty -lz -ldl" -CFLAGS "-I$(RISCV_INSTALL_DIR)/include -O2 -static -ggdb $(SIMOPT)"
 
 $(TOP): $(TOP).cpp obj_dir $(VFILES) bootrom.hex
 	cd obj_dir && make -f V$(TOP).mk V$(TOP)

@@ -8,7 +8,7 @@ LOADEROPT=-DBINSIZE\=0	#-DHEAD=で開始アドレス -DBINSIZE=でロードす�
 all: bootrom.hex
 
 bootrom.elf: bootrom.s bootloader.c
-	$(GCC) bootrom.s bootloader.c $(LOADEROPT) -mabi=ilp32 -e _boot -nostdinc -nostdlib -fno-builtin -T link.ld -o bootrom.elf
+	$(GCC) bootrom.s bootloader.c $(LOADEROPT) -mabi=ilp32 -march=rv32ima_zicsr_zifencei -e _boot -nostdinc -nostdlib -fno-builtin -T link.ld -o bootrom.elf
 
 bootrom.hex: bootrom.elf
 	$(OBJCOPY) -O verilog $< $@

@@ -13,6 +13,7 @@
 #include <signal.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <byteswap.h>
 
 #ifdef __cplusplus
@@ -222,6 +223,17 @@ static void erase(FILE *block_device, unsigned head, unsigned tail, unsigned *er
 		exclude_flag = 0;
 	}
 	free(zero);
+}
+
+static int fprintf_styled_func(void *stream, enum disassembler_style style,
+							   const char *format, ...)
+{
+	// styleは色分けとかに使う？(riscv-gnu-toolchain/binutils/disasm.c参照)
+	va_list va;
+	va_start(va, format);
+	vfprintf((FILE *)stream, format, va);
+	va_end(va);
+	return 0;
 }
 
 class processor_t
@@ -693,7 +705,6 @@ public:
 		int idx = -1;
 		if ((idx = searchSymbol(retire_pc, procedure)) != -1)
 		{
-			dumpProcedure(idx);
 			if (procedure[idx].dumpflag)
 			{
 				printf("\n\n%s reaches \"%s(%x)\" entry:start dumping %s\n\n", procname, target_symbol, retire_pc, vcdfilename);
@@ -920,18 +931,6 @@ public:
 		return -1;
 	};
 #ifndef FAST_SIM
-	void dumpProcedure(int idx)
-	{
-		char tempstr[16] = {0};
-		uint64_t funcName7to0 = 0;
-		uint64_t funcName15to8 = 0;
-		strncpy(tempstr, procedure[idx].name, 15);
-		funcName7to0 = bswap_64(*(uint64_t *)(tempstr));
-		funcName15to8 = bswap_64(*(uint64_t *)(tempstr + 8));
-		*(uint64_t *)(core->funcname) = funcName15to8;
-		*((uint64_t *)((core->funcname) + 2)) = funcName7to0;
-		memset(tempstr, 0, 16);
-	};
 	void printRegInfo(uint8_t rd, uint32_t data)
 	{
 		fprintf(logfile, "%4s <- %08x", reg_strs[rd], data);
@@ -1356,7 +1355,8 @@ public:
 	};
 	void openDisasm(void)
 	{
-		init_disassemble_info(&disasm_info, logfile, (fprintf_ftype)fprintf);
+		fprintf_styled_ftype printInsn = fprintf_styled_func;
+		init_disassemble_info(&disasm_info, logfile, (fprintf_ftype)fprintf, printInsn);
 		disasm_info.arch = bfd_arch_riscv;
 		disasm_info.mach = bfd_mach_riscv32;
 		disasm_info.buffer_length = 0x4;
@@ -1364,7 +1364,7 @@ public:
 		disasm_info.read_memory_func = buffer_read_memory;
 		disassemble_init_for_target(&disasm_info);
 		disasm = disassembler(bfd_arch_riscv, false, bfd_mach_riscv32, NULL);
-		// disasm = riscv_get_disassembler(NULL);//same above
+		// disasm = riscv_get_disassembler(abfd); // same above
 	};
 	void printDisasm(uint32_t pc, uint32_t inst)
 	{
