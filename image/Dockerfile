@@ -14,7 +14,8 @@ RUN apt update && \
 	zlib1g-dev gtkwave libsystemc libsystemc-doc libsystemc-dev iverilog \
 	vim bash automake autotools-dev libmpc-dev libmpfr-dev libgmp-dev gawk \
 	texinfo gperf libtool patchutils bc libexpat-dev wget libiberty-dev \
-	libftdi-dev pkg-config device-tree-compiler googletest help2man python3-pip libglib2.0-dev ninja-build && \
+	libftdi-dev pkg-config device-tree-compiler googletest \
+	help2man python3-pip libglib2.0-dev ninja-build fdisk && \
 	rm -rf /var/lib/apt/lists/*
 
 COPY scripts /root/scripts
