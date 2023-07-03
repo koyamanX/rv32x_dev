@@ -5,21 +5,22 @@ GCC=$(RISCV_PREFIX)gcc
 OBJCOPY=$(RISCV_PREFIX)objcopy
 TARGET=test
 LSCRIPT=program
-BOOTROM=bootrom.s
+BOOTSTRAP=bootrom.s
 MIFS=bootrom.hex $(TARGET).hex 
-BROPT=-DBINSIZE=25762824
+BOOT=/root/software/opensbi/build/platform/rv32xsoc/firmware/fw_payload.bin
+BOOTSTRAP_OPT=-DBINSIZE=$(shell ls -lL $(BOOT) | awk '{print $$5}')
 OPT=
 USEGLOSS=	#if 1 use glosslib(like stdio)
 
 all: $(MIFS) 
 
-bootrom.elf: $(BOOTROM)
-ifneq ($(filter %.s, $(BOOTROM)),)
+bootrom.elf: $(BOOTSTRAP)
+ifneq ($(filter %.s, $(BOOTSTRAP)),)
 	$(AS) $< -o .bootrom.elf
 	$(LD) .bootrom.elf -o $@ -T bootrom.ld
 	@rm .bootrom.elf
-else ifneq ($(filter %.c, $(BOOTROM)),)
-	$(GCC) set_sp.s $(BOOTROM) $(BROPT) -mabi=ilp32 -e _boot -nostdinc -nostdlib -fno-builtin -T bootrom.ld -o bootrom.elf
+else ifneq ($(filter %.c, $(BOOTSTRAP)),)
+	$(GCC) set_sp.s $(BOOTSTRAP) $(BOOTSTRAP_OPT) -march=rv32ima_zicsr_zifencei -mabi=ilp32 -e _boot -nostdinc -nostdlib -fno-builtin -T bootrom.ld -o bootrom.elf
 endif
 
 
