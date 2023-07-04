@@ -19,3 +19,6 @@
 [submodule "FPGA/SDRAM_Controler"]
 	path = FPGA/SDRAM_Controler
 	url = https://github.com/twinkletia/SDRAM_Controler
+[submodule "software/buildroot"]
+	path = software/buildroot
+	url = https://github.com/twinkletia/buildroot
