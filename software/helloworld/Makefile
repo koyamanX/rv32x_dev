@@ -1,7 +1,7 @@
 RISCV_PREFIX=riscv32-unknown-elf-
 CC=$(RISCV_PREFIX)gcc
 VERSION=$(shell $(CC) -dumpversion)
-CFLAGS=-nostartfiles -nostdlib -nostdinc -march=rv32im -mabi=ilp32 -I/opt/riscv/riscv32-unknown-elf/include -I/opt/riscv/lib/gcc/riscv32-unknown-elf/$(VERSION)/include -static
+CFLAGS=-nostartfiles -nostdlib -nostdinc -march=rv32ima_zicsr_zifencei -mabi=ilp32 -I/opt/riscv/riscv32-unknown-elf/include -I/opt/riscv/lib/gcc/riscv32-unknown-elf/$(VERSION)/include -static
 AS=$(RISCV_PREFIX)as
 LD=$(RISCV_PREFIX)ld
 GLOSS=../gloss
@@ -14,7 +14,7 @@ BOOTROMDIR=bootrom
 BOOTROM=bootrom
 
 run: $(TEST).elf $(BOOTROM).hex
-	make -C $(SIMDIR)
+	make -C $(SIMDIR) -B
 	cp $(SIMDIR)/$(SIM) $(SIM)
 	cp $(SIMDIR)/gtk.sh ./
 	./$(SIM) $< --no-sim-exit --no-log 2> /dev/null || true
