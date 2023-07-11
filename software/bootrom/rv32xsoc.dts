@@ -7,7 +7,7 @@
 	//model = "ck,rv32xsoc";
 
 	chosen {
-		bootargs ="root=/dev/mmcblk0p2 blkdevparts=mmcblk0:40M(kernel),60M(root) console=hvc earlycon=sbi";
+		bootargs ="root=/dev/mmcblk0p2 blkdevparts=mmcblk0:40M(kernel),60M(root) console=hvc earlycon=sbi mmc_core.use_spi_crc=0";
 	};
 	cpus {
 		#address-cells = <1>;
