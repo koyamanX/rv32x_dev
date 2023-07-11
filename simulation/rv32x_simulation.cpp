@@ -173,10 +173,10 @@ static void cpy(void *dest, void *src, size_t n)
 	d = (uint8_t *)dest, s = (uint8_t *)src;
 	for (size_t i = 0; i < n; i += 4)
 	{
-		d[i + 0] = s[i + 0];
-		d[i + 1] = s[i + 1];
-		d[i + 2] = s[i + 2];
-		d[i + 3] = s[i + 3];
+		d[i + 0] = s[i + 3];
+		d[i + 1] = s[i + 2];
+		d[i + 2] = s[i + 1];
+		d[i + 3] = s[i + 0];
 	}
 }
 
@@ -361,14 +361,14 @@ public:
 		p_reset = 0;
 		reset = 0;
 
-		while (tick() <= 10)
+		while (tick() <= 2)
 		{
+			p_reset = !p_reset; // negedge reset
 			eval();
 			dump();
 		}
 		/* assert reset signal for one clock cycle */
 		{
-			p_reset = 1;
 			reset = 1;
 			eval();
 			dump();
