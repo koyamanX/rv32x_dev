@@ -120,6 +120,7 @@ module rv32x_simulation {
 	
 	ur.RXD = core.TXD;
 	core.RXD = us.TXD;
+	mmcsim.m_clock = core.SCLK;
 	mmcsim.SCLK = core.SCLK;
 	mmcsim.CS = core.CS;
 	mmcsim.MOSI = core.MOSI;
