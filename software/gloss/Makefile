@@ -1,7 +1,7 @@
 RISCV_PREFIX=riscv32-unknown-elf-
 CC=$(RISCV_PREFIX)gcc
 VERSION=$(shell $(CC) -dumpversion)
-CFLAGS=-nostartfiles -nostdlib -nostdinc -march=rv32im -mabi=ilp32 -I/opt/riscv/riscv32-unknown-elf/include -I/opt/riscv/lib/gcc/riscv32-unknown-elf/$(VERSION)/include -static
+CFLAGS=-nostartfiles -nostdlib -nostdinc -march=rv32ima_zicsr_zifencei -mabi=ilp32 -I/opt/riscv/riscv32-unknown-elf/include -I/opt/riscv/lib/gcc/riscv32-unknown-elf/$(VERSION)/include -static
 AS=$(RISCV_PREFIX)as
 AR=$(RISCV_PREFIX)ar
 RANLIB=$(RISCV_PREFIX)ranlib
