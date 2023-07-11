@@ -34,6 +34,7 @@
 extern void _boot();
 void spiWait();
 void exeCMD(unsigned, unsigned, unsigned);
+void fillBuf(unsigned);
 void printResult(unsigned, unsigned);
 void printData(unsigned);
 void printResp(unsigned);
@@ -42,6 +43,7 @@ void printCD();
 void main(void)
 {
     spiWait();
+    /*
     exeCMD(58, 0, MMC_RSP_SPI_R3 | MMC_CMD_AC);
     exeCMD(9, 0, MMC_RECIEVE_BYTES(16) | MMC_RSP_SPI_R1 | MMC_CMD_ADTC | MMC_READ);
     exeCMD(10, 0, MMC_RECIEVE_BYTES(16) | MMC_RSP_SPI_R1 | MMC_CMD_ADTC | MMC_READ);
@@ -51,7 +53,21 @@ void main(void)
     exeCMD(13, 0, MMC_RECIEVE_BYTES(64) | MMC_RSP_SPI_R2 | MMC_CMD_ADTC | MMC_READ);
     exeCMD(13, 0, MMC_RSP_SPI_R2 | MMC_CMD_AC);
     exeCMD(17, 0x200, MMC_RECIEVE_BYTES(512) | MMC_RSP_SPI_R1 | MMC_CMD_ADTC | MMC_READ);
-
+    */
+    /*
+    exeCMD(17, 0x0, MMC_RECIEVE_BYTES(512) | MMC_RSP_SPI_R1 | MMC_CMD_ADTC | MMC_READ);
+    exeCMD(17, 0x200, MMC_RECIEVE_BYTES(512) | MMC_RSP_SPI_R1 | MMC_CMD_ADTC | MMC_READ);
+    exeCMD(17, 0x400, MMC_RECIEVE_BYTES(512) | MMC_RSP_SPI_R1 | MMC_CMD_ADTC | MMC_READ);
+    */
+    fillBuf(0x12345678);
+    exeCMD(24, 0x0, MMC_RSP_SPI_R1 | MMC_CMD_ADTC | MMC_WRITE);
+    fillBuf(0x456789AB);
+    exeCMD(24, 0x200, MMC_RSP_SPI_R1 | MMC_CMD_ADTC | MMC_WRITE);
+    fillBuf(0x89ABCDEF);
+    exeCMD(24, 0x400, MMC_RSP_SPI_R1 | MMC_CMD_ADTC | MMC_WRITE);
+    exeCMD(17, 0x0, MMC_RECIEVE_BYTES(512) | MMC_RSP_SPI_R1 | MMC_CMD_ADTC | MMC_READ);
+    exeCMD(17, 0x200, MMC_RECIEVE_BYTES(512) | MMC_RSP_SPI_R1 | MMC_CMD_ADTC | MMC_READ);
+    exeCMD(17, 0x400, MMC_RECIEVE_BYTES(512) | MMC_RSP_SPI_R1 | MMC_CMD_ADTC | MMC_READ);
     /*
     exeCMD(32, 0, MMC_RSP_SPI_R1 | MMC_CMD_AC);
     exeCMD(33, 0x400, MMC_RSP_SPI_R1 | MMC_CMD_AC);
@@ -77,6 +93,14 @@ void spiWait()
     }
 }
 
+void fillBuf(unsigned foo)
+{
+    for (int i = 0; i < 128; i++)
+    {
+        *((MMC_DATA_BASE) + i) = foo;
+    }
+}
+
 void exeCMD(unsigned cmd, unsigned arg, unsigned cmd_types)
 {
     spiWait();
@@ -92,7 +116,7 @@ void exeCMD(unsigned cmd, unsigned arg, unsigned cmd_types)
 void printResult(unsigned cmd, unsigned cmd_types)
 {
     printResp(cmd_types & MMC_RSP_SPI_MASK);
-    if (cmd_types & MMC_CMD_ADTC)
+    if (cmd_types & (MMC_CMD_ADTC | MMC_READ))
     {
         printData((cmd_types & MMC_RECIEVE_BYTES_MASK) >> 16);
     }
