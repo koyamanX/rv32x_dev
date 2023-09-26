@@ -50,7 +50,7 @@ TEST2 = $(filter-out %.hex, $(wildcard $(SRCDIR)/bram/*.nsl))
 TOP = top_sdram	#top module
 SDC = $(DESIGN).sdc
 STP = $(DESIGN).stp
-
+SERIAL_CABLE_LEVEL = TTL
 ########
 
 all:
@@ -60,12 +60,14 @@ all:
 	fi
 	sed -i -e "s/TOP_LEVEL_ENTITY.*/TOP_LEVEL_ENTITY $(TOP)/g" $(MKPROJ)
 	sed -i -e "s/NUM_PARALLEL_PROCESSORS.*/NUM_PARALLEL_PROCESSORS $(shell nproc)/g" $(MKPROJ)
+	sed -i -e "s/IO_STANDARD.*RXD/IO_STANDARD \"3.3-V LV$(SERIAL_CABLE_LEVEL)\" -to RXD/g" $(MKPROJ)
+	sed -i -e "s/IO_STANDARD.*TXD/IO_STANDARD \"3.3-V LV$(SERIAL_CABLE_LEVEL)\" -to TXD/g" $(MKPROJ)
 	( cd $(WORKDIR); make -f ../Makefile SRCDIR=.. compile )
 
 ########
 
 .SUFFIXES: .v .nsl
-.PHONY: riscv_tests test2 mifs sdc pll
+.PHONY: riscv_tests test test2 mifs sdc pll
 
 %.v: $(SRCDIR)/../integration/%.nsl 
 	$(NSL2VL) $(NSLFLAGS)  $< -o $@
@@ -110,6 +112,10 @@ riscv-tests:
 	fi
 	find $(SRCDIR)/../software/riscv-tests/isa -maxdepth 1 -perm -111 -type f | xargs -i cp -p {} $(SRCDIR)/tests
 	ls $(TEST) | xargs -t -i riscv32-unknown-elf-objcopy -O verilog {} {}.hex
+
+test:
+	sed -e "s/IO_STANDARD.*RXD/IO_STANDARD \"3.3-V LV$(SERIAL_CABLE_LEVEL)\" -to RXD/g" mkproj-DE0_CV.tcl | grep RXD
+	sed -e "s/IO_STANDARD.*TXD/IO_STANDARD \"3.3-V LV$(SERIAL_CABLE_LEVEL)\" -to TXD/g" mkproj-DE0_CV.tcl | grep TXD
 
 test2:
 	echo $(TEST2)
