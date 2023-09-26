@@ -245,8 +245,6 @@ private:
 	const char *procname = NULL;
 	char *logfilename = NULL;
 	FILE *logfile = NULL;
-	unsigned int imem_wait = 0;
-	unsigned int dmem_wait = 0;
 	unsigned int m_clock_count = 0;
 	uint32_t retire_pc = 0;
 	uint32_t retire_inst = 0;
@@ -289,7 +287,7 @@ private:
 		unsigned int pma = 0;
 		char *name = NULL;
 		int dumpflag = 0;
-	} * procedure, *globalObject;
+	} *procedure, *globalObject;
 	char *target_symbol = NULL;
 	int import_linux_symbol_flag = 0;
 #ifdef KERNEL_ELF_LOCATION
@@ -420,97 +418,88 @@ public:
 		int dmem_stat = 0;
 		static uint32_t epc, cause, mtval, einst, got_exception = -1;
 		uint64_t ret = -1;
+		static unsigned imem_read = 0;
+		static unsigned dmem_read = 0;
+		static unsigned dmem_write = 0;
+		static unsigned dbyteen = 0;
+		static unsigned wdata = 0;
+		static unsigned iaddr = 0;
+		static unsigned daddr = 0;
 
 		while (1)
 		{
 			tick();
 			eval();
-			core->inst = 0;
-			if (core->imem_read)
+			if (rising_edge)
 			{
-				if (imem_wait == IMEM_WAIT)
-				{
-					imem_stat = read_word(memory, core->iaddr, (uint32_t *)&core->inst);
-					core->imem_ready = 1;
-					imem_wait = 0;
-				}
-				else
-				{
-					core->imem_ready = 0;
-					imem_wait++;
-				}
-			}
-			else
-			{
+				core->inst = 0;
 				core->imem_ready = 0;
-			}
-			core->rdata = 0;
-			if (core->dmem_read || core->dmem_write)
-			{
-				if (dmem_wait == DMEM_WAIT)
+				core->rdata = 0;
+				core->dmem_ready = 0;
+				if (imem_read)
 				{
-					if ((core->dbyteen & 0x3) == 0)
+					imem_stat = read_word(memory, iaddr, (uint32_t *)&core->inst);
+					core->imem_ready = 1;
+				}
+				if (dmem_read || dmem_write)
+				{
+					if ((dbyteen & 0x3) == 0)
 					{
-						if (core->dmem_read)
+						if (dmem_read)
 						{
-							dmem_stat = read_byte(memory, core->daddr, (uint8_t *)&core->rdata);
+							dmem_stat = read_byte(memory, daddr, (uint8_t *)&core->rdata);
 						}
-						else if (core->dmem_write)
+						else if (dmem_write)
 						{
-							dmem_stat = write_byte(memory, core->daddr, core->wdata);
+							dmem_stat = write_byte(memory, daddr, wdata);
 						}
 					}
-					else if ((core->dbyteen & 0x3) == 1)
+					else if ((dbyteen & 0x3) == 1)
 					{
-						if (core->dmem_read)
+						if (dmem_read)
 						{
-							dmem_stat = read_halfword(memory, core->daddr, (uint16_t *)&core->rdata);
+							dmem_stat = read_halfword(memory, daddr, (uint16_t *)&core->rdata);
 						}
-						else if (core->dmem_write)
+						else if (dmem_write)
 						{
-							dmem_stat = write_halfword(memory, core->daddr, core->wdata);
+							dmem_stat = write_halfword(memory, daddr, wdata);
 						}
 					}
-					else if ((core->dbyteen & 0x3) == 2)
+					else if ((dbyteen & 0x3) == 2)
 					{
-						if (core->dmem_read)
+						if (dmem_read)
 						{
-							dmem_stat = read_word(memory, core->daddr, (uint32_t *)&core->rdata);
+							dmem_stat = read_word(memory, daddr, (uint32_t *)&core->rdata);
 						}
-						else if (core->dmem_write)
+						else if (dmem_write)
 						{
-							dmem_stat = write_word(memory, core->daddr, core->wdata);
+							dmem_stat = write_word(memory, daddr, wdata);
 						}
 					}
 					core->dmem_ready = 1;
-					dmem_wait = 0;
 				}
-				else
+				if (imem_stat == -1)
 				{
-					core->dmem_ready = 0;
-					dmem_wait++;
+					fprintf(stderr, "Instruction Memory violation occuries at address of %08x\n", iaddr);
+					fflush(stderr);
+					fflush(stdout);
+					exit(-1);
 				}
-			}
-			else
-			{
-				core->dmem_ready = 0;
-			}
-			if (imem_stat == -1)
-			{
-				fprintf(stderr, "Instruction Memory violation occuries at address of %08x, byteen %02x\n", core->iaddr, core->ibyteen);
-				fflush(stderr);
-				fflush(stdout);
-				exit(-1);
-			}
-			if (dmem_stat == -1)
-			{
-				fprintf(stderr, "Data memory violation occuries at address of %08x, byteen %02x\n", core->daddr, core->dbyteen);
-				fflush(stderr);
-				fflush(stdout);
-				exit(-1);
-			}
-			if (rising_edge)
-			{
+				if (dmem_stat == -1)
+				{
+					fprintf(stderr, "Data memory violation occuries at address of %08x, byteen %02x\n", daddr, dbyteen);
+					fflush(stderr);
+					fflush(stdout);
+					exit(-1);
+				}
+				iaddr = core->iaddr;
+				daddr = core->daddr;
+				imem_read = core->imem_read;
+				dmem_read = core->dmem_read;
+				dmem_write = core->dmem_write;
+				wdata = core->wdata;
+				dbyteen = core->dbyteen;
+
 				if (block_device_avail)
 				{
 					if (core->read_block)
