@@ -14,22 +14,6 @@ module top_bram {
 	wire iaddr[32];
 	wire ibyteen[3];
 	func_self imem_read(iaddr, ibyteen);
-
-	func_self debug_led_1();
-	func_self debug_led_2();
-	func_self debug_led_3();
-	func_self debug_led_4();
-	func_self debug_led_5();
-	func_self debug_led_6();
-	func_self debug_led_7();
-	func_self debug_led_8();
-	func_self debug_led_9();
-	func_self debug_led_10();
-	wire sseg_l12[12];
-	func_self debug_sseg_l12(sseg_l12);
-	wire sseg_h12[12];
-	func_self debug_sseg_h12(sseg_h12);
-
 	reg led[10] = 0;
 	reg sw[10] = 0;
 	reg cnt[10] = 0;
@@ -114,14 +98,10 @@ module top_bram {
 	func core.dmem_read {
 		conflict();
 		bram.read(core.daddr, core.dbyteen, DMEM);
-		//debug_led_12();
-		//led := 9'b000000010;
 	}
 	func core.dmem_write {
 		conflict();
 		bram.write(core.daddr, core.dbyteen, core.wdata);
-		//debug_led_13();
-		//led := 9'b000000100;
 	}
 	func bram.iready {
 		core.inst = bram.rdata;
@@ -131,110 +111,4 @@ module top_bram {
 		core.rdata = bram.rdata;
 		core.dmem_ready();
 	}
-	#ifdef RISCV_TESTS
-	func core.sim_done {
-		debug_led_10();
-	}
-	#endif
-	#ifdef CV
-	//used SW0~3 5p 4 bram, core
-
-	func debug_led_1{
-		led := 10'(0x001);
-	}
-	func debug_led_2{
-		led := 10'(0x002);
-	}
-	func debug_led_3{
-		led := 10'(0x004);
-	}
-	func debug_led_4{
-		led := 10'(0x008);
-	}
-	func debug_led_5{
-		led := 10'(0x010);
-	}
-	func debug_led_6{
-		led := 10'(0x020);
-	}
-	func debug_led_7{
-		led := 10'(0x040);
-	}
-	func debug_led_8{
-		led := 10'(0x080);
-	}
-	func debug_led_9{
-		led := 10'(0x100);
-	}
-	func debug_led_10{
-		led := 10'(0x200);
-	}
-	func debug_sseg_h12{
-		sseg[5] := encode[sseg_h12[11:8]];
-		sseg[4] := encode[sseg_h12[7:4]];
-		sseg[3] := encode[sseg_h12[3:0]];
-	}
-	func debug_sseg_l12{
-		sseg[2] := encode[sseg_l12[11:8]];
-		sseg[1] := encode[sseg_l12[7:4]];
-		sseg[0] := encode[sseg_l12[3:0]];
-	}
-	func core.debug_led_1{
-		led := 10'(0x001);
-	}
-	func core.debug_led_2{
-		led := 10'(0x002);
-	}
-	func core.debug_led_3{
-		led := 10'(0x004);
-	}
-	func core.debug_led_4{
-		led := 10'(0x008);
-	}
-	func core.debug_led_5{
-		led := 10'(0x010);
-	}
-	func core.debug_led_6{
-		led := 10'(0x020);
-	}
-	func core.debug_led_7{
-		led := 10'(0x040);
-	}
-	func core.debug_led_8{
-		led := 10'(0x080);
-	}
-	func core.debug_pc_led{
-		led := core.pc_led;
-	}
-	func core.debug_sseg_h8{
-		sseg[5] := encode[core.sseg_h8[7:4]];
-		sseg[4] := encode[core.sseg_h8[3:0]];
-	}
-	func core.debug_sseg_l16{
-		sseg[3] := encode[core.sseg_l16[15:12]];
-		sseg[2] := encode[core.sseg_l16[11:8]];
-		sseg[1] := encode[core.sseg_l16[7:4]];
-		sseg[0] := encode[core.sseg_l16[3:0]];
-	}
-	func core.debug_sseg_h12{
-		sseg[5] := encode[core.sseg_h12[11:8]];
-		sseg[4] := encode[core.sseg_h12[7:4]];
-		sseg[3] := encode[core.sseg_h12[3:0]];
-	}
-	func core.debug_sseg_l12{
-		sseg[2] := encode[core.sseg_l12[11:8]];
-		sseg[1] := encode[core.sseg_l12[7:4]];
-		sseg[0] := encode[core.sseg_l12[3:0]];
-	}
-	func bram.debug_sseg_h12{
-		sseg[5] := encode[bram.sseg_h12[11:8]];
-		sseg[4] := encode[bram.sseg_h12[7:4]];
-		sseg[3] := encode[bram.sseg_h12[3:0]];
-	}
-	func bram.debug_sseg_l12{
-		sseg[2] := encode[bram.sseg_l12[11:8]];
-		sseg[1] := encode[bram.sseg_l12[7:4]];
-		sseg[0] := encode[bram.sseg_l12[3:0]];
-	}
-	#endif
 }

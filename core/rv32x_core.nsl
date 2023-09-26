@@ -486,14 +486,6 @@ module rv32x_core {
 #ifdef DEBUG
 		rv32x.get_csr(cwadrs, cwdata);
 #endif
-#ifdef CV
-	if(SW[6]){
-		if(csr_write_not_mapped){
-				debug_sseg_h12(cwadrs[11:0]);
-				debug_sseg_l12(priv_mode);
-		}
-	}
-#endif
 	}
 	func rv32x.ecall {
 		environment_call();
@@ -821,9 +813,6 @@ module rv32x_core {
 #ifdef DEBUG
 		debug_raise_exception(trap_cause, trap_pc, trap_val, debug_einst);
 #endif
-#ifdef CV
-		debug_sseg_h8({trap_cause[31:28],trap_cause[3:0]});
-#endif
 	}
 	/* fence.i */
 	func rv32x.fencei {
@@ -863,19 +852,6 @@ module rv32x_core {
 			}
 		}
 	}
-	#ifdef CV
-		if(SW[6]){
-			any{
-				ic_tlb_flush_done: debug_led_1();
-				ic_invalidate_done: debug_led_2();
-				lsu_tlb_flush_done: debug_led_3();
-				lsu_cache_flush_done: debug_led_4();
-				rv32x.fencei: debug_led_5();
-				csr_write_not_mapped: debug_led_6();
-				mstatus.tvm: debug_led_7();
-			}
-		}
-	#endif
 	func ic.instruction_page_fault if(ic.vaddr == rv32x.iaddr){	//check the fault address is not invalid address(the instruction when branch prediction failed and flushed )
 		instruction_page_fault();
 	}
@@ -912,20 +888,6 @@ module rv32x_core {
 			ic_read_data[ic_read_cnt] := inst;
 		}
 	}
-	#ifdef CV
-	if(SW[4]){
-		any{
-			ic_read_cnt[0]: debug_led_1();
-			ic_read_cnt[1]: debug_led_2();
-			ic_read_cnt[2]: debug_led_3();
-			ic_prefetch_cnt[0]:debug_led_4();
-			ic_prefetch_cnt[1]:debug_led_5();
-			ic_prefetch_cnt[2]:debug_led_6();
-			ic.mem_read:	debug_led_8();
-			imem_ready:		debug_sseg_h12(inst[11:0]);
-		}
-	}
-	#endif
 	func ic.walk {
 		lsu.read_tlb(ic.vaddr);
 	}
@@ -1060,19 +1022,11 @@ module rv32x_core {
 				lsu_write_cnt == 1: dmem_write({lsu.dbus_addr[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu.dbus_wdata[63:32]);
 				lsu_write_cnt == 2: dmem_write({lsu.dbus_addr[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu.dbus_wdata[95:64]);
 				lsu_write_cnt == 3: dmem_write({lsu.dbus_addr[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu.dbus_wdata[127:96]);
-#ifdef DEBUG	//simulation only (0 clock ram r/w)
-				lsu_write_cnt == 4: {
-					lsu_write_cnt := 0;
-					lsu.dbus_ready();
-				}
-				dmem_ready: lsu_write_cnt++;
-#else
 				(lsu_write_cnt == 4 && dmem_ready): {
 					lsu_write_cnt := 0;
 					lsu.dbus_ready();
 				}
 				lsu_write_cnt < 4: lsu_write_cnt++;
-#endif
 			}
 		} else {	//memory mapped i/o write
 			dmem_write(lsu.dbus_addr, lsu.dbus_size, lsu.dbus_wdata[31:0]);
@@ -1136,69 +1090,6 @@ module rv32x_core {
 #ifdef RISCV_TESTS
 	func lsu.sim_done {
 		sim_done(lsu.tohost);
-	}
-#endif
-#ifdef CV
-	rv32x.SW = SW;
-	func rv32x.debug_led_1{
-		debug_led_1();
-	}	
-	func rv32x.debug_led_2{
-		debug_led_2();
-	}	
-	func rv32x.debug_led_3{
-		debug_led_3();
-	}	
-	func rv32x.debug_led_4{
-		debug_led_4();
-	}	
-	func rv32x.debug_led_5{
-		debug_led_5();
-	}
-	func rv32x.debug_led_6{
-		debug_led_6();
-	}
-	func rv32x.debug_led_7{
-		debug_led_7();
-	}
-	func rv32x.debug_led_8{
-		debug_led_8();
-	}
-	func rv32x.debug_pc_led{
-		debug_pc_led(rv32x.pc_led);
-	}
-	func rv32x.debug_sseg_l16{
-		debug_sseg_l16(rv32x.sseg_l16);
-	}
-	func rv32x.debug_sseg_l12{
-		debug_sseg_l12(rv32x.sseg_l12);
-	}
-	func rv32x.debug_sseg_h12{
-		debug_sseg_h12(rv32x.sseg_h12);
-	}
-	func ic.debug_led_1{
-		debug_led_1();
-	}	
-	func ic.debug_led_2{
-		debug_led_2();
-	}	
-	func ic.debug_led_3{
-		debug_led_3();
-	}	
-	func ic.debug_led_4{
-		debug_led_4();
-	}	
-	func ic.debug_led_5{
-		debug_led_5();
-	}
-	func ic.debug_led_6{
-		debug_led_6();
-	}
-	func ic.debug_led_7{
-		debug_led_7();
-	}
-	func ic.debug_led_8{
-		debug_led_8();
 	}
 #endif
 }

@@ -65,22 +65,5 @@ declare ifetch_unit
 	func_in pma_halfword();
 	func_in pma_cacheable();
 	func_in pma_empty();
-
-#ifdef CV
-	output sseg_l12[12]; // execute stage pc low 12bit
-	func_out debug_sseg_l12(sseg_l12);
-	output sseg_h12[12]; // execute stage next pc low 12bit
-	func_out debug_sseg_h12(sseg_h12);
-	func_out debug_led_1();
-	func_out debug_led_2();
-	func_out debug_led_3();
-	func_out debug_led_4();
-	func_out debug_led_5();
-	func_out debug_led_6();
-	func_out debug_led_7();
-	func_out debug_led_8();
-	func_out debug_led_9();
-	func_out debug_led_10();
-#endif
 }
 #endif

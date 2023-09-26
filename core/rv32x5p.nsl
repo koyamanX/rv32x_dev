@@ -96,12 +96,6 @@ module rv32x5p {
 		if(exception[4] == EXCEPTION_OCCURRED){
 			decode({PC, pc4, NOP, 1'b0, 1'b0, exception});
 		}
-
-		#ifdef CV
-		if(SW[0] && imem_ready && !stall_ifetch){
-			debug_led_1();
-		}
-		#endif
 	}
 	func flush_ifetch {
 		ifetch.finish();
@@ -206,11 +200,6 @@ module rv32x5p {
 		if(!stall_decode) {
 			execute(dereg);
 		}
-		#ifdef CV
-		if(SW[0] && !stall_decode) {
-			debug_led_2();
-		}
-		#endif
 	}
 	func flush_decode {
 		decode.finish();
@@ -470,41 +459,6 @@ module rv32x5p {
 			}
 			memory(emreg);
 		}
-		#ifdef CV
-			debug_sseg_l16(DEREG.pc[15:0]);
-			if(SW[0] && !stall_execute) {
-				debug_led_3();
-			}
-			if(SW[1]){
-				any{
-					DEREG.jump:					debug_led_1();
-					DEREG.predict_as_taken:		debug_led_2();
-					DEREG.predict_as_not_taken:	debug_led_3();
-					taken:						debug_led_4();
-					not_taken:					debug_led_5();
-					DEREG.alu_sel == ALU:		debug_led_6();
-					DEREG.alu_sel == MUNIT:		debug_led_7();
-					rv32x_munit32.done:			debug_led_8();
-				}
-			}
-			if(SW[2]){
-				debug_sseg_l12(DEREG.pc[11:0]);
-			}
-			if(SW[3] && !stall_execute){
-				debug_sseg_h12(DEREG.inst[31:20]);
-				debug_sseg_l12(DEREG.inst[19:8]);
-				any{
-					DEREG.inst[7]: debug_led_8();
-					DEREG.inst[6]: debug_led_7();
-					DEREG.inst[5]: debug_led_6();
-					DEREG.inst[4]: debug_led_5();
-					DEREG.inst[3]: debug_led_4();
-					DEREG.inst[2]: debug_led_3();
-					DEREG.inst[1]: debug_led_2();
-					DEREG.inst[0]: debug_led_1();
-				}
-			}
-		#endif
 	}
 	func miss_prediction {
 		rv32x_btb.update(DEREG.pc, target_address);
@@ -672,14 +626,6 @@ module rv32x5p {
 		mwreg.debug_csr_write_num = debug_cwadrs;
 		mwreg.debug_csr_write_data = debug_cwdata;
 #endif
-		#ifdef CV
-			if(SW[0] && !stall_memory) {
-				debug_led_4();
-			}
-			if(SW[2]){
-				debug_sseg_h12(EMREG.nextpc[11:0]);
-			}
-		#endif
 	}
 	func csrrw {
 		csr_wb_data = if(EMREG.uimm) 32'(EMREG.rs1) else EMREG.rs1_data;
@@ -756,11 +702,6 @@ module rv32x5p {
 		debug_retire(MWREG.pc, MWREG.inst);
 #endif
 		finish();
-		#ifdef CV
-		if(SW[0] && MWREG.wb){
-			debug_led_5();
-		}
-		#endif
 	}
 
 	func get_pc_memory {
