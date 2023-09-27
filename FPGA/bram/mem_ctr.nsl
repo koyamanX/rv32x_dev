@@ -16,6 +16,11 @@ module mem_ctr {
 		memory.address = addr[16:2];
 		memory.wren = READ;
 		memory_read(byteen,type);
+		#ifdef CV
+		if(SW[4]){
+			debug_sseg_l12(addr[11:0]);
+		}
+		#endif
 	}
 
 	func write seq {

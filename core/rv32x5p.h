@@ -83,7 +83,7 @@ declare rv32x5p
 	func_in get_inst_execute() : einst;
 	func_in get_inst_memory() : einst;
 
-	func_out valid_context(); // 現在のパイプラインコンテキストが放棄されたものでないことを保証する(連続でtrapが起こった時、不正なepcを入れないようにするため)
+	func_out valid_context(); //現在のパイプラインコンテキストが放棄されたものでないことを保証する(連続でtrapが起こった時、不正なepcを入れないようにするため)
 
 	/* Instruction is retired, increment instret register */
 	func_out instret();
@@ -138,6 +138,27 @@ declare rv32x5p
 	input debug_cwadrs[12];
 	input debug_cwdata[32];
 	func_in get_csr(debug_cwadrs, debug_cwdata);
+#endif
+#ifdef CV
+	input SW[10];
+	output pc_led[10];
+	func_out debug_pc_led(pc_led);
+	output sseg_l16[16]; // execute stage pc low 16bit
+	func_out debug_sseg_l16(sseg_l16);
+	output sseg_l12[12]; // execute stage pc low 12bit
+	func_out debug_sseg_l12(sseg_l12);
+	output sseg_h12[12]; // execute stage next pc low 12bit
+	func_out debug_sseg_h12(sseg_h12);
+	func_out debug_led_1();
+	func_out debug_led_2();
+	func_out debug_led_3();
+	func_out debug_led_4();
+	func_out debug_led_5();
+	func_out debug_led_6();
+	func_out debug_led_7();
+	func_out debug_led_8();
+	func_out debug_led_9();
+	func_out debug_led_10();
 #endif
 }
 #endif
