@@ -1060,19 +1060,11 @@ module rv32x_core {
 				lsu_write_cnt == 1: dmem_write({lsu.dbus_addr[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu.dbus_wdata[63:32]);
 				lsu_write_cnt == 2: dmem_write({lsu.dbus_addr[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu.dbus_wdata[95:64]);
 				lsu_write_cnt == 3: dmem_write({lsu.dbus_addr[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu.dbus_wdata[127:96]);
-#ifdef DEBUG	//simulation only (0 clock ram r/w)
-				lsu_write_cnt == 4: {
-					lsu_write_cnt := 0;
-					lsu.dbus_ready();
-				}
-				dmem_ready: lsu_write_cnt++;
-#else
 				(lsu_write_cnt == 4 && dmem_ready): {
 					lsu_write_cnt := 0;
 					lsu.dbus_ready();
 				}
 				lsu_write_cnt < 4: lsu_write_cnt++;
-#endif
 			}
 		} else {	//memory mapped i/o write
 			dmem_write(lsu.dbus_addr, lsu.dbus_size, lsu.dbus_wdata[31:0]);
