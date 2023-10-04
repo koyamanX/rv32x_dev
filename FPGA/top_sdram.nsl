@@ -3,7 +3,7 @@
 #include "top_sdram.h"
 #include "SDRAM_CTR.inc"
 #include "ASYNCTX.inc"
-#include "pll.inc"
+#include "pll.h"
 
 module top_sdram {
     func_self reset();
@@ -89,8 +89,8 @@ module top_sdram {
 	// SDRAM用クロック
 	pll_i.rst     = ~p_reset;
 	pll_i.refclk  = m_clock;
-	sdram.m_clock = pll_i.outclk_0;
-	DRAM_CLK      = pll_i.outclk_1;
+	sdram.m_clock = pll_i.sdrctr_clk;
+	DRAM_CLK      = pll_i.sdram_clk;
 
 	// モジュール間IF
 	tx.aTxIn = sdram.rxout;
