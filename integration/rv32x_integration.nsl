@@ -9,7 +9,7 @@
 #include "mmc_interface.h"
 
 module rv32x_integration {
-	#ifdef DEBUG
+	#ifdef SIM
     reg clk_cnt[8] = 0;
 	reg clk25m;
 	#endif
@@ -20,7 +20,7 @@ module rv32x_integration {
 	plic rv32x_plic;
 	mmc_interface rv32x_mmcspi;
 
-	#ifdef DEBUG
+	#ifdef SIM
 	clk25m := ~clk25m;
 	rv32x_mmcspi.clk25MHz = clk25m;
 	#else
@@ -178,7 +178,7 @@ module rv32x_integration {
 	CS = rv32x_mmcspi.CS;
 	rv32x_mmcspi.MISO = MISO;
 
-#ifdef RISCV_TESTS
+#ifdef HTIF
 	func core.sim_done {
 		sim_done(core.tohost);
 	}

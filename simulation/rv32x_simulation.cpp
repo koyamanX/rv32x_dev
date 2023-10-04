@@ -586,7 +586,7 @@ public:
 			}
 			if (rising_edge)
 			{
-#ifdef RISCV_TESTS
+#ifdef HTIF
 				if (core->sim_done && !no_sim_exit)
 				{
 					ret = core->tohost;
@@ -906,7 +906,7 @@ public:
 					core->uart_write = 0;
 				}
 			}
-#ifdef RISCV_TESTS
+#ifdef HTIF
 			if (rising_edge)
 			{
 				if (core->sim_done)

@@ -48,7 +48,7 @@ declare rv32x_core
 	func_in supervisor_timer_interrupt_req();
 	func_in supervisor_software_interrupt_req();
 	func_in supervisor_external_interrupt_req();
-#ifdef RISCV_TESTS
+#ifdef HTIF
 	output tohost[32];
 	func_out sim_done(tohost);
 #endif

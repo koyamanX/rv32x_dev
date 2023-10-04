@@ -49,7 +49,7 @@ declare rv32x_simulation simulation {
 	input uart_wdata[8];
 	func_in uart_write(uart_wdata);
 
-#ifdef RISCV_TESTS
+#ifdef HTIF
 	output tohost[32];
 	func_out sim_done(tohost);
 #endif
@@ -115,7 +115,7 @@ module rv32x_simulation {
 		mmcsim.block_data_valid();
 		mmcsim.read_block_data = block_data;
 	}
-#ifdef RISCV_TESTS
+#ifdef HTIF
 	func core.sim_done {
 		sim_done(core.tohost);
 	}
