@@ -16,6 +16,7 @@ declare rv32x_integration
 	func_out dmem_read(daddr, dbyteen);			/* When data is ready on 'rdata', dmem_ready is asserted */
 	func_out dmem_write(daddr, dbyteen, wdata); /* When data is written, dmem_ready is asserted */
 
+	input mmc_clk;
 	input RXD;
 	output TXD;
 	output SCLK;
