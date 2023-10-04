@@ -23,7 +23,7 @@ NSLFLAGS  	= -O2 -neg_res -I$(SRCDIR)/../core \
 -I$(SRCDIR)/../integration/mmcspi/src \
 -I$(SRCDIR)/bram \
 -I$(SRCDIR)/SDRAM_Controler \
--DRISCV_TESTS -DCV
+-DCV
 MKPROJ		= $(SRCDIR)/mkproj-$(BOARD).tcl
 Q2SH		= quartus_sh
 Q2PGM		= quartus_pgm

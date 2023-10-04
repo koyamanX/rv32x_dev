@@ -261,11 +261,6 @@ module top_sdram {
 			}
 		}
 	}
-	#ifdef RISCV_TESTS
-	func core.sim_done {
-		debug_led_10();
-	}
-	#endif
 	#ifdef CV
 	//used SW0~3 5p 4 bram, core
 
