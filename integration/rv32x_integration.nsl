@@ -168,60 +168,6 @@ module rv32x_integration {
 	CS = rv32x_mmcspi.CS;
 	rv32x_mmcspi.MISO = MISO;
 
-#ifdef DEBUG
-	debug_x0  = core.debug_x0;
-	debug_x1  = core.debug_x1;
-	debug_x2  = core.debug_x2;
-	debug_x3  = core.debug_x3;
-	debug_x4  = core.debug_x4;
-	debug_x5  = core.debug_x5;
-	debug_x6  = core.debug_x6;
-	debug_x7  = core.debug_x7;
-	debug_x8  = core.debug_x8;
-	debug_x9  = core.debug_x9;
-	debug_x10 = core.debug_x10;
-	debug_x11 = core.debug_x11;
-	debug_x12 = core.debug_x12;
-	debug_x13 = core.debug_x13;
-	debug_x14 = core.debug_x14;
-	debug_x15 = core.debug_x15;
-	debug_x16 = core.debug_x16;
-	debug_x17 = core.debug_x17;
-	debug_x18 = core.debug_x18;
-	debug_x19 = core.debug_x19;
-	debug_x20 = core.debug_x20;
-	debug_x21 = core.debug_x21;
-	debug_x22 = core.debug_x22;
-	debug_x23 = core.debug_x23;
-	debug_x24 = core.debug_x24;
-	debug_x25 = core.debug_x25;
-	debug_x26 = core.debug_x26;
-	debug_x27 = core.debug_x27;
-	debug_x28 = core.debug_x28;
-	debug_x29 = core.debug_x29;
-	debug_x30 = core.debug_x30;
-	debug_x31 = core.debug_x31;
-	debug_pc = core.debug_pc;
-	func core.debug_retire {
-		debug_retire(core.debug_retire_pc, core.debug_retire_inst);
-	}
-	func core.debug_wb {
-		debug_wb(core.debug_wb_rd, core.debug_wb_value);
-	}
-	func core.debug_csr_write {
-		debug_csr_write(core.debug_csr_write_num, core.debug_csr_write_data);
-	}
-	func core.debug_mem_write {
-		debug_mem_write(core.debug_mem_adrs, core.debug_mem_byteen, core.debug_mem_data);
-	}
-	func core.debug_raise_exception {
-		debug_raise_exception(core.debug_cause, core.debug_epc, core.debug_mtval, core.debug_inst);
-	}
-	func rv32x_mmcspi.debug_status{
-		debug_general32(rv32x_mmcspi.debugstatus);
-	}
-#endif
-
 #ifdef RISCV_TESTS
 	func core.sim_done {
 		sim_done(core.tohost);

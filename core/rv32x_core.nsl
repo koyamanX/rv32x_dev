@@ -95,9 +95,6 @@ module rv32x_core {
 	func_self csr_write(cwadrs, cwdata);
 	func_self csr_read_not_mapped();
 	func_self csr_write_not_mapped();
-#ifdef DEBUG
-	reg debug_einst[32];
-#endif
 
 	/* CSRs */
 	/* Machine mode CSRs */
@@ -483,9 +480,6 @@ module rv32x_core {
 			}
 			else: csr_write_not_mapped();
 		}
-#ifdef DEBUG
-		rv32x.get_csr(cwadrs, cwdata);
-#endif
 #ifdef CV
 	if(SW[6]){
 		if(csr_write_not_mapped){
@@ -818,9 +812,6 @@ module rv32x_core {
 		rv32x.stall_ifetch_req();
 		rv32x.trap(v);
 		finish();
-#ifdef DEBUG
-		debug_raise_exception(trap_cause, trap_pc, trap_val, debug_einst);
-#endif
 #ifdef CV
 		debug_sseg_h8({trap_cause[31:28],trap_cause[3:0]});
 #endif
@@ -1077,54 +1068,6 @@ module rv32x_core {
 		rv32x.rdata = lsu.load_data;
 		rv32x.dmem_ready();
 	}
-#ifdef DEBUG
-	debug_x0  = rv32x.debug_x0;
-	debug_x1  = rv32x.debug_x1;
-	debug_x2  = rv32x.debug_x2;
-	debug_x3  = rv32x.debug_x3;
-	debug_x4  = rv32x.debug_x4;
-	debug_x5  = rv32x.debug_x5;
-	debug_x6  = rv32x.debug_x6;
-	debug_x7  = rv32x.debug_x7;
-	debug_x8  = rv32x.debug_x8;
-	debug_x9  = rv32x.debug_x9;
-	debug_x10 = rv32x.debug_x10;
-	debug_x11 = rv32x.debug_x11;
-	debug_x12 = rv32x.debug_x12;
-	debug_x13 = rv32x.debug_x13;
-	debug_x14 = rv32x.debug_x14;
-	debug_x15 = rv32x.debug_x15;
-	debug_x16 = rv32x.debug_x16;
-	debug_x17 = rv32x.debug_x17;
-	debug_x18 = rv32x.debug_x18;
-	debug_x19 = rv32x.debug_x19;
-	debug_x20 = rv32x.debug_x20;
-	debug_x21 = rv32x.debug_x21;
-	debug_x22 = rv32x.debug_x22;
-	debug_x23 = rv32x.debug_x23;
-	debug_x24 = rv32x.debug_x24;
-	debug_x25 = rv32x.debug_x25;
-	debug_x26 = rv32x.debug_x26;
-	debug_x27 = rv32x.debug_x27;
-	debug_x28 = rv32x.debug_x28;
-	debug_x29 = rv32x.debug_x29;
-	debug_x30 = rv32x.debug_x30;
-	debug_x31 = rv32x.debug_x31;
-	debug_pc = rv32x.debug_pc;
-	func rv32x.debug_retire {
-		debug_retire(rv32x.debug_retire_pc, rv32x.debug_retire_inst);
-	}
-	func rv32x.debug_wb {
-		debug_wb(rv32x.debug_wb_rd, rv32x.debug_wb_data);
-	}
-	func rv32x.debug_mem_write {
-		debug_mem_write(rv32x.debug_mem_adrs, rv32x.debug_mem_byteen, rv32x.debug_mem_data);
-	}
-	func rv32x.debug_csr_write {
-		debug_csr_write(rv32x.debug_csr_write_num, rv32x.debug_csr_write_data);
-	}
-#endif
-
 #ifdef RISCV_TESTS
 	func lsu.sim_done {
 		sim_done(lsu.tohost);

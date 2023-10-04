@@ -662,16 +662,6 @@ module rv32x5p {
 				stall_execute();
 			}
 		}
-#ifdef DEBUG
-		mwreg.debug_mem_adrs = mem_adrs;
-		mwreg.debug_mem_byteen = mem_byteen;
-		mwreg.debug_mem_data = mem_data;
-		mwreg.debug_mem_write = EMREG.store;
-		mwreg.debug_wb = if(memory_nop) 1'b0 else EMREG.wb;
-		mwreg.debug_csr_write = get_csr;
-		mwreg.debug_csr_write_num = debug_cwadrs;
-		mwreg.debug_csr_write_data = debug_cwdata;
-#endif
 		#ifdef CV
 			if(SW[0] && !stall_memory) {
 				debug_led_4();
@@ -742,19 +732,6 @@ module rv32x5p {
 				rv32x_reg32.writea(MWREG.rd, wb_value);
 			}
 		}
-
-#ifdef DEBUG
-		if(MWREG.debug_mem_write) {
-			debug_mem_write(MWREG.debug_mem_adrs, MWREG.debug_mem_byteen, MWREG.debug_mem_data);
-		}
-		if(MWREG.debug_wb) {
-			debug_wb(MWREG.rd, wb_value);
-		}
-		if(MWREG.debug_csr_write){
-			debug_csr_write(MWREG.debug_csr_write_num, MWREG.debug_csr_write_data);
-		}
-		debug_retire(MWREG.pc, MWREG.inst);
-#endif
 		finish();
 		#ifdef CV
 		if(SW[0] && MWREG.wb){
@@ -784,39 +761,4 @@ module rv32x5p {
 	func get_pc_trap{
 		return trap_ret_pc;
 	}
-#ifdef DEBUG
-	debug_x0  = rv32x_reg32.debug_x0;
-	debug_x1  = rv32x_reg32.debug_x1;
-	debug_x2  = rv32x_reg32.debug_x2;
-	debug_x3  = rv32x_reg32.debug_x3;
-	debug_x4  = rv32x_reg32.debug_x4;
-	debug_x5  = rv32x_reg32.debug_x5;
-	debug_x6  = rv32x_reg32.debug_x6;
-	debug_x7  = rv32x_reg32.debug_x7;
-	debug_x8  = rv32x_reg32.debug_x8;
-	debug_x9  = rv32x_reg32.debug_x9;
-	debug_x10 = rv32x_reg32.debug_x10;
-	debug_x11 = rv32x_reg32.debug_x11;
-	debug_x12 = rv32x_reg32.debug_x12;
-	debug_x13 = rv32x_reg32.debug_x13;
-	debug_x14 = rv32x_reg32.debug_x14;
-	debug_x15 = rv32x_reg32.debug_x15;
-	debug_x16 = rv32x_reg32.debug_x16;
-	debug_x17 = rv32x_reg32.debug_x17;
-	debug_x18 = rv32x_reg32.debug_x18;
-	debug_x19 = rv32x_reg32.debug_x19;
-	debug_x20 = rv32x_reg32.debug_x20;
-	debug_x21 = rv32x_reg32.debug_x21;
-	debug_x22 = rv32x_reg32.debug_x22;
-	debug_x23 = rv32x_reg32.debug_x23;
-	debug_x24 = rv32x_reg32.debug_x24;
-	debug_x25 = rv32x_reg32.debug_x25;
-	debug_x26 = rv32x_reg32.debug_x26;
-	debug_x27 = rv32x_reg32.debug_x27;
-	debug_x28 = rv32x_reg32.debug_x28;
-	debug_x29 = rv32x_reg32.debug_x29;
-	debug_x30 = rv32x_reg32.debug_x30;
-	debug_x31 = rv32x_reg32.debug_x31;
-	debug_pc = PC;
-#endif
 }

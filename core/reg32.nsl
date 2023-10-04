@@ -151,41 +151,5 @@ module reg32 {
 			(wnuma == 5'b11111): x31 := wdataa;
 		}
 	}
-
-#ifdef DEBUG	
-	debug_x0  = 0x00000000;
-	debug_x1  = x1;
-	debug_x2  = x2;
-	debug_x3  = x3;
-	debug_x4  = x4;
-	debug_x5  = x5;
-	debug_x6  = x6;
-	debug_x7  = x7;
-	debug_x8  = x8;
-	debug_x9  = x9;
-	debug_x10 = x10;
-	debug_x11 = x11;
-	debug_x12 = x12;
-	debug_x13 = x13;
-	debug_x14 = x14;
-	debug_x15 = x15;
-	debug_x16 = x16;
-	debug_x17 = x17;
-	debug_x18 = x18;
-	debug_x19 = x19;
-	debug_x20 = x20;
-	debug_x21 = x21;
-	debug_x22 = x22;
-	debug_x23 = x23;
-	debug_x24 = x24;
-	debug_x25 = x25;
-	debug_x26 = x26;
-	debug_x27 = x27;
-	debug_x28 = x28;
-	debug_x29 = x29;
-	debug_x30 = x30;
-	debug_x31 = x31;
-#endif
-
 }
 
