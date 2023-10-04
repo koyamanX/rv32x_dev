@@ -9,6 +9,10 @@
 #include "mmc_interface.h"
 
 module rv32x_integration {
+	#ifdef DEBUG
+    reg clk_cnt[8] = 0;
+	reg clk25m;
+	#endif
 	rv32x_core core;
 	bootrom rom;
 	clint rv32x_clint;
@@ -16,6 +20,12 @@ module rv32x_integration {
 	plic rv32x_plic;
 	mmc_interface rv32x_mmcspi;
 
+	#ifdef DEBUG
+	clk25m := ~clk25m;
+	rv32x_mmcspi.clk25MHz = clk25m;
+	#else
+	rv32x_mmcspi.clk25MHz = mmc_clk;
+	#endif
 	func reset {
 		core.reset();
 		rom.reset();
