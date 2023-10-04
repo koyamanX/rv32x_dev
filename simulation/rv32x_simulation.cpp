@@ -9,6 +9,7 @@
 #include <verilated.h>
 #include "verilated_vcd_c.h"
 #include "Vrv32x_simulation.h"
+#include "Vrv32x_simulation___024root.h"
 #include "elfloader/elfloader.h"
 #include <signal.h>
 #include <string.h>
@@ -287,7 +288,7 @@ private:
 		unsigned int pma = 0;
 		char *name = NULL;
 		int dumpflag = 0;
-	} *procedure, *globalObject;
+	} * procedure, *globalObject;
 	char *target_symbol = NULL;
 	int import_linux_symbol_flag = 0;
 #ifdef KERNEL_ELF_LOCATION
@@ -425,6 +426,13 @@ public:
 		static unsigned wdata = 0;
 		static unsigned iaddr = 0;
 		static unsigned daddr = 0;
+		static unsigned mem_addr, debug_mem_addr;
+		static unsigned mem_byteen, debug_mem_byteen;
+		static unsigned mem_data, debug_mem_data;
+		static unsigned mem_write, debug_mem_write;
+		static unsigned csr_write, debug_csr_write;
+		static unsigned cwaddr, debug_cwaddr;
+		static unsigned cwdata, debug_cwdata;
 
 		while (1)
 		{
@@ -578,22 +586,32 @@ public:
 			}
 			if (rising_edge)
 			{
-				if (core->debug_general32)
-				{
-					printf("status = 0x%08x\n", core->debug32);
-				}
 #ifdef RISCV_TESTS
 				if (core->sim_done && !no_sim_exit)
 				{
 					ret = core->tohost;
 				}
 #endif
-				if (core->debug_raise_exception)
+				debug_mem_addr = mem_addr;
+				debug_mem_byteen = mem_byteen;
+				debug_mem_data = mem_data;
+				debug_mem_write = mem_write;
+				debug_csr_write = csr_write;
+				debug_cwaddr = cwaddr;
+				debug_cwdata = cwdata;
+				mem_addr = core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT__rv32x__DOT___EMREG_alu_q;
+				mem_byteen = core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT__rv32x__DOT___EMREG_funct3;
+				mem_data = core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT__lsu__DOT__cacheable_wdata;
+				mem_write = core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT__rv32x__DOT___EMREG_store;
+				csr_write = core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT___rv32x_csr_write;
+				cwaddr = core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT__rv32x__DOT___EMREG_funct12;
+				cwdata = core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT___rv32x_cwdata;
+
+				if (core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT__trap)
 				{
-					epc = core->debug_epc;
-					cause = core->debug_cause;
-					mtval = core->debug_mtval;
-					einst = core->debug_inst;
+					epc = core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT__trap_pc;
+					cause = core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT__trap_cause;
+					mtval = core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT__trap_val;
 
 					switch (cause)
 					{
@@ -628,14 +646,14 @@ public:
 						break;
 					}
 				}
-				if (core->debug_retire)
+				if (core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT__rv32x__DOT__writeback)
 				{
 					break;
 				}
 			}
 		}
 
-		if (retire_pc != core->debug_retire_pc)
+		if (retire_pc != core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT__rv32x__DOT___MWREG_pc)
 		{
 			inst_counter++;
 		}
@@ -643,8 +661,8 @@ public:
 		{
 			printCondCheck();
 		}
-		retire_pc = core->debug_retire_pc;
-		retire_inst = core->debug_retire_inst;
+		retire_pc = core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT__rv32x__DOT___MWREG_pc;
+		retire_inst = core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT__rv32x__DOT___MWREG_inst;
 		if ((got_exception == 0) && exception_output_flag)
 		{
 			printException(epc, cause, mtval);
@@ -661,30 +679,28 @@ public:
 		if (got_exception == 0)
 		{
 			retire_pc = epc;
-			retire_inst = einst;
 		}
-		if (core->debug_csr_write && core->debug_csr_write_num == SATP)
+		if (debug_csr_write && debug_cwaddr == SATP)
 		{
-			if (!sv32_enabled && (core->debug_csr_write_data & SATP_MODE))
+			if (!sv32_enabled && (debug_cwdata & SATP_MODE))
 			{
 				setSymbolAddr(SET_VA);
 				sv32_enabled = 1;
 			}
-			else if (sv32_enabled && !(core->debug_csr_write_data & SATP_MODE))
+			else if (sv32_enabled && !(debug_cwdata & SATP_MODE))
 			{
 				setSymbolAddr(SET_PA);
 				sv32_enabled = 0;
 			}
 		}
 
-		memset(core->funcname, 0, sizeof(__uint128_t));
 		if (print_entry_flag && retire_inst == RET)
 		{
 			if (callDepth != 0)
 			{
 				callDepth--;
 			}
-			if ((callTracker[callDepth] != core->debug_x1) && (callTracker[callDepth] != 0))
+			if ((callTracker[callDepth] != core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT__rv32x__DOT__rv32x_reg32__DOT__x1) && (callTracker[callDepth] != 0))
 			{
 				fprintf(logfile, "\nINFO:Call depth has been reset.(previous \"Depth=%d\" function return address(0x%x) discarded )\n", callDepth, callTracker[callDepth]);
 				callDepth = 0;
@@ -722,23 +738,26 @@ public:
 			printDisasm(retire_pc, retire_inst);
 			fprintf(logfile, "\n");
 		}
-		if (core->debug_mem_write && memory_output_flag)
+		if (debug_mem_write && memory_output_flag)
 		{
 			int mask;
-			mask = 0xffffffff >> (32 - (int)pow(2, core->debug_mem_byteen + 3));
+			mask = 0xffffffff >> (32 - (int)pow(2, (debug_mem_byteen & 0x3) + 3));
 			fprintf(logfile, "\t");
-			printMemWrite(core->debug_mem_adrs, core->debug_mem_data & mask);
+			printMemWrite(debug_mem_addr, debug_mem_data & mask);
 		}
-		if (core->debug_wb)
+		if (core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT__rv32x__DOT___MWREG_wb)
 		{
-			regs[core->debug_wb_rd] = core->debug_wb_data;
+			regs[core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT__rv32x__DOT___MWREG_rd] =
+				core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT__rv32x__DOT___MWREG_wb_value;
 			if (writeback_output_flag)
 			{
 				fprintf(logfile, "\t");
-				printRegInfo(core->debug_wb_rd, core->debug_wb_data);
+				printRegInfo(core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT__rv32x__DOT___MWREG_rd,
+							 core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT__rv32x__DOT___MWREG_wb_value);
 			}
 		}
-		if ((core->debug_mem_write && memory_output_flag) || (core->debug_wb && writeback_output_flag))
+		if ((debug_mem_write && memory_output_flag) ||
+			(core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT__rv32x__DOT___MWREG_wb && writeback_output_flag))
 		{
 			fprintf(logfile, "\n");
 		}
@@ -924,7 +943,7 @@ public:
 	{
 		fprintf(logfile, "%4s <- %08x", reg_strs[rd], data);
 		int idx = -1;
-		if ((idx = searchSymbol(core->debug_wb_data, globalObject)) != -1)
+		if ((idx = searchSymbol(core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT__rv32x__DOT___MWREG_wb_value, globalObject)) != -1)
 		{
 			fprintf(logfile, "(%s)", globalObject[idx].name);
 		}
@@ -1391,43 +1410,6 @@ public:
 			}
 		}
 	};
-	/*
-		void dumpRegs(void)
-		{
-			regs[0] = core->debug_pc;
-			regs[1] = core->debug_x1;
-			regs[2] = core->debug_x2;
-			regs[3] = core->debug_x3;
-			regs[4] = core->debug_x4;
-			regs[5] = core->debug_x5;
-			regs[6] = core->debug_x6;
-			regs[7] = core->debug_x7;
-			regs[8] = core->debug_x8;
-			regs[9] = core->debug_x9;
-			regs[10] = core->debug_x10;
-			regs[11] = core->debug_x11;
-			regs[12] = core->debug_x12;
-			regs[13] = core->debug_x13;
-			regs[14] = core->debug_x14;
-			regs[15] = core->debug_x15;
-			regs[16] = core->debug_x16;
-			regs[17] = core->debug_x17;
-			regs[18] = core->debug_x18;
-			regs[19] = core->debug_x19;
-			regs[20] = core->debug_x20;
-			regs[21] = core->debug_x21;
-			regs[22] = core->debug_x22;
-			regs[23] = core->debug_x23;
-			regs[24] = core->debug_x24;
-			regs[25] = core->debug_x25;
-			regs[26] = core->debug_x26;
-			regs[27] = core->debug_x27;
-			regs[28] = core->debug_x28;
-			regs[29] = core->debug_x29;
-			regs[30] = core->debug_x30;
-			regs[31] = core->debug_x31;
-		};
-	*/
 	void printException(uint32_t epc, uint32_t cause, uint32_t mtval)
 	{
 		const char *str;
