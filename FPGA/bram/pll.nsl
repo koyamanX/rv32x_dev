@@ -340,8 +340,9 @@ module cycloneV_pll{
     altera_pll_component.refclk = refclk;
 }
 
-module pll_interface{
+module pll{
 	max10_pll pll_i;
+
 	pll_i.areset = reset;
 	pll_i.inclk0 = refclk;
 	sdrctr_clk = pll_i.c0;
