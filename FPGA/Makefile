@@ -22,6 +22,7 @@ NSLFLAGS  	= -O2 -neg_res -I$(SRCDIR)/../core \
 -I$(SRCDIR)/../integration \
 -I$(SRCDIR)/../integration/mmcspi/src \
 -I$(SRCDIR)/bram \
+-I$(SRCDIR)/pll \
 -I$(SRCDIR)/SDRAM_Controler \
 -DCV
 MKPROJ		= $(SRCDIR)/mkproj-$(BOARD).tcl
@@ -36,6 +37,7 @@ NSRC := $(wildcard $(SRCDIR)/../core/*.nsl) \
  $(wildcard $(SRCDIR)/../integration/mmcspi/src/*.nsl) \
  $(wildcard $(SRCDIR)/*.nsl) \
  $(wildcard $(SRCDIR)/bram/*.nsl) \
+ $(wildcard $(SRCDIR)/pll/*.nsl) \
  $(wildcard $(SRCDIR)/SDRAM_Controler/*.nsl)
 #SRCS		:= $(wildcard $(SRCDIR)/*.nsl)
 #VFILES 		= $(SRCS:$(SRCDIR)/%.nsl=%.v) 
@@ -51,6 +53,12 @@ TOP = top_sdram	#top module
 SDC = $(DESIGN).sdc
 STP = $(DESIGN).stp
 SERIAL_CABLE_LEVEL = TTL
+ifeq ($(BOARD),DE0_CV)
+	DEVICE_FAMILY = "Cyclone V"
+else ifeq ($(BOARD),DE10_lite)
+	DEVICE_FAMILY = "MAX 10"
+endif
+_DEVICE_FAMILY=$(subst ",\",$(DEVICE_FAMILY))
 ########
 
 all:
@@ -82,6 +90,10 @@ all:
 	$(NSL2VL) $(NSLFLAGS)  $< -o $@
 
 %.v: $(SRCDIR)/bram/%.nsl
+	sed -i -e "s/intended_device_family = .*/intended_device_family = $(_DEVICE_FAMILY),/g" $< 
+	$(NSL2VL) $(NSLFLAGS)  $< -o $@
+
+%.v: $(SRCDIR)/pll/%.nsl
 	$(NSL2VL) $(NSLFLAGS)  $< -o $@
 
 %.v: $(SRCDIR)/SDRAM_Controler/%.nsl
@@ -101,9 +113,9 @@ _update_mifs:
 sdc:
 	cp $(SRCDIR)/$(SDC) .
 
-pll: 
-	$(SRCDIR)/SDRAM_Controler/PLLgen.sh
-	cp pll/pll.v ./
+# pll: 
+# 	$(SRCDIR)/SDRAM_Controler/PLLgen.sh
+# 	cp pll/pll.v ./
 	
 riscv-tests:
 	make -C $(SRCDIR)/../software/riscv-tests/isa XLEN=32
@@ -113,12 +125,11 @@ riscv-tests:
 	find $(SRCDIR)/../software/riscv-tests/isa -maxdepth 1 -perm -111 -type f | xargs -i cp -p {} $(SRCDIR)/tests
 	ls $(TEST) | xargs -t -i riscv32-unknown-elf-objcopy -O verilog {} {}.hex
 
-test:
-	sed -e "s/IO_STANDARD.*RXD/IO_STANDARD \"3.3-V LV$(SERIAL_CABLE_LEVEL)\" -to RXD/g" mkproj-DE0_CV.tcl | grep RXD
-	sed -e "s/IO_STANDARD.*TXD/IO_STANDARD \"3.3-V LV$(SERIAL_CABLE_LEVEL)\" -to TXD/g" mkproj-DE0_CV.tcl | grep TXD
+test: $(SRCDIR)/bram/*.nsl
+	echo $(_DEVICE_FAMILY)
 
 test2:
-	echo $(TEST2)
+	cat $(MKPROJ) | grep FAMILY | awk '{print $$4" "$$5}'
 
 $(DESIGN).qsf: $(VFILES) $(LIBS)
 	$(Q2SH) -t $(MKPROJ) -project $(DESIGN) $^
