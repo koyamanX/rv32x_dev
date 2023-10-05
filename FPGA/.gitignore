@@ -2,6 +2,7 @@ synth/*
 *.mif
 *.hex
 pll/*
+bram/*
 rom_1p/*
 ram_1p/*
 tests/*
