@@ -41,11 +41,17 @@ module top_bram {
 	reg res_flag = 0;
 
 	rv32x_integration core;
-    mem_ctr bram;
+	pll pll_i;
+	mainmem memory;
+	
+	pll_i.reset     = ~p_reset;
+	pll_i.refclk  = m_clock;
+	core.mmc_clk  = pll_i.mmc_clk;
+	
+	memory.clock = m_clock;
 	
 	sw := SW;
     core.SW = sw;
-	bram.SW = sw;
 	TXD = core.TXD;
 	core.RXD = RXD;
 	SCLK = core.SCLK;
@@ -66,7 +72,6 @@ module top_bram {
 	}
 
 	func reset {
-		//bram.reset();
 		core.reset();
 		init_sseg();
 	}
@@ -93,8 +98,15 @@ module top_bram {
 		encode[15] := 0b0001110;
 	}
 
-	func imem_read{
-		bram.read(iaddr, ibyteen, IMEM);
+	func imem_read seq{
+		{
+		memory.address = iaddr[16:2];
+		memory.wren = READ;
+		}
+		{
+		core.inst = memory.q;
+		core.imem_ready();
+		}
 	}
 
 	if(!conflict && (read_cnt != ptr)){
@@ -111,31 +123,26 @@ module top_bram {
 			read_cnt++;
 		}
 	}
-	func core.dmem_read {
+	func core.dmem_read seq{
+		{
 		conflict();
-		bram.read(core.daddr, core.dbyteen, DMEM);
-		//debug_led_12();
-		//led := 9'b000000010;
+		memory.address = core.daddr[16:2];
+		memory.wren = READ;
+		}
+		{
+		core.rdata = memory.q;
+		core.dmem_ready();
+		}
 	}
-	func core.dmem_write {
+	func core.dmem_write seq{
+		{
 		conflict();
-		bram.write(core.daddr, core.dbyteen, core.wdata);
-		//debug_led_13();
-		//led := 9'b000000100;
-	}
-	func bram.iready {
-		core.inst = bram.rdata;
-		core.imem_ready();
-	}
-	func bram.dready {
-		core.rdata = bram.rdata;
+		memory.address = core.daddr[16:2];
+		memory.wren = WRITE;
+		memory.data = core.wdata;
+		}
 		core.dmem_ready();
 	}
-	#ifdef RISCV_TESTS
-	func core.sim_done {
-		debug_led_10();
-	}
-	#endif
 	#ifdef CV
 	//used SW0~3 5p 4 bram, core
 
@@ -225,16 +232,6 @@ module top_bram {
 		sseg[2] := encode[core.sseg_l12[11:8]];
 		sseg[1] := encode[core.sseg_l12[7:4]];
 		sseg[0] := encode[core.sseg_l12[3:0]];
-	}
-	func bram.debug_sseg_h12{
-		sseg[5] := encode[bram.sseg_h12[11:8]];
-		sseg[4] := encode[bram.sseg_h12[7:4]];
-		sseg[3] := encode[bram.sseg_h12[3:0]];
-	}
-	func bram.debug_sseg_l12{
-		sseg[2] := encode[bram.sseg_l12[11:8]];
-		sseg[1] := encode[bram.sseg_l12[7:4]];
-		sseg[0] := encode[bram.sseg_l12[3:0]];
 	}
 	#endif
 }
