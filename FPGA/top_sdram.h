@@ -37,4 +37,7 @@ declare top_sdram
     output DRAM_CLK;
     output DRAM_WE_N;
     output DRAM_CS_N;
+
+    input sdrctr_clk;
+    input mmc_clk;
 }

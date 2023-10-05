@@ -1,0 +1,362 @@
+#include "pll.h"
+
+declare altpll interface {
+    param_int
+		clk0_divide_by,
+		clk0_duty_cycle,
+		clk0_multiply_by,
+		clk1_divide_by,
+		clk1_duty_cycle,
+		clk1_multiply_by,
+		clk2_divide_by,
+		clk2_duty_cycle,
+		clk2_multiply_by,
+		clk3_divide_by,
+		clk3_duty_cycle,
+		clk3_multiply_by,
+		inclk0_input_frequency,
+		width_clock;
+    param_str
+		clk0_phase_shift,
+		clk1_phase_shift,
+		clk2_phase_shift,
+		clk3_phase_shift,
+		bandwidth_type,
+		compensate_clock,
+		intended_device_family,
+		lpm_hint,
+		lpm_type,
+		operation_mode,
+		pll_type,
+		port_activeclock,
+		port_areset,
+		port_clkbad0,
+		port_clkbad1,
+		port_clkloss,
+		port_clkswitch,
+		port_configupdate,
+		port_fbin,
+		port_inclk0,
+		port_inclk1,
+		port_locked,
+		port_pfdena,
+		port_phasecounterselect,
+		port_phasedone,
+		port_phasestep,
+		port_phaseupdown,
+		port_pllena,
+		port_scanaclr,
+		port_scanclk,
+		port_scanclkena,
+		port_scandata,
+		port_scandataout,
+		port_scandone,
+		port_scanread,
+		port_scanwrite,
+		port_clk0,
+		port_clk1,
+		port_clk2,
+		port_clk3,
+		port_clk4,
+		port_clk5,
+		port_clkena0,
+		port_clkena1,
+		port_clkena2,
+		port_clkena3,
+		port_clkena4,
+		port_clkena5,
+		port_extclk0,
+		port_extclk1,
+		port_extclk2,
+		port_extclk3,
+		self_reset_on_loss_lock;
+    input areset;
+    input inclk[2];
+    output clk[5];
+    output locked;
+    // output activeclock;
+    // output clkbad;
+    input clkena[6];
+    // output clkloss;
+    input clkswitch;
+    input configupdate;
+    // output enable0;
+    // output enable1;
+    // output extclk;
+    input extclkena[4];
+    input fbin;
+    // inout fbmimicbidir;
+    // output fbout;
+    // output fref;
+    // output icdrclk;
+    input pfdena;
+    input phasecounterselect[4];
+    // output phasedone;
+    input phasestep;
+    input phaseupdown;
+    input pllena;
+    input scanaclr;
+    input scanclk;
+    input scanclkena;
+    input scandata;
+    // output scandataout;
+    // output scandone;
+    input scanread;
+    input scanwrite;
+    // output sclkout0;
+    // output sclkout1;
+    // output vcooverrange;
+    // output vcounderrange;
+}
+
+module max10_pll {
+
+	altpll	altpll_component (
+		clk0_divide_by = 1,
+		clk0_duty_cycle = 50,
+		clk0_multiply_by = 2,
+		clk1_divide_by = 1,
+		clk1_duty_cycle = 50,
+		clk1_multiply_by = 2,
+		clk2_divide_by = 2,
+		clk2_duty_cycle = 50,
+		clk2_multiply_by = 1,
+		clk3_divide_by = 5,
+		clk3_duty_cycle = 50,
+		clk3_multiply_by = 4,
+		inclk0_input_frequency = 20000,
+		width_clock = 5,
+		clk0_phase_shift = "0",
+		clk1_phase_shift = "-1500",
+		clk2_phase_shift = "0",
+		clk3_phase_shift = "0",
+		bandwidth_type = "AUTO",
+		compensate_clock = "CLK0",
+		intended_device_family = "MAX 10",
+		lpm_hint = "CBX_MODULE_PREFIX=test",
+		lpm_type = "altpll",
+		operation_mode = "NORMAL",
+		pll_type = "AUTO",
+		port_activeclock = "PORT_UNUSED",
+		port_areset = "PORT_USED",
+		port_clkbad0 = "PORT_UNUSED",
+		port_clkbad1 = "PORT_UNUSED",
+		port_clkloss = "PORT_UNUSED",
+		port_clkswitch = "PORT_UNUSED",
+		port_configupdate = "PORT_UNUSED",
+		port_fbin = "PORT_UNUSED",
+		port_inclk0 = "PORT_USED",
+		port_inclk1 = "PORT_UNUSED",
+		port_locked = "PORT_USED",
+		port_pfdena = "PORT_UNUSED",
+		port_phasecounterselect = "PORT_UNUSED",
+		port_phasedone = "PORT_UNUSED",
+		port_phasestep = "PORT_UNUSED",
+		port_phaseupdown = "PORT_UNUSED",
+		port_pllena = "PORT_UNUSED",
+		port_scanaclr = "PORT_UNUSED",
+		port_scanclk = "PORT_UNUSED",
+		port_scanclkena = "PORT_UNUSED",
+		port_scandata = "PORT_UNUSED",
+		port_scandataout = "PORT_UNUSED",
+		port_scandone = "PORT_UNUSED",
+		port_scanread = "PORT_UNUSED",
+		port_scanwrite = "PORT_UNUSED",
+		port_clk0 = "PORT_USED",
+		port_clk1 = "PORT_USED",
+		port_clk2 = "PORT_USED",
+		port_clk3 = "PORT_USED",
+		port_clk4 = "PORT_UNUSED",
+		port_clk5 = "PORT_UNUSED",
+		port_clkena0 = "PORT_UNUSED",
+		port_clkena1 = "PORT_UNUSED",
+		port_clkena2 = "PORT_UNUSED",
+		port_clkena3 = "PORT_UNUSED",
+		port_clkena4 = "PORT_UNUSED",
+		port_clkena5 = "PORT_UNUSED",
+		port_extclk0 = "PORT_UNUSED",
+		port_extclk1 = "PORT_UNUSED",
+		port_extclk2 = "PORT_UNUSED",
+		port_extclk3 = "PORT_UNUSED",
+		self_reset_on_loss_lock = "OFF");
+
+    locked = altpll_component.locked;
+    c0 = altpll_component.clk[0];
+    c1 = altpll_component.clk[1];
+    c2 = altpll_component.clk[2];
+    c3 = altpll_component.clk[3];
+    altpll_component.inclk={1'h0,inclk0};
+
+    altpll_component.areset=areset;
+    altpll_component.clkena=6'(1'b1);
+    altpll_component.clkswitch=1'b0;
+    altpll_component.configupdate=1'b0;
+    altpll_component.extclkena=4'(1'b1);
+    altpll_component.fbin=1'b1;
+    altpll_component.pfdena=1'b1;
+    altpll_component.phasecounterselect=4'(1'b1);
+    altpll_component.phasestep=1'b1;
+    altpll_component.phaseupdown=1'b1;
+    altpll_component.pllena=1'b1;
+    altpll_component.scanaclr=1'b1;
+    altpll_component.scanclk=1'b0;
+    altpll_component.scanclkena=1'b1;
+    altpll_component.scandata=1'b0;
+    altpll_component.scanread=1'b0;
+    altpll_component.scanwrite=1'b0;
+}
+
+declare altera_pll interface{
+    param_int
+		number_of_clocks,
+		duty_cycle0,
+		duty_cycle1,
+		duty_cycle2,
+		duty_cycle3,
+		duty_cycle4,
+		duty_cycle5,
+		duty_cycle6,
+		duty_cycle7,
+		duty_cycle8,
+		duty_cycle9,
+		duty_cycle10,
+		duty_cycle11,
+		duty_cycle12,
+		duty_cycle13,
+		duty_cycle14,
+		duty_cycle15,
+		duty_cycle16,
+		duty_cycle17;
+    param_str
+		fractional_vco_multiplier,
+		reference_clock_frequency,
+		operation_mode,
+		output_clock_frequency0,
+		phase_shift0,
+		output_clock_frequency1,
+		phase_shift1,
+		output_clock_frequency2,
+		phase_shift2,
+		output_clock_frequency3,
+		phase_shift3,
+		output_clock_frequency4,
+		phase_shift4,
+		output_clock_frequency5,
+		phase_shift5,
+		output_clock_frequency6,
+		phase_shift6,
+		output_clock_frequency7,
+		phase_shift7,
+		output_clock_frequency8,
+		phase_shift8,
+		output_clock_frequency9,
+		phase_shift9,
+		output_clock_frequency10,
+		phase_shift10,
+		output_clock_frequency11,
+		phase_shift11,
+		output_clock_frequency12,
+		phase_shift12,
+		output_clock_frequency13,
+		phase_shift13,
+		output_clock_frequency14,
+		phase_shift14,
+		output_clock_frequency15,
+		phase_shift15,
+		output_clock_frequency16,
+		phase_shift16,
+		output_clock_frequency17,
+		phase_shift17,
+		pll_type,
+		pll_subtype;
+    input rst;
+    output outclk[18];
+    output locked;
+    // output fboutclk;
+    input fbclk;
+    input refclk;
+}
+
+module cycloneV_pll{
+    altera_pll altera_pll_component(
+		number_of_clocks = 3,
+		duty_cycle0 = 50,
+		duty_cycle1 = 50,
+		duty_cycle2 = 50,
+		duty_cycle3 = 50,
+		duty_cycle4 = 50,
+		duty_cycle5 = 50,
+		duty_cycle6 = 50,
+		duty_cycle7 = 50,
+		duty_cycle8 = 50,
+		duty_cycle9 = 50,
+		duty_cycle10 = 50,
+		duty_cycle11 = 50,
+		duty_cycle12 = 50,
+		duty_cycle13 = 50,
+		duty_cycle14 = 50,
+		duty_cycle15 = 50,
+		duty_cycle16 = 50,
+		duty_cycle17 = 50,
+		fractional_vco_multiplier = "false",
+		reference_clock_frequency = "50.0MHz",
+		operation_mode = "direct",
+		output_clock_frequency0 = "100.000000 MHz",
+		phase_shift0 = "0 ps",
+		output_clock_frequency1 = "100.000000 MHz",
+		phase_shift1 = "-1500 ps",
+		output_clock_frequency2 = "25.000000 MHz",
+		phase_shift2 = "0 ps",
+		output_clock_frequency3 = "0 MHz",
+		phase_shift3 = "0 ps",
+		output_clock_frequency4 = "0 MHz",
+		phase_shift4 = "0 ps",
+		output_clock_frequency5 = "0 MHz",
+		phase_shift5 = "0 ps",
+		output_clock_frequency6 = "0 MHz",
+		phase_shift6 = "0 ps",
+		output_clock_frequency7 = "0 MHz",
+		phase_shift7 = "0 ps",
+		output_clock_frequency8 = "0 MHz",
+		phase_shift8 = "0 ps",
+		output_clock_frequency9 = "0 MHz",
+		phase_shift9 = "0 ps",
+		output_clock_frequency10 = "0 MHz",
+		phase_shift10 = "0 ps",
+		output_clock_frequency11 = "0 MHz",
+		phase_shift11 = "0 ps",
+		output_clock_frequency12 = "0 MHz",
+		phase_shift12 = "0 ps",
+		output_clock_frequency13 = "0 MHz",
+		phase_shift13 = "0 ps",
+		output_clock_frequency14 = "0 MHz",
+		phase_shift14 = "0 ps",
+		output_clock_frequency15 = "0 MHz",
+		phase_shift15 = "0 ps",
+		output_clock_frequency16 = "0 MHz",
+		phase_shift16 = "0 ps",
+		output_clock_frequency17 = "0 MHz",
+		phase_shift17 = "0 ps",
+		pll_type = "General",
+		pll_subtype = "General"
+    );
+    outclk_0 = altera_pll_component.outclk[0];
+    outclk_1 = altera_pll_component.outclk[1];
+    outclk_2 = altera_pll_component.outclk[2];
+    locked = altera_pll_component.locked;
+    altera_pll_component.rst = rst;
+    altera_pll_component.fbclk = 1'b0;
+    altera_pll_component.refclk = refclk;
+}
+
+module pll{
+	max10_pll pll_i;
+
+	pll_i.areset = reset;
+	pll_i.inclk0 = refclk;
+	sdrctr_clk = pll_i.c0;
+	sdram_clk = pll_i.c1;
+	mmc_clk = pll_i.c2;
+	core_clk = pll_i.c3;
+	locked = pll_i.locked;
+}

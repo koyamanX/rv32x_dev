@@ -1,0 +1,70 @@
+#include "top_bram.h"
+#include "top_sdram.h"
+#include "pll.h"
+
+declare top{
+    
+    output SCLK;
+    input MISO;
+    output MOSI;
+    output CS;
+    input RXD;
+    output TXD;
+    output LEDR[10];
+    output HEX0[7];
+    output HEX1[7];
+    output HEX2[7];
+    output HEX3[7];
+    output HEX4[7];
+    output HEX5[7];
+    input SW[10];
+
+    inout DRAM_DQ[16];
+    output DRAM_ADDR[13];
+    output DRAM_BA[2];
+    output DRAM_LDQM;
+    output DRAM_UDQM;
+    output DRAM_RAS_N;
+    output DRAM_CAS_N;
+    output DRAM_CKE;
+    output DRAM_CLK;
+    output DRAM_WE_N;
+    output DRAM_CS_N;
+}
+
+module top{
+	top_sdram core;
+	pll pll_i;
+
+	pll_i.reset     = ~p_reset;
+	pll_i.refclk  = m_clock;
+    core.sdrctr_clk = pll_i.sdrctr_clk;
+	DRAM_CLK      = pll_i.sdram_clk;
+	core.mmc_clk  = pll_i.mmc_clk;
+    core.m_clock = pll_i.core_clk;
+
+	TXD = core.TXD;
+	core.RXD = RXD;
+	MOSI = core.MOSI;
+	SCLK = core.SCLK;
+	CS = core.CS;
+	core.MISO = MISO;
+	LEDR = core.LEDR;
+    HEX0 = core.HEX0;
+    HEX1 = core.HEX1;
+    HEX2 = core.HEX2;
+    HEX3 = core.HEX3;
+    HEX4 = core.HEX4;
+    HEX5 = core.HEX5;
+    core.SW = SW;
+	DRAM_ADDR  = core.DRAM_ADDR;
+	DRAM_BA    = core.DRAM_BA;
+	DRAM_LDQM  = core.DRAM_LDQM;
+	DRAM_UDQM  = core.DRAM_UDQM;
+	DRAM_RAS_N = core.DRAM_RAS_N;
+	DRAM_CAS_N = core.DRAM_CAS_N;
+	DRAM_CKE   = core.DRAM_CKE;
+	DRAM_WE_N  = core.DRAM_WE_N;
+	DRAM_CS_N  = core.DRAM_CS_N;
+}
+

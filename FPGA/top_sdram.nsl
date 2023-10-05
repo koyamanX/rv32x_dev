@@ -56,7 +56,6 @@ module top_sdram {
 	reg init_flag = 0;
 
 	rv32x_integration core;
-	pll pll_i;
 	SDRAM_CTR sdram;
 	ASYNCTX tx;
 	
@@ -86,12 +85,8 @@ module top_sdram {
 	DRAM_WE_N  = sdram.DRAM_WE;
 	DRAM_CS_N  = sdram.DRAM_CS;
 	
-	// SDRAM用クロック
-	pll_i.reset     = ~p_reset;
-	pll_i.refclk  = m_clock;
-	sdram.m_clock = pll_i.sdrctr_clk;
-	DRAM_CLK      = pll_i.sdram_clk;
-	core.mmc_clk  = pll_i.mmc_clk;
+	sdram.m_clock = sdrctr_clk;
+	core.mmc_clk  = mmc_clk;
 
 	// モジュール間IF
 	tx.aTxIn = sdram.rxout;
