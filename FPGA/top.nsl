@@ -41,7 +41,7 @@ module top{
     core.sdrctr_clk = pll_i.sdrctr_clk;
 	DRAM_CLK      = pll_i.sdram_clk;
 	core.mmc_clk  = pll_i.mmc_clk;
-    core.m_clock = pll_i.core_clk;
+    core.m_clock = pll_i.cpu_clk;
 
 	TXD = core.TXD;
 	core.RXD = RXD;
@@ -66,5 +66,7 @@ module top{
 	DRAM_CKE   = core.DRAM_CKE;
 	DRAM_WE_N  = core.DRAM_WE_N;
 	DRAM_CS_N  = core.DRAM_CS_N;
+	if(core.write) DRAM_DQ = core.DRAM_DO;
+	else           core.DRAM_DI = DRAM_DQ;
 }
 

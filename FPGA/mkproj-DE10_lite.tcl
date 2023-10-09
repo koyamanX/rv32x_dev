@@ -30,7 +30,7 @@ if {$opt(script) != ""} {
 
 ########	
 
-set_global_assignment -name NUM_PARALLEL_PROCESSORS 4
+set_global_assignment -name NUM_PARALLEL_PROCESSORS 12
 set_global_assignment -name FMAX_REQUIREMENT 50MHz
 create_base_clock -fmax 50MHz -duty_cycle 50 m_clock
 
@@ -353,17 +353,17 @@ set_location_assignment PIN_V12 -to GSENSOR_SDO
 #============================================================
 # Arduino
 #============================================================
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to RXD
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to TXD
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[1]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[2]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[3]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to CS
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[5]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[6]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[7]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[8]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[9]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to CS
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[10]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to MOSI
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to MISO
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to SCLK
@@ -373,17 +373,17 @@ set_instance_assignment -name IO_STANDARD "3.3 V SCHMITT TRIGGER" -to ARDUINO_RE
 set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to MOSI
 set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to MISO
 set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to CS
-set_location_assignment PIN_AB5 -to RXD
-set_location_assignment PIN_AB6 -to TXD
+set_location_assignment PIN_AB5 -to ARDUINO_IO[0]
+set_location_assignment PIN_AB6 -to ARDUINO_IO[1]
 set_location_assignment PIN_AB7 -to ARDUINO_IO[2]
 set_location_assignment PIN_AB8 -to ARDUINO_IO[3]
-set_location_assignment PIN_AB9 -to ARDUINO_IO[4]
+set_location_assignment PIN_AB9 -to CS
 set_location_assignment PIN_Y10 -to ARDUINO_IO[5]
 set_location_assignment PIN_AA11 -to ARDUINO_IO[6]
 set_location_assignment PIN_AA12 -to ARDUINO_IO[7]
 set_location_assignment PIN_AB17 -to ARDUINO_IO[8]
 set_location_assignment PIN_AA17 -to ARDUINO_IO[9]
-set_location_assignment PIN_AB19 -to CS
+set_location_assignment PIN_AB19 -to ARDUINO_IO[10]
 set_location_assignment PIN_AA19 -to MOSI
 set_location_assignment PIN_Y19 -to MISO
 set_location_assignment PIN_AB20 -to SCLK
@@ -420,11 +420,11 @@ set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO[22]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO[23]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO[24]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO[25]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO[26]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to reserved_gnd
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO[27]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO[28]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to RXD
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO[29]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO[30]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to TXD
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO[31]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO[32]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to GPIO[33]
@@ -456,16 +456,17 @@ set_location_assignment PIN_AA9 -to GPIO[22]
 set_location_assignment PIN_Y8 -to GPIO[23]
 set_location_assignment PIN_AA8 -to GPIO[24]
 set_location_assignment PIN_Y7 -to GPIO[25]
-set_location_assignment PIN_AA7 -to GPIO[26]
+set_location_assignment PIN_AA7 -to reserved_gnd
 set_location_assignment PIN_Y6 -to GPIO[27]
-set_location_assignment PIN_AA6 -to GPIO[28]
+set_location_assignment PIN_AA6 -to RXD
 set_location_assignment PIN_Y5 -to GPIO[29]
-set_location_assignment PIN_AA5 -to GPIO[30]
+set_location_assignment PIN_AA5 -to TXD
 set_location_assignment PIN_Y4 -to GPIO[31]
 set_location_assignment PIN_AB3 -to GPIO[32]
 set_location_assignment PIN_Y3 -to GPIO[33]
 set_location_assignment PIN_AB2 -to GPIO[34]
 set_location_assignment PIN_AA2 -to GPIO[35]
+set_instance_assignment -name RESERVE_PIN AS_OUTPUT_DRIVING_GROUND -to reserved_gnd
 
 #============================================================
 # End of pin assignments by Terasic System Builder

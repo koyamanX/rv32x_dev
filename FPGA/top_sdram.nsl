@@ -92,8 +92,8 @@ module top_sdram {
 	tx.aTxIn = sdram.rxout;
 	sdram.rxin = tx.aTxOut;
 
-	if(sdram_write) DRAM_DQ = sdram.DRAM_DO;
-	else           sdram.DRAM_DI = DRAM_DQ;
+	if(sdram_write) DRAM_DO = sdram.DRAM_DO;
+	else           sdram.DRAM_DI = DRAM_DI;
 	
 	if(!init_flag && sdram.finish_init){
 		init_flag := 1;
@@ -136,6 +136,7 @@ module top_sdram {
 			tx.aTxReq();
 			req_flag := 0;
 		}
+		write();
 
 		// 書込み完了まで送信し続ける
 		sdram.rw_mode = WRITE;

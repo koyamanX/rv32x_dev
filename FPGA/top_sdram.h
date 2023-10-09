@@ -26,7 +26,8 @@ declare top_sdram
     output HEX5[7];
     input SW[10];
 
-    inout DRAM_DQ[16];
+    input DRAM_DI[16];
+    output DRAM_DO[16];
     output DRAM_ADDR[13];
     output DRAM_BA[2];
     output DRAM_LDQM;
@@ -38,6 +39,7 @@ declare top_sdram
     output DRAM_WE_N;
     output DRAM_CS_N;
 
+    func_out write();
     input sdrctr_clk;
     input mmc_clk;
 }
