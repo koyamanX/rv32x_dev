@@ -56,6 +56,8 @@ declare rv32x_simulation simulation {
 }
 
 module rv32x_simulation {
+	reg mmc_clk;
+
 	rv32x_integration core;
 	uart_receiver ur;
 	debug_uart_sender us;	/* same as uart_sender.nsl except for status.en is 1 at reset */
@@ -68,6 +70,9 @@ module rv32x_simulation {
 	mmcsim.CS = core.CS;
 	mmcsim.MOSI = core.MOSI;
 	core.MISO = mmcsim.MISO;
+
+	mmc_clk := ~mmc_clk;
+	core.mmc_clk = mmc_clk;
 
 	func ur.done {
 		uart_done();
