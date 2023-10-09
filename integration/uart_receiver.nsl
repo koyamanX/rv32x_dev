@@ -30,11 +30,6 @@ module uart_receiver {
 	func reset {
 		idle();
 	}
-	/*
-	if((fifo.full || bufcnt > threshold) && status.en) {
-		interrupt_req();
-	}
-	*/
 	proc idle {
 		if(!status.busy && status.en && ~rxd) {
 			status.busy := 1;
@@ -91,9 +86,6 @@ module uart_receiver {
 				clk_cnt := 0;
 				bufcnt++;
 				received_char = buffer;
-				if(received_char == 8'h0A){	// line feed
-					interrupt_req();
-				}
 				fifo.write(buffer);
 				status.busy := 0;
 				idle();
