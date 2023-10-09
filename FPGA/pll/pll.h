@@ -17,6 +17,7 @@ declare cycloneV_pll interface
     output outclk_0;
     output outclk_1;
     output outclk_2;
+    output outclk_3;
     output locked;
 }
 
@@ -27,6 +28,6 @@ declare pll
     output sdrctr_clk;
     output sdram_clk;
     output mmc_clk;
-    output core_clk;
+    output cpu_clk;
     output locked;
 }

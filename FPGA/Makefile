@@ -24,7 +24,7 @@ NSLFLAGS  	= -O2 -neg_res -I$(SRCDIR)/../core \
 -I$(SRCDIR)/bram \
 -I$(SRCDIR)/pll \
 -I$(SRCDIR)/SDRAM_Controler \
--DCV
+-DCV -D$(BOARD) -DCPU_FREQ=$(CPU_FREQ) -DPLL_DIV=$(PLL_DIV) -DPLL_MUL=$(PLL_MUL)
 MKPROJ		= $(SRCDIR)/mkproj-$(BOARD).tcl
 Q2SH		= quartus_sh
 Q2PGM		= quartus_pgm
@@ -59,6 +59,11 @@ else ifeq ($(BOARD),DE10_lite)
 	DEVICE_FAMILY = "MAX 10"
 endif
 _DEVICE_FAMILY=$(subst ",\",$(DEVICE_FAMILY))
+PLL_INFREQ=50.0
+PLL_DIV=5
+PLL_MUL=4
+CPU_FREQ=$(shell echo "scale=6; $(PLL_INFREQ) / $(PLL_DIV).0 * $(PLL_MUL).0" | bc)	#40.0MHz
+_CPU_FREQ=$(shell echo $(CPU_FREQ))	#remove extra space
 ########
 
 all:
@@ -125,11 +130,11 @@ riscv-tests:
 	find $(SRCDIR)/../software/riscv-tests/isa -maxdepth 1 -perm -111 -type f | xargs -i cp -p {} $(SRCDIR)/tests
 	ls $(TEST) | xargs -t -i riscv32-unknown-elf-objcopy -O verilog {} {}.hex
 
-test: $(SRCDIR)/bram/*.nsl
-	echo $(_DEVICE_FAMILY)
+test:
+	sed -e "s/output_clock_frequency3 = .*/output_clock_frequency3 = \"$(_CPU_FREQ) MHz\"/g" $(SRCDIR)/pll/pll.nsl
 
 test2:
-	cat $(MKPROJ) | grep FAMILY | awk '{print $$4" "$$5}'
+	@echo $(CPU_FREQ)
 
 $(DESIGN).qsf: $(VFILES) $(LIBS)
 	$(Q2SH) -t $(MKPROJ) -project $(DESIGN) $^
