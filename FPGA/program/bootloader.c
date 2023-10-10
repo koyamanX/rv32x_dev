@@ -33,7 +33,7 @@
 
 #define SECTORSIZE 512
 #ifndef BINSTART
-#define BINSTART 0
+#define BINSTART 0x100000
 #endif
 #ifdef HEAD
 #define TEXTHEAD ((volatile unsigned int *)HEAD)
