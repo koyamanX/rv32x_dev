@@ -305,7 +305,7 @@ module cycloneV_pll{
 		phase_shift0 = "0 ps",
 		output_clock_frequency1 = "100.000000 MHz",
 		phase_shift1 = "-1500 ps",
-		output_clock_frequency2 = "20.000000 MHz",
+		output_clock_frequency2 = "40.000000 MHz",
 		phase_shift2 = "0 ps",
 		output_clock_frequency3 = "40.000000 MHz",
 		phase_shift3 = "0 ps",

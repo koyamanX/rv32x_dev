@@ -1,6 +1,6 @@
 #include "rv32x_integration.h"
-#include "mem_ctr.h"
 #include "opcode.h"
+#include "mainmem.h"
 #include "top_bram.h"
 
 module top_bram {
@@ -41,12 +41,9 @@ module top_bram {
 	reg res_flag = 0;
 
 	rv32x_integration core;
-	pll pll_i;
 	mainmem memory;
 	
-	pll_i.reset     = ~p_reset;
-	pll_i.refclk  = m_clock;
-	core.mmc_clk  = pll_i.mmc_clk;
+	core.mmc_clk  = mmc_clk;
 	
 	memory.clock = m_clock;
 	

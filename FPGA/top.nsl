@@ -33,13 +33,16 @@ declare top{
 }
 
 module top{
+#ifdef SDRAM
 	top_sdram core;
+#else
+	top_bram core;
+#endif
+
 	pll pll_i;
 
 	pll_i.reset     = ~p_reset;
 	pll_i.refclk  = m_clock;
-    core.sdrctr_clk = pll_i.sdrctr_clk;
-	DRAM_CLK      = pll_i.sdram_clk;
 	core.mmc_clk  = pll_i.mmc_clk;
     core.m_clock = pll_i.cpu_clk;
 
@@ -57,6 +60,10 @@ module top{
     HEX4 = core.HEX4;
     HEX5 = core.HEX5;
     core.SW = SW;
+
+#ifdef SDRAM
+    core.sdrctr_clk = pll_i.sdrctr_clk;
+	DRAM_CLK      = pll_i.sdram_clk;
 	DRAM_ADDR  = core.DRAM_ADDR;
 	DRAM_BA    = core.DRAM_BA;
 	DRAM_LDQM  = core.DRAM_LDQM;
@@ -68,5 +75,6 @@ module top{
 	DRAM_CS_N  = core.DRAM_CS_N;
 	if(core.write) DRAM_DQ = core.DRAM_DO;
 	else           core.DRAM_DI = DRAM_DQ;
+#endif
 }
 

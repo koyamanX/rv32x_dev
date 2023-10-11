@@ -288,13 +288,13 @@ private:
 		unsigned int pma = 0;
 		char *name = NULL;
 		int dumpflag = 0;
-	} * procedure, *globalObject;
+	} *procedure, *globalObject;
 	char *target_symbol = NULL;
-	int import_linux_symbol_flag = 0;
+	int import_symbol_flag = 0;
 #ifdef KERNEL_ELF_LOCATION
-	const char *vmlinux_location = STRINGIZE_VALUE_OF(KERNEL_ELF_LOCATION); //"/root/software/xv6-riscv/kernel/kernel"; //	"/root/software/busybox/busybox_unstripped"; //
+	const char *symsrc_location = STRINGIZE_VALUE_OF(KERNEL_ELF_LOCATION); //"/root/software/xv6-riscv/kernel/kernel"; //	"/root/software/busybox/busybox_unstripped"; //
 #else
-	const char *vmlinux_location = "/root/software/linux/vmlinux";
+	const char *symsrc_location = "/root/software/linux/vmlinux";
 #endif
 	int skip_procedure_search = 0;
 	int skip_object_search = 0;
@@ -975,7 +975,7 @@ public:
 	void parseLogOpts(int argc, char **argv)
 	{
 		int opt, longindex;
-		char *Darg = NULL, *aarg = NULL, *symfile = NULL;
+		char *Darg = NULL, *aarg = NULL, *sarg = NULL, *symfile = NULL;
 		struct option longopts[] = {
 			{"print-exception", no_argument, NULL, 'e'},
 			{"print-writeback", no_argument, NULL, 'w'},
@@ -986,7 +986,7 @@ public:
 			{"no-sim-exit", no_argument, NULL, 'n'},
 			{"dump-vcd", optional_argument, NULL, 'D'},
 			{"print-entry", no_argument, NULL, 'E'},
-			{"debug-linux", no_argument, NULL, 'l'},
+			{"symbol-source", optional_argument, NULL, 's'},
 			{"print-blkrw", no_argument, NULL, 'b'},
 			{"dump-memory", no_argument, NULL, 'M'},
 			{0, 0, 0, 0},
@@ -1032,8 +1032,14 @@ public:
 			case 'E':
 				print_entry_flag = 1;
 				break;
-			case 'l':
-				import_linux_symbol_flag = 1;
+			case 's':
+				import_symbol_flag = 1;
+				if (optarg != NULL)
+				{
+					sarg = (char *)malloc(sizeof(char) * strlen(optarg) + 1);
+					strcpy(sarg, optarg);
+					symsrc_location = sarg;
+				}
 				break;
 			case 'b':
 				print_blkrw_flag = 1;
@@ -1046,9 +1052,9 @@ public:
 				break;
 			}
 		}
-		if (import_linux_symbol_flag)
+		if (import_symbol_flag)
 		{
-			abfd = open_exe(vmlinux_location, archname);
+			abfd = open_exe(symsrc_location, archname);
 			skip_procedure_search = 1;
 		}
 		fetchSymboltable();
@@ -1264,7 +1270,7 @@ public:
 		int pCounter = 0;
 		int gOCounter = 0;
 		unsigned int start_addr;
-		if (import_linux_symbol_flag)
+		if (import_symbol_flag)
 		{
 			start_addr = KERNEL_START_ADDR; // 0; //
 		}

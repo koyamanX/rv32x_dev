@@ -24,7 +24,7 @@ NSLFLAGS  	= -O2 -neg_res -I$(SRCDIR)/../core \
 -I$(SRCDIR)/bram \
 -I$(SRCDIR)/pll \
 -I$(SRCDIR)/SDRAM_Controler \
--DCV -D$(BOARD) -DCPU_FREQ=$(CPU_FREQ) -DPLL_DIV=$(PLL_DIV) -DPLL_MUL=$(PLL_MUL)
+-DCV -D$(BOARD) -DCPU_FREQ=$(CPU_FREQ) -DPLL_DIV=$(PLL_DIV) -DPLL_MUL=$(PLL_MUL) -D$(RAM)
 MKPROJ		= $(SRCDIR)/mkproj-$(BOARD).tcl
 Q2SH		= quartus_sh
 Q2PGM		= quartus_pgm
@@ -64,6 +64,7 @@ PLL_DIV=5
 PLL_MUL=4
 CPU_FREQ=$(shell echo "scale=6; $(PLL_INFREQ) / $(PLL_DIV).0 * $(PLL_MUL).0" | bc)	#40.0MHz
 _CPU_FREQ=$(shell echo $(CPU_FREQ))	#remove extra space
+RAM=SDRAM
 ########
 
 all:
@@ -71,7 +72,6 @@ all:
 		echo mkdir $(WORKDIR); \
 		mkdir $(WORKDIR); \
 	fi
-	sed -i -e "s/TOP_LEVEL_ENTITY.*/TOP_LEVEL_ENTITY $(TOP)/g" $(MKPROJ)
 	sed -i -e "s/NUM_PARALLEL_PROCESSORS.*/NUM_PARALLEL_PROCESSORS $(shell nproc)/g" $(MKPROJ)
 	sed -i -e "s/IO_STANDARD.*RXD/IO_STANDARD \"3.3-V LV$(SERIAL_CABLE_LEVEL)\" -to RXD/g" $(MKPROJ)
 	sed -i -e "s/IO_STANDARD.*TXD/IO_STANDARD \"3.3-V LV$(SERIAL_CABLE_LEVEL)\" -to TXD/g" $(MKPROJ)
