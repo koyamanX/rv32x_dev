@@ -56,7 +56,8 @@ declare rv32x_simulation simulation {
 }
 
 module rv32x_simulation {
-	reg mmc_clk;
+	reg card_clk;
+	reg buffer;
 
 	rv32x_integration core;
 	uart_receiver ur;
@@ -65,14 +66,15 @@ module rv32x_simulation {
 	
 	ur.RXD = core.TXD;
 	core.RXD = us.TXD;
-	mmcsim.m_clock = core.SCLK;
+	mmcsim.m_clock = card_clk;
 	mmcsim.SCLK = core.SCLK;
 	mmcsim.CS = core.CS;
 	mmcsim.MOSI = core.MOSI;
-	core.MISO = mmcsim.MISO;
+	buffer := mmcsim.MISO;
+	core.MISO = buffer;
 
-	mmc_clk := ~mmc_clk;
-	core.mmc_clk = mmc_clk;
+	card_clk := core.SCLK;
+	core.mmc_clk = m_clock;
 
 	func ur.done {
 		uart_done();

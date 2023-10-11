@@ -16,7 +16,7 @@ module rv32x_integration {
 	plic rv32x_plic;
 	mmc_interface rv32x_mmcspi;
 
-	rv32x_mmcspi.clk25MHz = mmc_clk;
+	rv32x_mmcspi.clk = mmc_clk;
 	func reset {
 		core.reset();
 		rom.reset();
