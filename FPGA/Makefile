@@ -71,6 +71,8 @@ all:
 	@if [ ! -d $(WORKDIR) ]; then \
 		echo mkdir $(WORKDIR); \
 		mkdir $(WORKDIR); \
+	else \
+		rm $(WORKDIR)/top.v $(WORKDIR)/pll.v; \
 	fi
 	sed -i -e "s/NUM_PARALLEL_PROCESSORS.*/NUM_PARALLEL_PROCESSORS $(shell nproc)/g" $(MKPROJ)
 	sed -i -e "s/IO_STANDARD.*RXD/IO_STANDARD \"3.3-V LV$(SERIAL_CABLE_LEVEL)\" -to RXD/g" $(MKPROJ)

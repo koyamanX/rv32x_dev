@@ -5,12 +5,10 @@ GCC=$(RISCV_PREFIX)gcc
 OBJCOPY=$(RISCV_PREFIX)objcopy
 TARGET=test
 LSCRIPT=program
-BOOTSTRAP=bootrom.s
+BOOTSTRAP=bootloader.c
 MIFS=bootrom.hex $(TARGET).hex 
 BOOT=/root/software/opensbi/build/platform/rv32xsoc/firmware/fw_payload.bin
 BOOTSTRAP_OPT=-DBINSIZE=$(shell ls -lL $(BOOT) | awk '{print $$5}')
-OPT=
-USEGLOSS=	#if 1 use glosslib(like stdio)
 
 all: $(MIFS) 
 
@@ -25,11 +23,7 @@ endif
 
 
 $(TARGET).elf: $(TARGET).c
-ifneq ($(USEGLOSS),)
 	make -C /root/software/helloworld TEST=$(shell pwd)/$(TARGET) $(shell pwd)/$(TARGET).elf
-else
-	$(GCC) $(TARGET).c $(OPT) -mabi=ilp32 -e main -nostdinc -nostdlib -fno-builtin -T $(LSCRIPT).ld -o $(TARGET).elf
-endif
 
 %.hex: %.elf
 	$(OBJCOPY) -O verilog $< $@
