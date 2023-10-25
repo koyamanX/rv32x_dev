@@ -68,7 +68,7 @@ RAM=SDRAM
 ########
 
 all:
-	@if [ ! -d $(WORKDIR) ]; then \
+	-@if [ ! -d $(WORKDIR) ]; then \
 		echo mkdir $(WORKDIR); \
 		mkdir $(WORKDIR); \
 	else \
