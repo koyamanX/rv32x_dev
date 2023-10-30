@@ -353,10 +353,10 @@ set_location_assignment PIN_V12 -to GSENSOR_SDO
 #============================================================
 # Arduino
 #============================================================
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[0]
-set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[1]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to RXD
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to TXD
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[3]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to CS
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[5]
 set_instance_assignment -name IO_STANDARD "3.3-V LVTTL" -to ARDUINO_IO[6]
@@ -373,10 +373,10 @@ set_instance_assignment -name IO_STANDARD "3.3 V SCHMITT TRIGGER" -to ARDUINO_RE
 set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to MOSI
 set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to MISO
 set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to CS
-set_location_assignment PIN_AB5 -to ARDUINO_IO[0]
-set_location_assignment PIN_AB6 -to ARDUINO_IO[1]
-set_location_assignment PIN_AB7 -to RXD
-set_location_assignment PIN_AB8 -to TXD
+set_location_assignment PIN_AB5 -to RXD
+set_location_assignment PIN_AB6 -to TXD
+set_location_assignment PIN_AB7 -to ARDUINO_IO[2]
+set_location_assignment PIN_AB8 -to ARDUINO_IO[3]
 set_location_assignment PIN_AB9 -to CS
 set_location_assignment PIN_Y10 -to ARDUINO_IO[5]
 set_location_assignment PIN_AA11 -to ARDUINO_IO[6]
