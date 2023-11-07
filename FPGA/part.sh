@@ -1,6 +1,8 @@
 IMAGE_FILE="card.img"
 
-dd if=/dev/zero of=${IMAGE_FILE} count=1 bs=120M
+dd if=/dev/zero of=${IMAGE_FILE} count=1 bs=500M
+#part 1: 40MiB bootable
+#part 2: bs-40MiB
 echo -e \
 "n\n\
 p\n\
@@ -30,7 +32,7 @@ done
 # https://github.com/moby/moby/issues/27886#issuecomment-417074845
 
 dd if=/root/software/opensbi/build/platform/rv32xsoc/firmware/fw_payload.bin of=${LOOPDEV}p1
-dd if=/root/software/buildroot/output/images/rootfs.ext2 of=block_device.img of=${LOOPDEV}p2
+dd if=/root/software/buildroot/output/images/rootfs.ext2 of=${LOOPDEV}p2
 
 losetup -d ${LOOPDEV}
 
