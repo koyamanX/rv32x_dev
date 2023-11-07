@@ -16,7 +16,7 @@ endif
 VPATH		= $(SRCDIR)
 WORKDIR		= synth
 DESIGN		= rv32x
-BOARD		= DE0_CV
+BOARD		= DE10_lite
 NSL2VL    	= nsl2vl
 NSLFLAGS  	= -O2 -neg_res -I$(SRCDIR)/../core \
 -I$(SRCDIR)/../integration \
@@ -59,11 +59,10 @@ else ifeq ($(BOARD),DE10_lite)
 	DEVICE_FAMILY = "MAX 10"
 endif
 _DEVICE_FAMILY=$(subst ",\",$(DEVICE_FAMILY))
-PLL_INFREQ=50.0
+PLL_INFREQ=50000000
 PLL_DIV=5
 PLL_MUL=4
-CPU_FREQ=$(shell echo "scale=6; $(PLL_INFREQ) / $(PLL_DIV).0 * $(PLL_MUL).0" | bc)	#40.0MHz
-_CPU_FREQ=$(shell echo $(CPU_FREQ))	#remove extra space
+CPU_FREQ=$(shell echo "scale=1; $(PLL_INFREQ) / $(PLL_DIV) * $(PLL_MUL)" | bc | awk -F"." '{print $$1}')	#40.0MHz
 RAM=SDRAM
 ########
 
@@ -133,7 +132,7 @@ riscv-tests:
 	ls $(TEST) | xargs -t -i riscv32-unknown-elf-objcopy -O verilog {} {}.hex
 
 test:
-	sed -e "s/output_clock_frequency3 = .*/output_clock_frequency3 = \"$(_CPU_FREQ) MHz\"/g" $(SRCDIR)/pll/pll.nsl
+	echo $(CPU_FREQ)
 
 test2:
 	@echo $(CPU_FREQ)

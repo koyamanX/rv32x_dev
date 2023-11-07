@@ -1,5 +1,5 @@
 
-declare max10_pll interface
+declare xpll interface
 {
     input areset;
     input inclk0;
@@ -7,17 +7,6 @@ declare max10_pll interface
     output c1;
     output c2;
     output c3;
-    output locked;
-}
-
-declare cycloneV_pll interface
-{
-    input rst;
-    input refclk;
-    output outclk_0;
-    output outclk_1;
-    output outclk_2;
-    output outclk_3;
     output locked;
 }
 
