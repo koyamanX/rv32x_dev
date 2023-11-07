@@ -1,4 +1,4 @@
-FROM ubuntu:23.04
+FROM ubuntu:22.04
 
 MAINTAINER ckoyama<ckoyama.1996@gmail.com>
 
@@ -7,6 +7,7 @@ ENV HOME=/root
 
 RUN apt update && \
 	DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
+	gcc libncurses5-dev python3-dev libtool-bin bzip2 xz-utils libstdc++6 meson \
 	gdb libc6-dbg strace libncurses-dev universal-ctags cpio unzip rsync\
 	curl git sudo ca-certificates keyboard-configuration console-setup \
 	build-essential cmake perl python3 make autoconf g++ flex bison ccache \
