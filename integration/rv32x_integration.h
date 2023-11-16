@@ -23,7 +23,7 @@ declare rv32x_integration
 	output CS;
 	output MOSI;
 	input MISO;
-#ifdef HTIF
+#ifdef SIM
 	output tohost[32];
 	func_out sim_done(tohost);
 #endif

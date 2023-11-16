@@ -112,7 +112,7 @@ module load_store_unit {
 				} else {
 					page_table_walk(PTW_STORE, sv32_va);
 				}
-#ifdef HTIF
+#ifdef SIM
 				if(sv32_pa == 0x80001000) {
 					sim_done(store_data);
 				}

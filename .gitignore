@@ -15,6 +15,7 @@ software/tests
 software/bootrom/*.dtb
 software/*/gtk.sh
 software/*/rv32x.gtkw
+scripts/tmp
 *.a
 *.o
 *.elf

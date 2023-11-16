@@ -1068,7 +1068,7 @@ module rv32x_core {
 		rv32x.rdata = lsu.load_data;
 		rv32x.dmem_ready();
 	}
-#ifdef HTIF
+#ifdef SIM
 	func lsu.sim_done {
 		sim_done(lsu.tohost);
 	}

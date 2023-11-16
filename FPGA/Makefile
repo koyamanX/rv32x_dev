@@ -26,10 +26,10 @@ NSLFLAGS  	= -O2 -neg_res -I$(SRCDIR)/../core \
 -I$(SRCDIR)/SDRAM_Controler \
 -DCV -D$(BOARD) -DCPU_FREQ=$(CPU_FREQ) -DPLL_DIV=$(PLL_DIV) -DPLL_MUL=$(PLL_MUL) -D$(RAM)
 MKPROJ		= $(SRCDIR)/mkproj-$(BOARD).tcl
-Q2SH		= quartus_sh
-Q2PGM		= quartus_pgm
-Q2CDB		= quartus_cdb
-Q2ASM		= quartus_asm
+Q2SH		= $(QUARTUS_DIR)quartus_sh
+Q2PGM		= $(QUARTUS_DIR)quartus_pgm
+Q2CDB		= $(QUARTUS_DIR)quartus_cdb
+Q2ASM		= $(QUARTUS_DIR)quartus_asm
 CABLE		= "USB-Blaster [USB-0]"
 PMODE		= JTAG
 NSRC := $(wildcard $(SRCDIR)/../core/*.nsl) \
@@ -132,7 +132,7 @@ riscv-tests:
 	ls $(TEST) | xargs -t -i riscv32-unknown-elf-objcopy -O verilog {} {}.hex
 
 test:
-	echo $(CPU_FREQ)
+	echo $(Q2SH)
 
 test2:
 	@echo $(CPU_FREQ)

@@ -55,7 +55,7 @@ $(TOP): $(TOP).cpp obj_dir $(VFILES) bootrom.hex
 	cd obj_dir && make -f V$(TOP).mk V$(TOP)
 	cp obj_dir/V$(TOP) $(TOP)
 $(TOP)_test: 
-	make $(TOP) NFLAGS=-O2\ -neg_res\ -I../core\ -I../integration\ -I../integration/mmcspi/src\ -DSIM\ -DHTIF SIMOPT=-DHTIF -B
+	make $(TOP) NFLAGS=-O2\ -neg_res\ -I../core\ -I../integration\ -I../integration/mmcspi/src\ -DSIM SIMOPT=-DHTIF -B
 	
 bootrom.hex: 
 	make -C bootrom -B

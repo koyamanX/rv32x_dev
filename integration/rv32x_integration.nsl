@@ -163,7 +163,7 @@ module rv32x_integration {
 	CS = rv32x_mmcspi.CS;
 	rv32x_mmcspi.MISO = MISO;
 
-#ifdef HTIF
+#ifdef SIM
 	func core.sim_done {
 		sim_done(core.tohost);
 	}
