@@ -14,7 +14,7 @@ BOOTROMDIR=bootrom
 BOOTROM=bootrom
 
 run: $(TEST).elf $(BOOTROM).hex
-	make -C $(SIMDIR) -B
+	make -C $(SIMDIR) -B SIMOPT=-DHTIF
 	cp $(SIMDIR)/$(SIM) $(SIM)
 	cp $(SIMDIR)/gtk.sh ./
 	./$(SIM) $< --no-sim-exit --no-log 2> /dev/null || true
