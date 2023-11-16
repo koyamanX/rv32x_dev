@@ -111,6 +111,7 @@ ssize_t sys_write(int fd, const void *buf, size_t count) {
 	return ret;
 }
 void sys_exit(int status) {
+	*(int *)(0x80001000) = status; //htif exit
 _sys_exit:
 	goto _sys_exit;
 }
