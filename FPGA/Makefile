@@ -26,10 +26,10 @@ NSLFLAGS  	= -O2 -neg_res -I$(SRCDIR)/../core \
 -I$(SRCDIR)/SDRAM_Controler \
 -DCV -D$(BOARD) -DCPU_FREQ=$(CPU_FREQ) -DPLL_DIV=$(PLL_DIV) -DPLL_MUL=$(PLL_MUL) -D$(RAM)
 MKPROJ		= $(SRCDIR)/mkproj-$(BOARD).tcl
-Q2SH		= $(QUARTUS_DIR)quartus_sh
-Q2PGM		= $(QUARTUS_DIR)quartus_pgm
-Q2CDB		= $(QUARTUS_DIR)quartus_cdb
-Q2ASM		= $(QUARTUS_DIR)quartus_asm
+Q2SH		= $(QUARTUS_DIR)quartus_sh$(EXTENSION)
+Q2PGM		= $(QUARTUS_DIR)quartus_pgm$(EXTENSION)
+Q2CDB		= $(QUARTUS_DIR)quartus_cdb$(EXTENSION)
+Q2ASM		= $(QUARTUS_DIR)quartus_asm$(EXTENSION)
 CABLE		= "USB-Blaster [USB-0]"
 PMODE		= JTAG
 NSRC := $(wildcard $(SRCDIR)/../core/*.nsl) \
