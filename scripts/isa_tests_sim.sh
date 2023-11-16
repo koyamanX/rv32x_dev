@@ -1,0 +1,1 @@
+make -C /root/simulation run_riscv_tests
