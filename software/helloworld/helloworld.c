@@ -1,8 +1,10 @@
 #include <stdio.h>
+#define UART_TX_STAT ((volatile unsigned int *)0x40000004)
 
 int main(void)
 {
 	printf("hello,world!\n");
-	*((unsigned int *)(0x80001000)) = 0x00000001;
+	while (*UART_TX_STAT != 0x05) // prevent simulator exit while sending characters
+		;
 	return 0;
 }
