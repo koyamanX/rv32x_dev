@@ -1,6 +1,5 @@
 #!/bin/bash
 docker run -it --rm \
-    --net host \
     -e LOCAL_UID=$(id -u $USER) \
     -e LOCAL_GID=$(id -g $USER) \
     -e USER=$USER \

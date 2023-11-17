@@ -13,7 +13,7 @@ fi
 ./run.sh "bash -ic scripts/make_bootable_img.sh"
 ./run.sh "bash -ic scripts/make_bootstrap_mif.sh"
 
-#make -C ./FPGA -B QUARTUS_DIR=$QUARTUS_DIR EXTENSION=$EXTENSION
+make -C ./FPGA -B QUARTUS_DIR=$QUARTUS_DIR EXTENSION=$EXTENSION
 
 if [ -n "$MMC_DEV" ]; then
     dd if=scripts/output/card.img of=$MMC_DEV
