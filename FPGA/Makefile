@@ -45,7 +45,7 @@ VFILES := $(patsubst %.nsl,%.v,$(notdir $(NSRC)))
 HEXS := bootrom.hex
 LIBS		= 
 RESULT		= result.txt
-TARGET	= program/test
+TARGET	= mifSrc/test
 _TARGET = $(SRCDIR)/$(TARGET)
 TEST = $(filter-out %.hex,$(wildcard $(SRCDIR)/tests/*))
 TEST2 = $(filter-out %.hex, $(wildcard $(SRCDIR)/bram/*.nsl))
@@ -106,7 +106,7 @@ all:
 	$(NSL2VL) $(NSLFLAGS)  $< -o $@
 	
 mifs:
-	$(SRCDIR)/test.sh $(SRCDIR) $(_TARGET)
+	$(SRCDIR)/mifGen.sh $(SRCDIR) $(_TARGET)
 #	ls *.mif | xargs -t -i mv {} $(SRCDIR)/synth/
 
 update_mifs: mifs	#update main memory mifs without recompile

@@ -1,4 +1,4 @@
 
-pushd /root/FPGA/program
+pushd /root/FPGA/mifSrc
 make -B
 popd

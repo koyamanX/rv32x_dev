@@ -4,7 +4,6 @@ LD=$(RISCV_PREFIX)ld
 GCC=$(RISCV_PREFIX)gcc
 OBJCOPY=$(RISCV_PREFIX)objcopy
 TARGET=test
-LSCRIPT=program
 BOOTSTRAP=bootloader.c
 MIFS=bootrom.hex $(TARGET).hex 
 BOOT=/root/software/opensbi/build/platform/rv32xsoc/firmware/fw_payload.bin

@@ -22,7 +22,7 @@ RUN apt update && \
 COPY scripts /root/scripts
 WORKDIR /root/scripts
 
-RUN ./do_build_riscv_gnu_toolchain.sh
+RUN ./do_build_toolchain.sh
 
 RUN ./do_build_spike.sh
 
