@@ -3,7 +3,6 @@
 #include "uart_receiver.h"
 #include "uart_sender.h"
 #include "fifo_8_8.h"
-#include "mmcspi_slave.h"
 
 declare debug_uart_sender {
 	input addr[10];
@@ -62,15 +61,9 @@ module rv32x_simulation {
 	rv32x_integration core;
 	uart_receiver ur;
 	debug_uart_sender us;	/* same as uart_sender.nsl except for status.en is 1 at reset */
-	mmcspi_slave mmcsim;
 	
 	ur.RXD = core.TXD;
 	core.RXD = us.TXD;
-	mmcsim.m_clock = core.SCLK;
-	mmcsim.SCLK = core.SCLK;
-	mmcsim.CS = core.CS;
-	mmcsim.MOSI = core.MOSI;
-	core.MISO = mmcsim.MISO;
 
 	core.mmc_clk = m_clock;
 
@@ -106,19 +99,6 @@ module rv32x_simulation {
 	func dmem_ready {
 		core.rdata = rdata;
 		core.dmem_ready();
-	}
-	func mmcsim.read {
-		read_block(mmcsim.adrs);
-	}
-	func mmcsim.write{
-		write_block(mmcsim.adrs, mmcsim.write_block_data);
-	}
-	func mmcsim.erase{
-		erase(mmcsim.head, mmcsim.tail, mmcsim.excnt, mmcsim.exclusion, mmcsim.erase_group_en);
-	}
-	func block_data_valid {
-		mmcsim.block_data_valid();
-		mmcsim.read_block_data = block_data;
 	}
 #ifdef SIM
 	func core.sim_done {
