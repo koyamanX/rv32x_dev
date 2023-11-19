@@ -56,8 +56,8 @@ scripts/hello_sim.sh
 scripts/linux_sim.sh
 ```
 
-#### DE10-lite Configuration(The script cannot run in container)
-## requirements
+### DE10-lite Configuration(The script cannot run in container)
+#### requirements
 - Arduino SD card shiled(Pin assignment: CS -> Arduino_io[4], MOSI -> Arduino_io[11], MISO -> Arduino_io[12], SCLK -> Arduino_io[13])
 - Arduino RS232 Shield(Pin assignment: TX -> Arduino_io[0], RX ->Arduino_io[1])
 ```bash
