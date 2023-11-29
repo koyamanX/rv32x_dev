@@ -62,103 +62,57 @@ module rv32x5p {
 		ifetch(vector);
 	}
 
-	proc iqueue {
-		wire pc4[32];
-		wire predicted_new_pc[32];
-		wire exception[5];
-		
-				inc32 rv32x_inc32;
-		exception = ifetch_exception;
-		rv32x_btb.predict(PC);
-		if(!ifetch_nop){
-			imem_read(PC, MEM_WORD);
-		}
-		if(rv32x_btb.predict_as_taken) {
-			predicted_new_pc = rv32x_btb.predicted_new_pc;
-		}
-		if(rv32x_btb.predict_as_not_taken) {
-			predicted_new_pc = pc4;
-		}
-		if(imem_ready){
-			if(inst[1:0] == 2'b11){
-				if(rv32x_btb.predict_as_taken) {
-					predicted_new_pc = rv32x_btb.predicted_new_pc;
-				}
-				if(rv32x_btb.predict_as_not_taken) {
-					predicted_new_pc = pc4;
-				}
-			}
-			if(inst[1:0] == 2'b11){
-				if(rv32x_btb.predict_as_taken) {
-					predicted_new_pc = rv32x_btb.predicted_new_pc;
-				}
-				if(rv32x_btb.predict_as_not_taken) {
-					predicted_new_pc = pc2;
-				}
-			}
-
-			
-			if(!stall_ifetch) {	
-#define NOP (0x00000013)
-				ifetch(predicted_new_pc);
-				if(ifetch_nop) {
-					decode({PC, pc4, NOP, 1'b0, 1'b0, 5'b00000});
-				} else {
-					/* feedback to predictor(at execute stage where actual branch condition calculates) */
-					decode({PC, pc4, inst, rv32x_btb.predict_as_taken, rv32x_btb.predict_as_not_taken, 5'b00000});
-				}
-			}
-		}
-
-
-
-
-		reg iqueue[64];
-		reg tailp[4];
-		wire ntailp[4];
-		
-		if(!ifetch_nop && tailp <= 4){
-			imem_read(PC, MEM_WORD);
-			
-			ntailp = tailp + 4 - opsize;
-
-		}
-
-		if(imem_ready){
-			iqueue := iqueue >> opsize | (inst << ((tailp - opsize) << 3));
-			if(!stall_ifetch) {	
-#define NOP (0x00000013)
-				ifetch(predicted_new_pc);
-				if(ifetch_nop) {
-					decode({PC, pc4, NOP, 1'b0, 1'b0, 5'b00000});
-				} else {
-					/* feedback to predictor(at execute stage where actual branch condition calculates) */
-					decode({PC, pc4, inst, rv32x_btb.predict_as_taken, rv32x_btb.predict_as_not_taken, 5'b00000});
-				}
-			}
-		}
-
-		if()
-
-	}
-
 	proc ifetch {
 		wire pc4[32];
 		wire predicted_new_pc[32];
 		wire exception[5];
+		reg iqueue[64];
+		wire niq[64];
+		reg tailp[4];
+		wire ntailp[4];
+		wire opsize[3];
+		reg iqpc[32] = 0xFFFFFFFF;
+		reg iqueue[128];
+		wire re_inst[32];
 		
-				inc32 rv32x_inc32;
+		inc32 rv32x_inc32;
 		exception = ifetch_exception;
 		rv32x_btb.predict(PC);
 		if(!ifetch_nop){
-			imem_read(PC, MEM_WORD);
+			if(iqpc != PC){
+				imem_read(PC, MEM_QUADWORD);
+			}else{
+				iready();
+			}
 		}
-		pc4 = rv32x_inc32.exe(PC);
-		if(rv32x_btb.predict_as_taken) {
-			predicted_new_pc = rv32x_btb.predicted_new_pc;
-		}
-		if(rv32x_btb.predict_as_not_taken) {
-			predicted_new_pc = pc4;
+
+		iready = imem_ready;
+
+		if(iready && !stall_ifetch){
+			iptr = PC[3:0];
+			inst = 32'(iquque >> (iptr << 3));
+			if(inst[1:0] == 2'b11) opsize = 4 else opsize = 2;
+			if(PC[3:0] == 0xE && opsize == 4){	//DWORD inst and out of queue
+				iftech(PC+2,inst[31:16]);
+			}else{
+				if(takeover_inst != 0){
+					re_inst = {inst[15:0],takeover_inst};
+				}else{
+					re_inst = inst;
+				}
+			}
+			if(ifetch_nop) {
+				decode({PC, predicted_new_pc, NOP, 1'b0, 1'b0, 5'b00000});
+			} else {
+				/* feedback to predictor(at execute stage where actual branch condition calculates) */
+				decode({PC, predicted_new_pc, re_inst, rv32x_btb.predict_as_taken, rv32x_btb.predict_as_not_taken, 5'b00000});
+			}
+			if(rv32x_btb.predict_as_taken) {
+				predicted_new_pc = rv32x_btb.predicted_new_pc;
+			}
+			if(rv32x_btb.predict_as_not_taken) {
+				predicted_new_pc = pc + opsize;
+			}
 		}
 
 		if(imem_ready) {
