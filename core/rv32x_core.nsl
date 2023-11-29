@@ -935,7 +935,7 @@ module rv32x_core {
 		ic.read(rv32x.iaddr);
 	}
 	func ic.ready {
-		rv32x.inst = ic.inst;
+		rv32x.insts = ic.insts;
 		rv32x.imem_ready();
 	}
 	func rv32x.dmem_read {

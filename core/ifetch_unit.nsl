@@ -119,14 +119,8 @@ module ifetch_unit {
 		wire cache_word[32];
 
 		cache_block = cache_data_entry;
-		any {
-			blockoffset == 2'b00: cache_word = cache_block[31:0];
-			blockoffset == 2'b01: cache_word = cache_block[63:32];
-			blockoffset == 2'b10: cache_word = cache_block[95:64];
-			blockoffset == 2'b11: cache_word = cache_block[127:96];
-		}
 		if(read) {
-			inst = cache_word;
+			insts = cache_block;
 			ready();
 		}
 	}

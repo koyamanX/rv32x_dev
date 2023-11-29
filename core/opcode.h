@@ -80,6 +80,31 @@
 #define CC_BLTU     3'b110
 #define CC_BGEU     3'b111
 
+/* funct3 C Extension */
+#define C_ADDI4SPN  3'b000
+#define C_LW        3'b010
+#define C_SW        3'b110
+#define C_ADDI      3'b000
+#define C_JAL       3'b001
+#define C_LI        3'b010
+#define C_LUI       3'b011
+#define C_ADDI16SP  3'b011
+#define C_J         3'b101
+#define C_BEQZ      3'b110
+#define C_BNEZ      3'b111
+#define C_SLLI      3'b000
+#define C_LWSP      3'b010
+#define C_SWSP      3'b110
+
+/* funct2 C Extension */
+#define C_SRLI      2'b00
+#define C_SRAI      2'b01
+#define C_ANDI      2'b10
+#define C_SUB       2'b00
+#define C_XOR       2'b01
+#define C_OR        2'b10
+#define C_AND       2'b11
+
 /* funct3 A Standard Extension */
 
 /* funct7 field */

@@ -22,6 +22,6 @@ declare imm_gen {
 	func_in b_type(inst) : imm;
 	func_in u_type(inst) : imm;
 	func_in j_type(inst) : imm;
-	func_in c_type(inst,code) : imm;
+	func_in c_type(inst, code) : imm;
 }
 #endif

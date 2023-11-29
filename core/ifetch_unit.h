@@ -11,7 +11,7 @@ declare ifetch_unit
 	func_in reset();
 	/* CPU <-> Cache Unit */
 	input addr[32];
-	output inst[32];
+	output insts[128];
 	/* Always word access */
 	/* if need to cancel operation, then deassert these signals before valid
 		however contents of cache will be updated even with cancelation */

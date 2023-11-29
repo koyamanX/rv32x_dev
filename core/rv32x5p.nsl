@@ -8,7 +8,11 @@
 #include "munit32.h"
 #include "regs5p.h"
 #include "btb.h"
+#include "iqueue.h"
 
+#define NOP (0x00000013)
+#define WORD 4
+#define HALFWORD 2
 #define EXCEPTION_OCCURRED 1'b1
 
 module rv32x5p {
@@ -63,77 +67,51 @@ module rv32x5p {
 	}
 
 	proc ifetch {
-		wire pc4[32];
 		wire predicted_new_pc[32];
 		wire exception[5];
-		reg iqueue[64];
-		wire niq[64];
-		reg tailp[4];
-		wire ntailp[4];
 		wire opsize[3];
-		reg iqpc[32] = 0xFFFFFFFF;
-		reg iqueue[128];
-		wire re_inst[32];
 		
-		inc32 rv32x_inc32;
+		iqueue rv32x_iqueue;
 		exception = ifetch_exception;
 		rv32x_btb.predict(PC);
+
+		if(rv32x_iqueue.fetch){
+			imem_read(rv32x_iqueue.addr, MEM_QUADWORD);
+		}
+
+		if(imem_ready){
+			rv32x_iqueue.mem_ready(insts);
+		}
+
 		if(!ifetch_nop){
-			if(iqpc != PC){
-				imem_read(PC, MEM_QUADWORD);
-			}else{
-				iready();
-			}
+			rv32x_iqueue.read(PC);
 		}
-
-		iready = imem_ready;
-
-		if(iready && !stall_ifetch){
-			iptr = PC[3:0];
-			inst = 32'(iquque >> (iptr << 3));
-			if(inst[1:0] == 2'b11) opsize = 4 else opsize = 2;
-			if(PC[3:0] == 0xE && opsize == 4){	//DWORD inst and out of queue
-				iftech(PC+2,inst[31:16]);
-			}else{
-				if(takeover_inst != 0){
-					re_inst = {inst[15:0],takeover_inst};
-				}else{
-					re_inst = inst;
-				}
-			}
-			if(ifetch_nop) {
-				decode({PC, predicted_new_pc, NOP, 1'b0, 1'b0, 5'b00000});
-			} else {
-				/* feedback to predictor(at execute stage where actual branch condition calculates) */
-				decode({PC, predicted_new_pc, re_inst, rv32x_btb.predict_as_taken, rv32x_btb.predict_as_not_taken, 5'b00000});
-			}
-			if(rv32x_btb.predict_as_taken) {
-				predicted_new_pc = rv32x_btb.predicted_new_pc;
-			}
-			if(rv32x_btb.predict_as_not_taken) {
-				predicted_new_pc = pc + opsize;
-			}
-		}
-
-		if(imem_ready) {
+		
+		if(rv32x_iqueue.ready) {
 			if(!stall_ifetch) {	
-#define NOP (0x00000013)
+				opsize = if(rv32x_iqueue.inst[1:0] == 2'b11) WORD else HALFWORD;
+				if(rv32x_btb.predict_as_taken) {
+					predicted_new_pc = rv32x_btb.predicted_new_pc;
+				}
+				if(rv32x_btb.predict_as_not_taken) {
+					predicted_new_pc = PC + opsize;
+				}
 				ifetch(predicted_new_pc);
 				if(ifetch_nop) {
-					decode({PC, pc4, NOP, 1'b0, 1'b0, 5'b00000});
+					decode({PC, PC+opsize, NOP, 1'b0, 1'b0, 5'b00000});
 				} else {
 					/* feedback to predictor(at execute stage where actual branch condition calculates) */
-					decode({PC, pc4, inst, rv32x_btb.predict_as_taken, rv32x_btb.predict_as_not_taken, 5'b00000});
+					decode({PC, PC+opsize, rv32x_iqueue.inst, rv32x_btb.predict_as_taken, rv32x_btb.predict_as_not_taken, 5'b00000});
 				}
 			}
 		}
 
-		if(exception[4] == EXCEPTION_OCCURRED){
-			decode({PC, pc4, NOP, 1'b0, 1'b0, exception});
+		if(exception[4] == EXCEPTION_OCCURRED && !stall_ifetch){
+			decode({PC, PC+opsize, NOP, 1'b0, 1'b0, exception});
 		}
 
 		#ifdef CV
-		if(SW[0] && imem_ready && !stall_ifetch){
+		if(SW[0] && rv32x_iqueue.ready && !stall_ifetch){
 			debug_led_1();
 		}
 		#endif
@@ -363,9 +341,9 @@ module rv32x5p {
 		csr_load_hazzard_a();
 	} else if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && !EMREG.load && !EMREG.amo && memory) {
 		execute_alu_a = EMREG.alu_q;
-	} else if((DEREG.rs1 == MWREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && (MWREG.load || EMREG.amo) && writeback) {
+	} else if((DEREG.rs1 == MWREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && (MWREG.load || EMREG.amo)) {
 		execute_alu_a = MWREG.wb_value;
-	} else if((DEREG.rs1 == MWREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && !MWREG.load && !MWREG.amo && writeback) {
+	} else if((DEREG.rs1 == MWREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && !MWREG.load && !MWREG.amo) {
 		execute_alu_a = MWREG.alu_q;
 	} else {
 		execute_alu_a = DEREG.alu_a;
@@ -376,9 +354,9 @@ module rv32x5p {
 		csr_load_hazzard_b();
 	} else if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && !EMREG.load && !EMREG.amo && memory) {
 		execute_alu_b = EMREG.alu_q;
-	} else if((DEREG.rs2 == MWREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && (MWREG.load || MWREG.amo) && writeback) {
+	} else if((DEREG.rs2 == MWREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && (MWREG.load || MWREG.amo)) {
 		execute_alu_b = MWREG.wb_value;
-	} else if((DEREG.rs2 == MWREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && !MWREG.load && !MWREG.amo && writeback) {
+	} else if((DEREG.rs2 == MWREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && !MWREG.load && !MWREG.amo) {
 		execute_alu_b = MWREG.alu_q;
 	} else {
 		execute_alu_b = DEREG.alu_b;

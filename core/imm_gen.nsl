@@ -18,16 +18,16 @@ module imm_gen {
 	}
 	func c_type{
 		any{
-			code == IMM_ADDI4SPN: 	{return 32'({inst[5:4],inst[9:6],inst[2],inst[3],2'b00});}
-			code == IMM_LW_SW:		{return 32'({inst[5],inst[12:10],inst[6],2'b00});}
-			code == IMM_JAL:		{return 32#({inst[12],inst[8],inst[10:9],inst[6],inst[7],inst[2],inst[11],inst[5:3],1'b0})}
-			code == IMM_ADDI16SP:	{return 32#({inst[12],inst[4:3],inst[5],inst[2],inst[6],4'b0000})}
-			code == IMM_LUI:		{return 32#({inst[12],inst[6:2],12'b000000000000})}
-			code == IMM_BEQZ_BNEZ:	(return 32#({inst[12],inst[6:5],inst[2],inst[11:10],inst[4:3],1'b0}))
-			code == IMM_LWSP:		{return 32'({inst[3:2],inst[12],inst[6:4],2'b00})}
-			code == IMM_SWSP:		{return 32'({inst[8:7],inst[12:9],2'b00})}
-			code == IMM_S_COMMON:	{return 32#({inst[12],inst[6:2]})}
-			code == IMM_U_COMMON:	{return 32'({inst[12],inst[6:2]})}
+			code == IMM_ADDI4SPN: 	return 32'({inst[5:4],inst[9:6],inst[2],inst[3],2'b00});
+			code == IMM_LW_SW:		return 32'({inst[5],inst[12:10],inst[6],2'b00});
+			code == IMM_JAL:		return 32#({inst[12],inst[8],inst[10:9],inst[6],inst[7],inst[2],inst[11],inst[5:3],1'b0});
+			code == IMM_ADDI16SP:	return 32#({inst[12],inst[4:3],inst[5],inst[2],inst[6],4'b0000});
+			code == IMM_LUI:		return 32#({inst[12],inst[6:2],12'b000000000000});
+			code == IMM_BEQZ_BNEZ:	return 32#({inst[12],inst[6:5],inst[2],inst[11:10],inst[4:3],1'b0});
+			code == IMM_LWSP:		return 32'({inst[3:2],inst[12],inst[6:4],2'b00});
+			code == IMM_SWSP:		return 32'({inst[8:7],inst[12:9],2'b00});
+			code == IMM_S_COMMON:	return 32#({inst[12],inst[6:2]});
+			code == IMM_U_COMMON:	return 32'({inst[12],inst[6:2]});
 		}
 	}
 }
