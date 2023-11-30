@@ -142,7 +142,7 @@ module rv32x_core {
 	
 	sxlen = MISA_MXL_32;
 	uxlen = MISA_MXL_32;
-	ialign = 2'b11;
+	ialign = 2'b01;
 
 	if(!csr_write) {	/* precisely, !((mcycle || minstret) && csr_write) */
 		mcycle++;	/* if wfi, then stop counting up */
