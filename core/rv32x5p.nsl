@@ -45,6 +45,8 @@ module rv32x5p {
 	func_self nop();							/* no-op (indicating unimplemented instruction) */
 	wire execute_alu_a[32];						/* forward-path to ALU input A in execute stage */
 	wire execute_alu_b[32];						/* forward-path to ALU input B in execute stage */
+	wire loaded_value[32];						/* forwarding loaded data from memory stage*/
+	func_self ext : loaded_value;
 	wire trap_ret_pc[32];						/* epc source */
 	reg32 rv32x_reg32;							/* General-purpose registers(written value is forwarded to read ports 
 													if rd==rs1 or rd==rs2 in same cycle) */
@@ -335,10 +337,10 @@ module rv32x5p {
 		load_interlock();
 	}
 	/* Forwarding Unit */
-	if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && (EMREG.load || EMREG.amo) && memory) {
-		memory_load_hazzard_a();
+	if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && (EMREG.load || EMREG.amo) && memory && dmem_ready) {
+		execute_alu_a = loaded_value;
 	} else if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && (EMREG.csrrc || EMREG.csrrs || EMREG.csrrw) && memory) {
-		csr_load_hazzard_a();
+		execute_alu_a = crdata;
 	} else if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && !EMREG.load && !EMREG.amo && memory) {
 		execute_alu_a = EMREG.alu_q;
 	} else if((DEREG.rs1 == MWREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && (MWREG.load || EMREG.amo)) {
@@ -348,10 +350,10 @@ module rv32x5p {
 	} else {
 		execute_alu_a = DEREG.alu_a;
 	}
-	if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && (EMREG.load || EMREG.amo) && memory) {
-		memory_load_hazzard_b();
+	if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && (EMREG.load || EMREG.amo) && memory && dmem_ready) {
+		execute_alu_b = loaded_value;
 	} else if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && (EMREG.csrrc || EMREG.csrrs || EMREG.csrrw) && memory) {
-		csr_load_hazzard_b();
+		execute_alu_b = crdata;
 	} else if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && !EMREG.load && !EMREG.amo && memory) {
 		execute_alu_b = EMREG.alu_q;
 	} else if((DEREG.rs2 == MWREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && (MWREG.load || MWREG.amo)) {
@@ -549,12 +551,10 @@ module rv32x5p {
 		wire mem_adrs[32];
 		wire mem_data[32];
 		wire mem_byteen[3];
-		wire loaded_value[32];
 		wire ordering_aq;
 		wire ordering_rl;
 		wire lr_w;
 		wire sc_w;
-		func_self ext : loaded_value;
 		func_self csrrw;
 		func_self csrrs;
 		func_self csrrc;
