@@ -20,9 +20,9 @@ module iqueue {
         ready(inst_);
         fetched_misaligned_inst := 0;
     }else if(invalid_queue){
-        fetch({pc[31:4],4'b0000});
+        fetch({pc});
     }else if(!invalid_queue && misaligned_inst){
-        fetch({pc[31:4]+5'b10000,4'b0000});
+        fetch({pc[31:4]+1'b1,4'b0000});
     }
 
     func mem_ready{
