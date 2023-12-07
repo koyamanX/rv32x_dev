@@ -20,8 +20,8 @@ module rv32x_core {
 	reg lsu_tlb_flush_done = 0;
 	wire in_memory_operation;
 	reg priv_mode[2];						/* Current priv mode */
-	reg valid_context;
-	func_self abandon_context();
+	reg valid_pipeline;
+	func_self invalidate_pipeline();
 	
 	reg ic_read_cnt[3] = 0;
 	reg ic_prefetch_cnt[3] = 0;
@@ -160,10 +160,10 @@ module rv32x_core {
 		or not.
 	*/
 	in_memory_operation = rv32x.fencei || rv32x.sfence_vma || rv32x.dmem_read || rv32x.dmem_write || rv32x.load_reserved || rv32x.store_conditional || rv32x.amo_exe;
-	if(((priv_mode < MACHINE) || ((priv_mode == MACHINE) && mstatus.mie)) && !trap && !in_memory_operation && valid_context && !rv32x.trap_mret) {
+	if(((priv_mode < MACHINE) || ((priv_mode == MACHINE) && mstatus.mie)) && !trap && !in_memory_operation && valid_pipeline && !rv32x.trap_mret) {
 		machine_interrupt_enabled();
 	}
-	if(((priv_mode < SUPERVISOR) || ((priv_mode == SUPERVISOR) && mstatus.sie)) && !trap && !in_memory_operation && valid_context && !rv32x.trap_sret) {
+	if(((priv_mode < SUPERVISOR) || ((priv_mode == SUPERVISOR) && mstatus.sie)) && !trap && !in_memory_operation && valid_pipeline && !rv32x.trap_sret) {
 		supervisor_interrupt_enabled();
 	}
 	if(meip && mie.meie) {
@@ -535,11 +535,11 @@ module rv32x_core {
 		/* Process exception in preceeding instruction in pipeline */	
 		rv32x.exception_req:	exception();
 	}
-	func rv32x.valid_context{
-		valid_context := 1;
+	func rv32x.validate_pipeline{
+		valid_pipeline := 1;
 	}
-	func abandon_context{
-		valid_context := 0;
+	func invalidate_pipeline{
+		valid_pipeline := 0;
 	}
 	func interrupt {
 		rv32x.stall_ifetch_req();
@@ -551,12 +551,12 @@ module rv32x_core {
 		rv32x.flush_execute();
 		rv32x.flush_memory();
 		rv32x.get_pc_trap();
-		abandon_context();
+		invalidate_pipeline();
 	}
 	func exception{
 		wire delegation;
 		rv32x.get_pc_trap();
-		abandon_context();
+		invalidate_pipeline();
 		any{
 			rv32x.exception_cause == STORE_AMO_PAGE_FAULT: delegation = medeleg.store_amo_page_fault;
 			rv32x.exception_cause == LOAD_PAGE_FAULT: delegation = medeleg.load_page_fault;
@@ -761,7 +761,7 @@ module rv32x_core {
 		sstatus.mprv 	:= if(mstatus.mpp != MACHINE) 1'b0 else sstatus.mprv;
 		priv_mode 		:= mstatus.mpp;
 		rv32x.trap({mepc[31:2], mepc[1:0] & ~ialign});
-		abandon_context();
+		invalidate_pipeline();
 	}
 	func rv32x.trap_sret {
 		mstatus.sie		:= sstatus.spie;
@@ -772,7 +772,7 @@ module rv32x_core {
 		sstatus.mprv 	:= if(mstatus.mpp != MACHINE) 1'b0 else sstatus.mprv;
 		priv_mode 		:= {1'b0, sstatus.spp};	
 		rv32x.trap({sepc[31:2], sepc[1:0] & ~ialign});
-		abandon_context();
+		invalidate_pipeline();
 	}
 	proc trap {
 		wire v[32];

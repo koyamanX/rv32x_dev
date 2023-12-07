@@ -83,7 +83,7 @@ declare rv32x5p
 	func_in get_inst_execute() : einst;
 	func_in get_inst_memory() : einst;
 
-	func_out valid_context(); // 現在のパイプラインコンテキストが放棄されたものでないことを保証する(連続でtrapが起こった時、不正なepcを入れないようにするため)
+	func_out validate_pipeline(); // 現在のパイプラインコンテキストが放棄されたものでないことを保証する(連続でtrapが起こった時、不正なepcを入れないようにするため)
 
 	/* Instruction is retired, increment instret register */
 	func_out instret();
