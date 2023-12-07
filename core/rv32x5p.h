@@ -40,10 +40,8 @@ declare rv32x5p
 	func_out sfence_vma(vaddr, asid); /* Indicating sfence_vma is issued */
 	func_out ecall();				  /* Indicating ecall is issued */
 	func_out ebreak();				  /* Indicating ebreak is issued */
-	input mepc[32];
-	func_out mret() : mepc; /* Indicating mret is issued */
-	input sepc[32];
-	func_out sret() : sepc; /* Indicating sret is issued */
+	func_out mret(); /* Indicating mret is issued */
+	func_out sret(); /* Indicating sret is issued */
 	func_out wfi();			/* indicating Wait-For-Interrupt is issued */
 	input ifetch_exception[5];
 	input execute_exception[5];
