@@ -1,0 +1,37 @@
+#include "iqueue.h"
+
+module iqueue {
+    reg head_addr[32] = 0xFFFFFFFF;
+    reg fetched_misaligned_inst;
+    mem ibuf[2][128];
+    wire queue[256];
+    wire iptr[7];
+    wire inst_[32];
+    wire misaligned_inst;
+    wire invalid_queue;
+
+    misaligned_inst = ((pc[3:0] == 0xE) && (!fetched_misaligned_inst));
+    invalid_queue = (head_addr[31:4] != pc[31:4]);
+
+    func read if(!invalid_queue && !misaligned_inst){
+        iptr = {pc[3:0],3'b000};
+        queue = {ibuf[!pc[4]],ibuf[pc[4]]};
+        inst_ = 32'(queue >> iptr);
+        ready(inst_);
+        fetched_misaligned_inst := 0;
+    }else if(invalid_queue){
+        fetch({pc});
+    }else if(!invalid_queue && misaligned_inst){
+        fetch({pc[31:4]+1'b1,4'b0000});
+    }
+
+    func mem_ready{
+        head_addr := {pc[31:4],4'b0000};
+        if(!invalid_queue && misaligned_inst){
+            ibuf[~pc[4]] := insts;
+            fetched_misaligned_inst := 1;
+        }else{
+            ibuf[pc[4]] := insts;
+        }
+    }
+}

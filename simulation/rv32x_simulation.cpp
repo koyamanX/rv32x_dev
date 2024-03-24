@@ -278,7 +278,7 @@ private:
 	int dump_vcd_flag = 0;
 	long start_dump_inst = 0;
 	long end_dump_inst = 0;
-	int print_entry_flag = 0;
+	int print_symbol_flag = 0;
 	asymbol **symbol_table;
 	long number_of_symbols;
 	struct symbol
@@ -292,9 +292,9 @@ private:
 	char *target_symbol = NULL;
 	int import_symbol_flag = 0;
 #ifdef KERNEL_ELF_LOCATION
-	const char *symsrc_location = STRINGIZE_VALUE_OF(KERNEL_ELF_LOCATION); //"/root/software/xv6-riscv/kernel/kernel"; //	"/root/software/busybox/busybox_unstripped"; //
+	char *symsrc_location = STRINGIZE_VALUE_OF(KERNEL_ELF_LOCATION); //"/root/software/xv6-riscv/kernel/kernel"; //	"/root/software/busybox/busybox_unstripped"; //
 #else
-	const char *symsrc_location = "/root/software/linux/vmlinux";
+	char *symsrc_location = "/root/software/linux/vmlinux";
 #endif
 	int skip_procedure_search = 0;
 	int skip_object_search = 0;
@@ -694,7 +694,7 @@ public:
 			}
 		}
 
-		if (print_entry_flag && retire_inst == RET)
+		if (print_symbol_flag && retire_inst == RET)
 		{
 			if (callDepth != 0)
 			{
@@ -716,22 +716,22 @@ public:
 				dump_vcd_flag = 1;
 				procedure[idx].dumpflag = 0;
 			}
-			if (print_entry_flag)
+			if (print_symbol_flag)
 			{
 				fprintf(logfile, "\nDepth=%d, entry: %s(0x%x)", callDepth, procedure[idx].name, retire_pc);
 				fprintf(logfile, "\tinst_counter = %d\n", inst_counter);
 			}
 		}
-		if (print_entry_flag && ((retire_inst != RET) && ((retire_inst & DEST) == RA) &&
-								 (((retire_inst & OPCODE) == JAL) ||
-								  ((retire_inst & OPCODE) == JALR))))
+		if (print_symbol_flag && ((retire_inst != RET) && ((retire_inst & DEST) == RA) &&
+								  (((retire_inst & OPCODE) == JAL) ||
+								   ((retire_inst & OPCODE) == JALR))))
 		{
 			// callDepth++;
 			callTracker[callDepth++] = retire_pc + 4;
 		}
 		if (trace_output_flag)
 		{
-			fprintf(logfile, "inst_counter=%d, %s: 0x%016x (0x%08x) ", inst_counter, procname, retire_pc, retire_inst);
+			fprintf(logfile, "%s: 0x%016x (0x%08x) ", procname, retire_pc, retire_inst);
 		}
 		if ((disasm != NULL) && disasm_output_flag)
 		{
@@ -760,10 +760,6 @@ public:
 			(core->rootp->rv32x_simulation__DOT__core__DOT__core__DOT__rv32x__DOT___MWREG_wb && writeback_output_flag))
 		{
 			fprintf(logfile, "\n");
-		}
-		if (retire_pc == KERNEL_START_ADDR)
-		{
-			printf("Done bootloading\n");
 		}
 
 		return ret;
@@ -968,13 +964,14 @@ public:
 		strcat(logfilename, ".log");
 		fp = fopen(logfilename, "w");
 		logfile = fp;
+		printf("logfilename=%s\n", logfilename);
 #else
 		logfile = fopen("noTarget.log", "w");
 #endif
 	};
 	void parseLogOpts(int argc, char **argv)
 	{
-		int opt, longindex;
+		int opt, longindex, help_flag = 0;
 		char *Darg = NULL, *aarg = NULL, *sarg = NULL, *symfile = NULL;
 		struct option longopts[] = {
 			{"print-exception", no_argument, NULL, 'e'},
@@ -985,13 +982,14 @@ public:
 			{"print-all", optional_argument, NULL, 'a'},
 			{"no-sim-exit", no_argument, NULL, 'n'},
 			{"dump-vcd", optional_argument, NULL, 'D'},
-			{"print-entry", no_argument, NULL, 'E'},
+			{"print-symbol", no_argument, NULL, 'E'},
 			{"symbol-source", optional_argument, NULL, 's'},
 			{"print-blkrw", no_argument, NULL, 'b'},
 			{"dump-memory", no_argument, NULL, 'M'},
+			{"help", no_argument, NULL, 'h'},
 			{0, 0, 0, 0},
 		};
-		while ((opt = getopt_long(argc, argv, "ewdmianD::ElbM", longopts, &longindex)) != -1)
+		while ((opt = getopt_long(argc, argv, "ewdmianD::ElbMh", longopts, &longindex)) != -1)
 		{
 			switch (opt)
 			{
@@ -1030,7 +1028,7 @@ public:
 				}
 				break;
 			case 'E':
-				print_entry_flag = 1;
+				print_symbol_flag = 1;
 				break;
 			case 's':
 				import_symbol_flag = 1;
@@ -1047,10 +1045,17 @@ public:
 			case 'M':
 				dump_memory_flag = 1;
 				break;
+			case 'h':
+				help_flag = 1;
+				break;
 			default:
 				exit(1);
 				break;
 			}
+		}
+		if (help_flag)
+		{
+			printHelp();
 		}
 		if (import_symbol_flag)
 		{
@@ -1102,9 +1107,9 @@ public:
 			disasm_output_flag = 1;
 			memory_output_flag = 1;
 			trace_output_flag = 1;
-			print_entry_flag = 1;
+			print_symbol_flag = 1;
 			print_blkrw_flag = 1;
-			printf("startPrint\n");
+			printf("\nstartPrint\n");
 		}
 		else if (end_print_inst == inst_counter)
 		{
@@ -1113,11 +1118,11 @@ public:
 			disasm_output_flag = 0;
 			memory_output_flag = 0;
 			trace_output_flag = 0;
-			print_entry_flag = 0;
+			print_symbol_flag = 0;
 			print_blkrw_flag = 0;
 
 			donePrintCondCheck = 1;
-			printf("endPrint\n");
+			printf("\nendPrint\n");
 		}
 	};
 	void printSetting(char *aarg)
@@ -1125,37 +1130,28 @@ public:
 		if (aarg != NULL)
 		{
 			donePrintCondCheck = 0;
-			char *comma;
-			comma = strstr(aarg, ",");
-			if (comma == NULL || comma != aarg + 1 || *(aarg + 2) == '\0')
+
+			char *arg = NULL, *bar = NULL;
+			arg = aarg;
+			bar = strstr(arg, "-");
+			if (bar != NULL)
 			{
-				printf("illegal print-all arg\nexample:\n --print-all=i,<start(option)>-<end(option)>\n --print-all\n");
-				exit(1);
-			}
-			else if (*aarg == 'i')
-			{
-				char *range = NULL, *bar = NULL;
-				range = aarg + 2;
-				bar = strstr(range, "-");
-				if (bar != NULL)
+				*bar = '\0';
+				start_print_inst = strtol(arg, NULL, 0);
+				end_print_inst = strtol(bar + 1, NULL, 0);
+				if (start_print_inst == 0 && end_print_inst != 0)
 				{
-					*bar = '\0';
-					start_print_inst = strtol(range, NULL, 0);
-					end_print_inst = strtol(bar + 1, NULL, 0);
-					if (start_print_inst == 0 && end_print_inst != 0)
-					{
-						start_print_inst = 1;
-					}
-					else if (start_print_inst != 0 && end_print_inst == 0)
-					{
-						end_print_inst = start_print_inst + 10000;
-					}
-					*bar = '-';
+					start_print_inst = 1;
 				}
+				else if (start_print_inst != 0 && end_print_inst == 0)
+				{
+					end_print_inst = start_print_inst + 10000;
+				}
+				*bar = '-';
 			}
 			else
 			{
-				printf("illegal print-all arg\nexample:\n --print-all=i,<start(option)>-<end(option)>\n --print-all\n");
+				printf("illegal print-all arg\nexample:\n --print-all=<start(option)>-<end(option)>\n --print-all\n");
 				exit(1);
 			}
 		}
@@ -1166,9 +1162,24 @@ public:
 			disasm_output_flag = 1;
 			memory_output_flag = 1;
 			trace_output_flag = 1;
-			print_entry_flag = 1;
+			print_symbol_flag = 1;
 			print_blkrw_flag = 1;
 		}
+	};
+	void printHelp()
+	{
+		printf("\t-e, --print-exception\n\t\tlogging what interrupt/exception occured\n");
+		printf("\t-w, --print-writeback\n\t\tlogging what value is stored to general purpose regs(x1-x31)\n");
+		printf("\t-d, --print-disasm\n\t\tlogging disassembled executed instruction\n");
+		printf("\t-m, --print-memory-write\n\t\tlogging what value is stored to ram\n");
+		printf("\t-i, --print-inst-trace\n\t\tlogging program counter and executed instruction\n");
+		printf("\t-E, --print-symbol\n\t\tlogging symbols encountered\n");
+		printf("\t-M, --dump-memory\n\t\tdump memory on exit simulator\n");
+		printf("\t-s, --symbol-source=[.elf]\n\t\tspecify the executable for symbol extraction instead of the execute target\n");
+		printf("\t-a, --print-all=[start]-[end]\n\t\tlogging all above --print features\n\t\tstart and end value is executed instruction counter\n");
+		printf("\t-D, --dump-vcd=[start]-[end]\n\t\tdump rtl simulation signal trace\n\t\tstart and end value is executed instruction counter\n\t\tdefault range = 1-10000\n");
+		printf("\t-h, --help\n\t\tshow this message\n");
+		exit(1);
 	};
 	void dumpSetting(char *Darg)
 	{
@@ -1176,78 +1187,44 @@ public:
 		const char *fileExtension = ".vcd";
 		if (Darg != NULL)
 		{
-			char *comma;
-			comma = strstr(Darg, ",");
-			if (comma == NULL || comma != Darg + 1 || *(Darg + 2) == '\0')
+			char *arg = NULL, *bar = NULL;
+			arg = Darg;
+			bar = strstr(arg, "-");
+			if (bar != NULL)
 			{
-				printf("illegal dump-vcd arg\nexample:\n --dump-vcd=p,<procedure name(FUNC or NOTYPE symbol)>\n --dump-vcd=i,<start(option)>-<end(option)>\n --dump-vcd\n");
-				exit(1);
-			}
-			else if (*Darg == 'i')
-			{
-				char *range = NULL, *bar = NULL;
-				range = Darg + 2;
-				bar = strstr(range, "-");
-				if (bar != NULL)
+				*bar = '\0';
+				start_dump_inst = strtol(arg, NULL, 0);
+				end_dump_inst = strtol(bar + 1, NULL, 0);
+				if (start_dump_inst == 0 && end_dump_inst != 0)
 				{
-					*bar = '\0';
-					start_dump_inst = strtol(range, NULL, 0);
-					end_dump_inst = strtol(bar + 1, NULL, 0);
-					if (start_dump_inst == 0 && end_dump_inst != 0)
-					{
-						start_dump_inst = end_dump_inst - 100;
-					}
-					else if (start_dump_inst != 0 && end_dump_inst == 0)
-					{
-						end_dump_inst = start_dump_inst + 100;
-					}
-					*bar = '-';
-					filename = (char *)malloc(sizeof(char) * strlen(range) + strlen(fileExtension) + 1);
-					strcpy(filename, range);
-					vcdfilename = strcat(filename, fileExtension);
+					start_dump_inst = end_dump_inst - 100;
 				}
-			}
-			else if (*Darg == 'p') // start dumping vcd if pc equal to specified symbol address
-			{
-				int i = 0;
-				target_symbol = (char *)malloc(sizeof(char) * strlen(Darg + 2) + 1);
-				strcpy(target_symbol, Darg + 2);
-				for (i = 0; procedure[i].addr != 0; i++)
+				else if (start_dump_inst != 0 && end_dump_inst == 0)
 				{
-					if (!strcmp(procedure[i].name, target_symbol))
-					{
-						procedure[i].dumpflag = 1;
-						break;
-					}
+					end_dump_inst = start_dump_inst + 100;
 				}
-				if (procedure[i].addr == 0)
-				{
-					printf("--dump-vcd: target procedure %s does not exist\n", target_symbol);
-					exit(1);
-				}
-				filename = (char *)malloc(sizeof(char) * strlen(target_symbol) + strlen(fileExtension) + 1);
-				strcpy(filename, target_symbol);
+				*bar = '-';
+				filename = (char *)malloc(sizeof(char) * (strlen(arg) + strlen(fileExtension) + 1));
+				strcpy(filename, arg);
 				vcdfilename = strcat(filename, fileExtension);
-				dump_vcd_flag = 0;
 			}
 			else
 			{
-				printf("illegal dump-vcd arg\nexample:\n --dump-vcd=p,<procedure name(FUNC or NOTYPE symbol)>\n --dump-vcd=i,<start(option)>-<end(option)>\n --dump-vcd\n");
+				printf("illegal dump-vcd arg\nexample:\n --dump-vcd=<start(option)>-<end(option)>\n --dump-vcd\n");
 				exit(1);
 			}
-			printf("start=%ld,\nend=%ld\n", start_dump_inst, end_dump_inst);
 		}
 		else
 		{
-			vcdfilename = (char *)malloc(sizeof(char) * 12);
-			strcpy(vcdfilename, "1-10000.vcd");
 			start_dump_inst = 1;
 			end_dump_inst = 10000;
+			vcdfilename = (char *)malloc(sizeof(char) * 12);
+			strcpy(vcdfilename, "1-10000.vcd");
 		}
 		tfp = new VerilatedVcdC;
 		core->trace(tfp, 99);
 		tfp->open(vcdfilename);
-		// dump_vcd_flag = 0; // uart debug
+		printf("start_dump=%ld,\nend_dump=%ld\nwavefilename=%s\n", start_dump_inst, end_dump_inst, vcdfilename);
 	}
 
 	int skipLogging(const char *proc)
@@ -1391,7 +1368,7 @@ public:
 		int rs2 = (inst & RS2) >> RS2_OFFSET;
 		int dest = (inst & DEST) >> DEST_OFFSET;
 		int offset;
-		if ((inst & OPCODE) == LOAD)
+		if (print_symbol_flag && (inst & OPCODE) == LOAD)
 		{
 			offset = LOAD_OFFSET(inst);
 			if ((idx = searchSymbol(regs[rs1] + offset, globalObject)) != -1)
@@ -1403,7 +1380,7 @@ public:
 				fprintf(logfile, "\t< %s=*(%s %c %d) >", reg_strs[dest], globalObject[idx].name, (offset < 0) ? '-' : '+', (offset < 0) ? -offset : offset);
 			}
 		}
-		else if ((inst & OPCODE) == STORE)
+		else if (print_symbol_flag && (inst & OPCODE) == STORE)
 		{
 			offset = STORE_OFFSET(inst);
 			if ((idx = searchSymbol(regs[rs1] + offset, globalObject)) != -1)
@@ -1503,6 +1480,7 @@ public:
 		{
 			FILE *fp = fopen("RAM0_80000000-84008000.dat", "wb");
 			fwrite(memory->next->mem, sizeof(uint8_t), memory->next->length, fp);
+			fclose(fp);
 		}
 	};
 	void flushPipeline(void){

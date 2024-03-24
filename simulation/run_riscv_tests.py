@@ -20,12 +20,15 @@ targets = [
 	'rv32ua-p-*',
 	'rv32ua-v-*',
 	'rv32si-p-*',
+	'rv32uc-p-*',
+	'rv32uc-v-*',
 ]
 targets_should_be_failed = [
-	'rv32si-p-dirty',
+	'rv32uc-p-rvc',			#tohost address is 0x80003000
+	'rv32si-p-dirty',		#not implemented
 ]
 targets_to_exclude = [
-	'rv32mi-p-breakpoint',
+	'rv32mi-p-breakpoint',	#not implemented
 ]
 failed=0
 failed_tests = []

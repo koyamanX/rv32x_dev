@@ -8,7 +8,11 @@
 #include "munit32.h"
 #include "regs5p.h"
 #include "btb.h"
+#include "iqueue.h"
 
+#define NOP (0x00000013)
+#define WORD 4
+#define HALFWORD 2
 #define EXCEPTION_OCCURRED 1'b1
 
 module rv32x5p {
@@ -41,6 +45,8 @@ module rv32x5p {
 	func_self nop();							/* no-op (indicating unimplemented instruction) */
 	wire execute_alu_a[32];						/* forward-path to ALU input A in execute stage */
 	wire execute_alu_b[32];						/* forward-path to ALU input B in execute stage */
+	wire loaded_value[32];						/* forwarding loaded data from memory stage*/
+	func_self ext : loaded_value;
 	wire trap_ret_pc[32];						/* epc source */
 	reg32 rv32x_reg32;							/* General-purpose registers(written value is forwarded to read ports 
 													if rd==rs1 or rd==rs2 in same cycle) */
@@ -61,44 +67,53 @@ module rv32x5p {
 		/* Override current execution flow */
 		ifetch(vector);
 	}
+
 	proc ifetch {
-		wire pc4[32];
 		wire predicted_new_pc[32];
 		wire exception[5];
+		wire opsize[3];
 		
-		inc32 rv32x_inc32;
+		iqueue rv32x_iqueue;
 		exception = ifetch_exception;
 		rv32x_btb.predict(PC);
-		if(!ifetch_nop){
-			imem_read(PC, MEM_WORD);
-		}
-		pc4 = rv32x_inc32.exe(PC);
-		if(rv32x_btb.predict_as_taken) {
-			predicted_new_pc = rv32x_btb.predicted_new_pc;
-		}
-		if(rv32x_btb.predict_as_not_taken) {
-			predicted_new_pc = pc4;
+
+		if(rv32x_iqueue.fetch){
+			imem_read(rv32x_iqueue.addr, MEM_QUADWORD);
 		}
 
-		if(imem_ready) {
+		if(imem_ready){
+			rv32x_iqueue.mem_ready(insts);
+		}
+
+		if(!ifetch_nop){
+			rv32x_iqueue.read(PC);
+		}
+		
+		if(rv32x_iqueue.ready) {
 			if(!stall_ifetch) {	
-#define NOP (0x00000013)
+				opsize = if(rv32x_iqueue.inst[1:0] == 2'b11) WORD else HALFWORD;
+				if(rv32x_btb.predict_as_taken) {
+					predicted_new_pc = rv32x_btb.predicted_new_pc;
+				}
+				if(rv32x_btb.predict_as_not_taken) {
+					predicted_new_pc = PC + opsize;
+				}
 				ifetch(predicted_new_pc);
 				if(ifetch_nop) {
-					decode({PC, pc4, NOP, 1'b0, 1'b0, 5'b00000});
+					decode({PC, PC+opsize, NOP, 1'b0, 1'b0, 5'b00000});
 				} else {
 					/* feedback to predictor(at execute stage where actual branch condition calculates) */
-					decode({PC, pc4, inst, rv32x_btb.predict_as_taken, rv32x_btb.predict_as_not_taken, 5'b00000});
+					decode({PC, PC+opsize, rv32x_iqueue.inst, rv32x_btb.predict_as_taken, rv32x_btb.predict_as_not_taken, 5'b00000});
 				}
 			}
 		}
 
-		if(exception[4] == EXCEPTION_OCCURRED){
-			decode({PC, pc4, NOP, 1'b0, 1'b0, exception});
+		if(exception[4] == EXCEPTION_OCCURRED && !stall_ifetch){
+			decode({PC, PC+opsize, NOP, 1'b0, 1'b0, exception});
 		}
 
 		#ifdef CV
-		if(SW[0] && imem_ready && !stall_ifetch){
+		if(SW[0] && rv32x_iqueue.ready && !stall_ifetch){
 			debug_led_1();
 		}
 		#endif
@@ -322,28 +337,28 @@ module rv32x5p {
 		load_interlock();
 	}
 	/* Forwarding Unit */
-	if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && (EMREG.load || EMREG.amo) && memory) {
-		memory_load_hazzard_a();
+	if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && (EMREG.load || EMREG.amo) && memory && dmem_ready) {
+		execute_alu_a = loaded_value;
 	} else if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && (EMREG.csrrc || EMREG.csrrs || EMREG.csrrw) && memory) {
-		csr_load_hazzard_a();
+		execute_alu_a = crdata;
 	} else if((DEREG.rs1 == EMREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && !EMREG.load && !EMREG.amo && memory) {
 		execute_alu_a = EMREG.alu_q;
-	} else if((DEREG.rs1 == MWREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && (MWREG.load || EMREG.amo) && writeback) {
+	} else if((DEREG.rs1 == MWREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && (MWREG.load || EMREG.amo)) {
 		execute_alu_a = MWREG.wb_value;
-	} else if((DEREG.rs1 == MWREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && !MWREG.load && !MWREG.amo && writeback) {
+	} else if((DEREG.rs1 == MWREG.rd) && (DEREG.alu_a_forward_en) && (DEREG.rs1 != 0) && !MWREG.load && !MWREG.amo) {
 		execute_alu_a = MWREG.alu_q;
 	} else {
 		execute_alu_a = DEREG.alu_a;
 	}
-	if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && (EMREG.load || EMREG.amo) && memory) {
-		memory_load_hazzard_b();
+	if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && (EMREG.load || EMREG.amo) && memory && dmem_ready) {
+		execute_alu_b = loaded_value;
 	} else if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && (EMREG.csrrc || EMREG.csrrs || EMREG.csrrw) && memory) {
-		csr_load_hazzard_b();
+		execute_alu_b = crdata;
 	} else if((DEREG.rs2 == EMREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && !EMREG.load && !EMREG.amo && memory) {
 		execute_alu_b = EMREG.alu_q;
-	} else if((DEREG.rs2 == MWREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && (MWREG.load || MWREG.amo) && writeback) {
+	} else if((DEREG.rs2 == MWREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && (MWREG.load || MWREG.amo)) {
 		execute_alu_b = MWREG.wb_value;
-	} else if((DEREG.rs2 == MWREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && !MWREG.load && !MWREG.amo && writeback) {
+	} else if((DEREG.rs2 == MWREG.rd) && (DEREG.alu_b_forward_en) && (DEREG.rs2 != 0) && !MWREG.load && !MWREG.amo) {
 		execute_alu_b = MWREG.alu_q;
 	} else {
 		execute_alu_b = DEREG.alu_b;
@@ -536,12 +551,10 @@ module rv32x5p {
 		wire mem_adrs[32];
 		wire mem_data[32];
 		wire mem_byteen[3];
-		wire loaded_value[32];
 		wire ordering_aq;
 		wire ordering_rl;
 		wire lr_w;
 		wire sc_w;
-		func_self ext : loaded_value;
 		func_self csrrw;
 		func_self csrrs;
 		func_self csrrc;
@@ -644,17 +657,17 @@ module rv32x5p {
 			}
 			(!EMREG.store && !EMREG.load && !EMREG.fencei && !EMREG.fence && !EMREG.sfence_vma && !EMREG.amo && !stall_memory): {
 				writeback(mwreg);
-				valid_context();
+				validate_pipeline();
 			}
 			(dmem_ready && !stall_memory && !EMREG.fencei && !EMREG.fence && !EMREG.sfence_vma): {
 				ext();
 				writeback(mwreg);
-				valid_context();
+				validate_pipeline();
 			}
 			(dmem_ready && !stall_memory && (EMREG.sfence_vma ||  EMREG.fence || EMREG.fencei)): {
 				ifetch(EMREG.pc4);
 				writeback(mwreg);
-				valid_context();
+				validate_pipeline();
 			}
 			else: {
 				stall_ifetch();		

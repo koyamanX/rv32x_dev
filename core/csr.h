@@ -4,7 +4,6 @@
 #include "priv.h"
 
 /* TODO: cover all CSRs */
-
 /* Register permission attributes */
 #define ATTRIBUTE_URO
 #define ATTRIBUTE_URW
@@ -283,4 +282,45 @@ struct sv32_pte_t {
 
 #define SATP_32_MODE_BARE 1'b0
 #define SATP_32_MODE_SV32 1'b1
+#define INIT_MTVEC {30'b00000_00000_00000_00000_00000_00000, MTVEC_MODE_DIRECT}
+#define MISA_EXTENSIONS MISA_EXTENSIONS_I|MISA_EXTENSIONS_M|MISA_EXTENSIONS_A|MISA_EXTENSIONS_U|MISA_EXTENSIONS_S
+
+declare csr32{
+	output mip_[32];
+	output mie_[32];
+	output sie_[32];
+	output satp_[32];
+	output mstatus_[32];
+	output sstatus_[32];
+	output mideleg_[32];
+	output medeleg_[32];
+	input priv_mode[2];
+	input meip;
+	input mtip;
+	input msip;
+	input seip;
+	input stip;
+	input ssip;
+	input ialign[2];
+	input instret;
+	func_in reset();
+	input cradrs[32];
+	output crdata[32];
+	func_in read(cradrs) : crdata;
+	input cwadrs[32];
+	input cwdata[32];
+	func_in write(cwadrs, cwdata);
+	func_out read_not_mapped();
+	func_out write_not_mapped();
+	input mode[2];
+	output epc[32];
+	func_in trap_ret(mode) : epc;
+	input trap_priv_mode[2];
+	input trap_cause[32];
+	input trap_pc[32];
+	input trap_val[32];
+	output tvec_[32];
+	func_in trap(trap_priv_mode, trap_cause, trap_pc, trap_val) : tvec_;
+}
+
 #endif

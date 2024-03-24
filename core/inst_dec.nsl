@@ -4,28 +4,65 @@
 
 module inst_dec {
 	wire opcode[7];
-	wire rd_[5];
-	wire rs1_[5];
-	wire rs2_[5];
+	wire rd_[5];	//ifield raw val
+	wire rs1_[5];	//ifield raw val
+	wire rs2_[5];	//ifield raw val
+	wire rdval[5];	//decoded reg val
+	wire rs1val[5];	//decoded reg val
+	wire rs2val[5];	//decoded reg val
+	wire rd_sel[5];
 	wire funct3_[3];
 	wire funct7_[7];
 	wire funct12_[12];
+	wire funct6_[6];
+	wire funct4_[4];
+	wire funct2_[2];
 	wire alu_fn_[4];
 	wire imm_[32];
 	func_self rd_is_zero;
 	func_self rs1_is_zero;
 	func_self rs2_is_zero;
+	func_self rvc();
+	func_self no_wb();
 	imm_gen inst_dec_imm_gen;
 
 	func exe {
 		opcode = inst[6:0];
-		rd_ = inst[11:7];
-		rs1_ = inst[19:15];
-		rs2_ = inst[24:20];
-		funct3_ = inst[14:12];
+		funct3_ = if(opcode[1:0] == 2'b11) inst[14:12] else inst[15:13];
 		funct7_ = inst[31:25];
 		funct12_ = inst[31:20];
+		funct6_ = inst[15:10]; //C Extension
+		funct4_ = inst[15:12]; //C Extension
+		funct2_ = if(funct6_== 6'b100011) inst[6:5] else inst[11:10]; //C Extension
 		imm_ = if(opcode == JALR) {inst_dec_imm_gen.imm[31:1], 1'b0} else inst_dec_imm_gen.imm;
+
+
+		any{
+			(opcode[1:0] == 2'b00):{
+				rd_ = inst[4:2];
+				rs1_ = inst[9:7];
+				rs2_ = rd_;
+				rvc();
+			}
+			(opcode[1:0] == 2'b01): {
+				rd_ = if(funct3_ < 3'b100) inst[11:7] else inst[9:7];
+				rs1_ = rd_;
+				rs2_ = if(funct3_ < 3'b100) inst[6:2] else inst[4:2];
+				rvc();
+			}
+			(opcode[1:0] == 2'b10): {
+				rd_ = inst[11:7];
+				rs1_ = rd_;
+				rs2_ = inst[6:2];
+				rvc();
+			}
+			(opcode[1:0] == 2'b11):{
+				rd_ = inst[11:7];
+				rs1_ = inst[19:15];
+				rs2_ = inst[24:20];
+			}
+		}
+
 
 		any {
 			rd_ == 5'b00000: 	rd_is_zero();
@@ -34,6 +71,206 @@ module inst_dec {
 		}
 
 		any {
+			opcode[1:0] == 2'b00:{
+				any{
+					(funct3_ == C_ADDI4SPN):{	// addi rd', x2, imm
+						op_imm();
+						rdval = rd_ + 8;
+						rs1val = 2;
+						if(inst_dec_imm_gen.c_type(inst,IMM_ADDI4SPN) == 0) illegal_instruction();
+						alu_fn_ = {1'b0, ALU_ADD};
+					}  	//000
+					(funct3_ == C_LW):{	//lw rd', offset(rs1')
+						load();
+						rdval = rd_ + 8;
+						rs1val = rs1_ + 8;
+						inst_dec_imm_gen.c_type(inst,IMM_LW_SW);
+						alu_fn_ = {1'b0, ALU_ADD};
+					}	//010
+					(funct3_ == C_SW):{	//sw rs2', offset(rs1')
+						store();
+						rdval = 0;
+						rs1val = rs1_ + 8;
+						rs2val = rs2_ + 8;
+						inst_dec_imm_gen.c_type(inst,IMM_LW_SW);
+						alu_fn_ = {1'b0, ALU_ADD};
+					}	//110
+					else: illegal_instruction();
+				}
+			}
+			opcode[1:0] == 2'b01:{
+				any{
+					(funct3_ == C_ADDI) && !rd_is_zero:{
+						op_imm();
+						rdval = rd_;
+						rs1val = rs1_;
+						if(inst_dec_imm_gen.c_type(inst,IMM_S_COMMON) == 0) illegal_instruction();
+						alu_fn_ = {1'b0, ALU_ADD};
+					}
+					(funct3_ == C_ADDI) && rd_is_zero:{	//NOP
+						op_imm();
+						rdval = rd_;
+						rs1val = rs1_;
+						//if(inst_dec_imm_gen.c_type(inst,IMM_S_COMMON) != 0) illegal_instruction();
+						alu_fn_ = {1'b0, ALU_ADD};
+					}
+					(funct3_ == C_JAL):{	//jal x1, offset
+						jal();
+						rdval = 1;	//ra
+						inst_dec_imm_gen.c_type(inst,IMM_JAL);
+						alu_fn_ = {1'b0, ALU_ADD};
+					}
+					(funct3_ == C_LI) && !rd_is_zero:{	//addi rd, x0, imm
+						op_imm();
+						rdval = rd_;
+						rs1val = 0;
+						inst_dec_imm_gen.c_type(inst,IMM_S_COMMON);
+						alu_fn_ = {1'b0, ALU_ADD};
+					}
+					(funct3_ == C_LUI) && (!rd_is_zero && rd_ != 2):{	
+						lui();
+						rdval = rd_;
+						if(inst_dec_imm_gen.c_type(inst,IMM_LUI) == 0) illegal_instruction();
+						alu_fn_ = {1'b0, ALU_OR};
+					}
+					(funct3_ == C_ADDI16SP) && (rd_ == 2):{	//addi x2, x2, imm
+						op_imm();
+						rdval = rd_;
+						rs1val = rdval;
+						if(inst_dec_imm_gen.c_type(inst,IMM_ADDI16SP) == 0) illegal_instruction();
+						alu_fn_ = {1'b0, ALU_ADD};
+					}
+					(funct6_ != 6'b100011) && (funct3_ == 3'b100) && (funct2_ == C_SRLI):{	//srli rd', rd', shamt
+						op_imm();
+						rdval = rd_ + 8;
+						rs1val = rdval;
+						inst_dec_imm_gen.c_type(inst,IMM_U_COMMON);
+						alu_fn_ = {1'b0, ALU_SRL};
+					}
+					(funct6_ != 6'b100011) && (funct3_ == 3'b100) && (funct2_ == C_SRAI):{	//srai rd', rd', shamt
+						op_imm();
+						rdval = rd_ + 8;
+						rs1val = rdval;
+						inst_dec_imm_gen.c_type(inst,IMM_U_COMMON);
+						alu_fn_ = {1'b1, ALU_SRA};
+					}
+					(funct6_ != 6'b100011) && (funct3_ == 3'b100) && (funct2_ == C_ANDI):{	//andi rd', rd', imm
+						op_imm();
+						rdval = rd_ + 8;
+						rs1val = rdval;
+						inst_dec_imm_gen.c_type(inst,IMM_S_COMMON);
+						alu_fn_ = {1'b0, ALU_AND};
+					}
+					(funct6_ == 6'b100011) && (funct2_ == C_SUB):{	//sub rd', rd', rs2'
+						op();
+						rdval = rd_ + 8;
+						rs1val = rdval;
+						rs2val = rs2_ + 8;
+						alu_fn_ = {1'b1, ALU_SUB};
+					}
+					(funct6_ == 6'b100011) && (funct2_ == C_XOR):{	//xor rd', rd', rs2'
+						op();
+						rdval = rd_ + 8;
+						rs1val = rdval;
+						rs2val = rs2_ + 8;
+						alu_fn_ = {1'b0, ALU_XOR};
+					}
+					(funct6_ == 6'b100011) && (funct2_ == C_OR):{	//or rd', rd', rs2'
+						op();
+						rdval = rd_ + 8;
+						rs1val = rdval;
+						rs2val = rs2_ + 8;
+						alu_fn_ = {1'b0, ALU_OR};
+					}
+					(funct6_ == 6'b100011) && (funct2_ == C_AND):{	//and rd', rd', rs2'
+						op();
+						rdval = rd_ + 8;
+						rs1val = rdval;
+						rs2val = rs2_ + 8;
+						alu_fn_ = {1'b0, ALU_AND};
+					}
+					(funct3_ == C_J):{	//jal x0, offset
+						jal();
+						rdval = 0;	//zero
+						inst_dec_imm_gen.c_type(inst,IMM_JAL);
+						alu_fn_ = {1'b0, ALU_ADD};
+					}
+					(funct3_ == C_BEQZ):{	//beq rs1', x0, offset
+						branch();
+						beq();
+						rdval = 0;
+						rs1val = rs1_ + 8;
+						inst_dec_imm_gen.c_type(inst,IMM_BEQZ_BNEZ);
+						alu_fn_ = {1'b0, ALU_SLT};
+					}
+					(funct3_ == C_BNEZ):{	//bne rs1', x0, offset
+						branch();
+						bne();
+						rdval = 0;
+						rs1val = rs1_ + 8;
+						inst_dec_imm_gen.c_type(inst,IMM_BEQZ_BNEZ);
+						alu_fn_ = {1'b0, ALU_SLT};
+					}
+					else: illegal_instruction();
+				}
+			}
+			opcode[1:0] == 2'b10:{
+				any{
+					(funct3_ == C_SLLI): {	// slli rd, rs1, shamt
+						op_imm();
+						rdval = rd_;
+						rs1val = rs1_;
+						inst_dec_imm_gen.c_type(inst,IMM_U_COMMON);
+						alu_fn_ = {1'b0, ALU_SLL};
+					}	//000
+					(funct3_ == C_LWSP):	{	//lw rd, offset(x2)
+						load();
+						rs1val = 2;	//sp
+						inst_dec_imm_gen.c_type(inst,IMM_LWSP);
+						alu_fn_ = {1'b0, ALU_ADD};
+					}//010
+					(funct4_ == 4'b1000) && rs2_is_zero:{	//jalr x0, 0(rs1)
+						jalr();
+						rdval = 0;
+						rs1val = rs1_;
+						alu_fn_ = {1'b0, ALU_ADD};
+					}	//C_JR
+					(funct4_ == 4'b1000) && !rs2_is_zero:{	//add rd, x0, rs2
+						op();
+						rdval = rd_;
+						rs1val = 0;
+						rs2val = rs2_;
+						alu_fn_ = {1'b0, ALU_ADD};
+					}	//C_MV
+					(funct4_ == 4'b1001) && rs1_is_zero && rs2_is_zero:{
+						system();
+						system_ebreak();
+						rdval = 0;
+						alu_fn_ = {1'b0, ALU_ADD};
+					}	//C_EBREAK
+					(funct4_ == 4'b1001) && !rs1_is_zero && rs2_is_zero:{	//jalr x1, 0(rs1)
+						jalr();
+						rdval = 1;	//ra
+						rs1val = rs1_;
+						alu_fn_ = {1'b0, ALU_ADD};
+					}	//C_JALR
+					(funct4_ == 4'b1001) && !rs1_is_zero && !rs2_is_zero:{	//add rd, rd, rs2
+						op();
+						rdval = rd_;
+						rs1val = rdval;
+						rs2val = rs2_;
+						alu_fn_ = {1'b0, ALU_ADD};
+					}	//C_ADD
+					(funct3_ == C_SWSP):{	//sw rs2, offset(x2)
+						store();
+						rs1val = 2;	//sp
+						rdval = 0;
+						inst_dec_imm_gen.c_type(inst,IMM_SWSP);
+						alu_fn_ = {1'b0, ALU_ADD};
+					}	//110
+					else: illegal_instruction();
+				}
+			}
 			opcode == LOAD: {
 				load();
 				inst_dec_imm_gen.i_type(inst);
@@ -41,11 +278,21 @@ module inst_dec {
 			}
 			opcode == STORE: {
 				store();
+				rdval = 0;
 				inst_dec_imm_gen.s_type(inst);
 				alu_fn_ = {1'b0, ALU_ADD};
 			}
 			opcode == BRANCH: {
 				branch();
+				any{
+					(funct3_ == CC_BEQ): beq();
+					(funct3_ == CC_BNE): bne();
+					(funct3_ == CC_BLT): blt();
+					(funct3_ == CC_BLTU):bltu();
+					(funct3_ == CC_BGE): bge();
+					(funct3_ == CC_BGEU):bgeu();
+				}
+				rdval = 0;
 				inst_dec_imm_gen.b_type(inst);
 				alu_fn_ = if(funct3_ == CC_BLTU || funct3_ == CC_BGEU) {1'b0, ALU_SLTU} else {1'b0, ALU_SLT};
 			}
@@ -143,19 +390,14 @@ module inst_dec {
 			}
 		}	/* any */
 
-		rd = if(opcode == STORE || opcode == BRANCH) 5'b00000 else rd_;
-		wb = if(opcode == STORE || opcode == BRANCH || rd_ == 5'b00000) 1'b0 else 1'b1;
+		rd_sel = if(opcode == STORE || opcode == BRANCH || rvc) rdval else rd_;
+		rd = rd_sel;
+		wb = (rd_sel && 1'b1);
 		funct3 = funct3_;
 		funct12 = funct12_;
-		rs1 = rs1_;
-		rs2 = rs2_;
+		rs1 = if(rvc) rs1val else rs1_;
+		rs2 = if(rvc) rs2val else rs2_;
 		funct7 = funct7_;
-		beq = (funct3_ == CC_BEQ);
-		bne = (funct3_ == CC_BNE);
-		blt = (funct3_ == CC_BLT);
-		bltu = (funct3_ == CC_BLTU);
-		bge = (funct3_ == CC_BGE);
-		bgeu = (funct3_ == CC_BGEU);
 		imm = imm_;
 		alu_fn = alu_fn_;
 	}	/* func exe */

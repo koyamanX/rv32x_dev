@@ -3,25 +3,22 @@
 #include "opcode.h"
 #include "priv.h"
 #include "csr.h"
-#include "csr_map.h"
 #include "ifetch_unit.h"
 #include "load_store_unit.h"
-
-#define INIT_MTVEC {30'b00000_00000_00000_00000_00000_00000, MTVEC_MODE_DIRECT}
-#define MISA_EXTENSIONS MISA_EXTENSIONS_I|MISA_EXTENSIONS_M|MISA_EXTENSIONS_A|MISA_EXTENSIONS_U|MISA_EXTENSIONS_S
 
 module rv32x_core {
 	rv32x5p rv32x;							/* 5-stage pipelined processor(single issue, in-order) */
 	ifetch_unit ic;
 	load_store_unit lsu;
+	csr32 csr;
 	reg ic_invalidate_done = 0;
 	reg ic_tlb_flush_done = 0;
 	reg lsu_cache_flush_done = 0;
 	reg lsu_tlb_flush_done = 0;
 	wire in_memory_operation;
 	reg priv_mode[2];						/* Current priv mode */
-	reg valid_context;
-	func_self abandon_context();
+	reg valid_pipeline;
+	func_self invalidate_pipeline();
 	
 	reg ic_read_cnt[3] = 0;
 	reg ic_prefetch_cnt[3] = 0;
@@ -86,48 +83,6 @@ module rv32x_core {
 	func_self supervisor_timer_interrupt();
 	func_self supervisor_external_interrupt();
 	func_self supervisor_software_interrupt();
-	/* CSR operations */
-	wire cwadrs[32];
-	wire cwdata[32];
-	wire cradrs[32];
-	wire crdata[32];
-	func_self csr_read(cradrs) : crdata;
-	func_self csr_write(cwadrs, cwdata);
-	func_self csr_read_not_mapped();
-	func_self csr_write_not_mapped();
-
-	/* CSRs */
-	/* Machine mode CSRs */
-	mvendorid_t reg mvendorid		= 0;
-	marchid_t reg marchid			= 0;
-	mimpid_t reg mimpid				= 0;
-	mhartid_t reg mhartid			= 0;
-	mstatus_t reg mstatus			= 0;
-	mstatush_t reg mstatush			= 0;
-	mtvec_t reg mtvec 				= INIT_MTVEC;
-	mscratch_t reg mscratch			= 0;
-	mepc_t reg mepc					= 0;
-	mcause_t reg mcause 			= RESET;
-	mtval_t reg mtval				= 0;
-	misa_t reg misa					= 0;
-	mie_t reg mie					= 0;
-	mip_t reg mip					= 0;
-	mideleg_t reg mideleg			= 0;
-	medeleg_t reg medeleg			= 0;
-	/* Supervisor mode CSRs */
-	sstatus_t reg sstatus			= 0;		
-	sie_t reg sie					= 0;
-	stvec_t reg stvec				= 0;
-	sscratch_t reg sscratch			= 0;
-	sepc_t reg sepc					= 0;
-	scause_t reg scause				= 0;
-	stval_t reg stval 				= 0;
-	sip_t reg sip					= 0;
-	satp_t reg satp					= 0;
-	/* Hardware Performance Monitor */
-	reg minstret[64]				= 0;
-	reg mcycle[64]					= 0;
-	reg utime[64]					= 0;
 	/* Interrupts sources */
 	wire msip;
 	wire mtip;
@@ -139,18 +94,38 @@ module rv32x_core {
 	wire sxlen[2];
 	wire uxlen[2];
 	wire ialign[2];
+	wire retaddr[32];
+
+	mip_t wire mip;
+	mie_t wire mie;
+	sie_t wire sie;
+	satp_t wire satp;
+	mstatus_t wire mstatus;
+	sstatus_t wire sstatus;
+	mideleg_t wire mideleg;
+	medeleg_t wire medeleg;
+
+    mip = csr.mip_;
+	mie = csr.mie_;
+	sie = csr.sie_;
+    satp = csr.satp_;
+    mstatus = csr.mstatus_;
+    sstatus = csr.sstatus_;
+    mideleg = csr.mideleg_;
+    medeleg = csr.medeleg_;
+	csr.priv_mode = priv_mode;
+	csr.instret = rv32x.instret;
+	csr.meip = meip;
+	csr.mtip = mtip;
+	csr.msip = msip;
+	csr.seip = seip;
+	csr.stip = stip;
+	csr.ssip = ssip;
+	csr.ialign = ialign;
 	
 	sxlen = MISA_MXL_32;
 	uxlen = MISA_MXL_32;
-	ialign = 2'b11;
-
-	if(!csr_write) {	/* precisely, !((mcycle || minstret) && csr_write) */
-		mcycle++;	/* if wfi, then stop counting up */
-		if(rv32x.instret) {
-			minstret++;	/* not-precise, some instruction such as ecall will not retire */
-		}
-	}
-	utime++;	/* if m_clock == 50MHz, then 1 tick is 20ns */
+	ialign = 2'b01;
 
 	/* checking !trap is required, since most of interrupt pending bits
 		only be cleared from software via writing one of correspoinding
@@ -160,10 +135,10 @@ module rv32x_core {
 		or not.
 	*/
 	in_memory_operation = rv32x.fencei || rv32x.sfence_vma || rv32x.dmem_read || rv32x.dmem_write || rv32x.load_reserved || rv32x.store_conditional || rv32x.amo_exe;
-	if(((priv_mode < MACHINE) || ((priv_mode == MACHINE) && mstatus.mie)) && !trap && !in_memory_operation && valid_context && !rv32x.trap_mret) {
+	if(((priv_mode < MACHINE) || ((priv_mode == MACHINE) && mstatus.mie)) && !trap && !in_memory_operation && valid_pipeline && !rv32x.trap_mret) {
 		machine_interrupt_enabled();
 	}
-	if(((priv_mode < SUPERVISOR) || ((priv_mode == SUPERVISOR) && mstatus.sie)) && !trap && !in_memory_operation && valid_context && !rv32x.trap_sret) {
+	if(((priv_mode < SUPERVISOR) || ((priv_mode == SUPERVISOR) && mstatus.sie)) && !trap && !in_memory_operation && valid_pipeline && !rv32x.trap_sret) {
 		supervisor_interrupt_enabled();
 	}
 	if(meip && mie.meie) {
@@ -209,285 +184,24 @@ module rv32x_core {
 		wire resetvector[32];
 
 		priv_mode 					:= MACHINE;
-		mstatus.mie 				:= 0;
-		mstatus.mprv 				:= 0;
-		mstatush.mbe				:= 0;
-		mstatus.mpp					:= MACHINE;
-		misa.mxl 					:= MISA_MXL_32;
-		misa.extensions 			:= MISA_EXTENSIONS;
-		mcause 						:= RESET;
-		mtvec 						:= INIT_MTVEC;
-
+		csr.reset();
 		ic.reset();
 		lsu.reset();
-		resetvector = {mtvec.base, 2'b00};	/* Shynchronous execption(RESET) */
+		resetvector = {0x00000000};	/* Shynchronous execption(RESET) */
 		rv32x.reset(resetvector);
 	}
 	/* CSR accesses */
 	func rv32x.csr_read {
-		if(csr_read_not_mapped) {
+		if(csr.read_not_mapped) {
 			illegal_instruction_memory_stage();
 		}
-		return csr_read(rv32x.cradrs);
-	}
-	func csr_read {
-		any {
-			/* Machine-mode */
-			(priv_mode >= MACHINE) && cradrs == MVENDORID:			return mvendorid;
-			(priv_mode >= MACHINE) && cradrs == MARCHID:			return marchid;
-			(priv_mode >= MACHINE) && cradrs == MIMPID:				return mimpid;
-			(priv_mode >= MACHINE) && cradrs == MHARTID:			return mhartid;
-			(priv_mode >= MACHINE) && cradrs == MSTATUS:			return mstatus;
-			(priv_mode >= MACHINE) && cradrs == MISA:				return misa;
-			(priv_mode >= MACHINE) && cradrs == MEDELEG:			return medeleg;
-			(priv_mode >= MACHINE) && cradrs == MIDELEG:			return mideleg;
-			(priv_mode >= MACHINE) && cradrs == MIE:				return mie;
-			(priv_mode >= MACHINE) && cradrs == MTVEC:				return mtvec;
-			//(priv_mode >= MACHINE) && cradrs == MCOUNTEREN:		return mcounteren;
-			(priv_mode >= MACHINE) && cradrs == MSTATUSH:			return mstatush;
-			(priv_mode >= MACHINE) && cradrs == MSCRATCH:			return mscratch;
-			(priv_mode >= MACHINE) && cradrs == MEPC:				return mepc;
-			(priv_mode >= MACHINE) && cradrs == MCAUSE:				return mcause;
-			(priv_mode >= MACHINE) && cradrs == MTVAL:				return mtval;
-			(priv_mode >= MACHINE) && cradrs == MIP:				return mip | 32'({meip, 1'b1, seip, 1'b0, mtip, 1'b0, stip, 1'b0, msip, 1'b0, ssip, 1'b0});
-			//(priv_mode >= MACHINE) && cradrs == MTINST:			return mtinst;
-			//(priv_mode >= MACHINE) && cradrs == MTVAL2:			return mtval2;
-			/* Machine Memory Protection */
-			/* Machine Counter/Timers */
-			(priv_mode >= MACHINE) && cradrs == MCYCLEH:			return mcycle[63:32];
-			(priv_mode >= MACHINE) && cradrs == MCYCLE:				return mcycle[31:0];
-			(priv_mode >= MACHINE) && cradrs == MINSTRETH:			return minstret[63:32];
-			(priv_mode >= MACHINE) && cradrs == MINSTRET:			return minstret[31:0];
-
-			/* Supervisor-mode */
-			(priv_mode >= SUPERVISOR) && cradrs == SSTATUS:			return sstatus;
-			//(priv_mode >= SUPERVISOR) && cradrs == SEDELEG:		return sedeleg;
-			//(priv_mode >= SUPERVISOR) && cradrs == SIDELEG:		return sideleg;
-			(priv_mode >= SUPERVISOR) && cradrs == SIE:				return sie;
-			(priv_mode >= SUPERVISOR) && cradrs == STVEC:			return stvec;
-			//(priv_mode >= SUPERVISOR) && cradrs == SCOUNTEREN:	return scounteren;
-			(priv_mode >= SUPERVISOR) && cradrs == SSCRATCH:		return sscratch;
-			(priv_mode >= SUPERVISOR) && cradrs == SEPC:			return sepc;
-			(priv_mode >= SUPERVISOR) && cradrs == SCAUSE:			return scause;
-			(priv_mode >= SUPERVISOR) && cradrs == STVAL:			return stval;
-			(priv_mode >= SUPERVISOR) && cradrs == SIP:				return sip;
-			(priv_mode >= SUPERVISOR) && cradrs == SATP
-				&& !((priv_mode == SUPERVISOR) && mstatus.tvm):		return satp;
-
-			/* User-mode */
-			//(priv_mode >= USER) && cradrs == FRM:					return frm;
-			//(priv_mode >= USER) && cradrs == FCSR:				return fcsr;
-			/* User Counter/Timers */
-			(priv_mode >= USER) && cradrs == CYCLEH:				return mcycle[63:32];
-			(priv_mode >= USER) && cradrs == CYCLE:					return mcycle[31:0];
-			(priv_mode >= USER) && cradrs == INSTRETH:				return minstret[63:32];
-			(priv_mode >= USER) && cradrs == INSTRET:				return minstret[31:0];
-			(priv_mode >= USER) && cradrs == TIMEH:					return utime[63:32];
-			(priv_mode >= USER) && cradrs == TIME:					return utime[31:0];
-			else:							{csr_read_not_mapped(); return 0x00000000;}
-		}
+		return csr.read(rv32x.cradrs);
 	}
 	func rv32x.csr_write {
-		csr_write(rv32x.cwadrs, rv32x.cwdata);
-		if(csr_write_not_mapped) {
+		csr.write(rv32x.cwadrs, rv32x.cwdata);
+		if(csr.write_not_mapped) {
 			illegal_instruction_memory_stage();
 		}
-	}
-	func csr_write {
-		mstatus_t wire status_w; 
-		mtvec_t  wire tvec_w;
-		mip_t wire ip_w;
-		mideleg_t wire ideleg_w;
-		medeleg_t wire edeleg_w;
-		mie_t wire ie_w;
-		satp_t wire satp_w;
-
-		any {
-			(priv_mode >= MACHINE) && cwadrs == MSTATUS: {
-				status_w = cwdata;
-				
-				//mstatus.sd	:= status_w.sd;
-				mstatus.tsr		:= status_w.tsr;
-				mstatus.tw		:= status_w.tw;
-				mstatus.tvm		:= status_w.tvm;
-				mstatus.mxr		:= status_w.mxr;
-				sstatus.mxr		:= status_w.mxr;
-				mstatus.sum		:= status_w.sum;
-				sstatus.sum		:= status_w.sum;
-				mstatus.mprv 	:= status_w.mprv;
-				//mstatus.xs	:= status_w.xs;
-				//mstatus.fs	:= status_w.fs;
-				mstatus.mpp		:= if(status_w.mpp != HYPERVISOR) status_w.mpp else mstatus.mpp;
-				mstatus.spp		:= status_w.spp;
-				sstatus.spp		:= status_w.spp;
-				mstatus.mpie 	:= status_w.mpie;
-				//mstatus.ube 	:= status_w.ube;
-				mstatus.spie	:= status_w.spie;
-				sstatus.spie	:= status_w.spie;
-				mstatus.mie		:= status_w.mie;
-				mstatus.sie		:= status_w.sie;
-				sstatus.sie		:= status_w.sie;
-			}
-			(priv_mode >= MACHINE) && cwadrs == MEDELEG: {
-				edeleg_w = cwdata;
-
-				medeleg.store_amo_page_fault := edeleg_w.store_amo_page_fault;
-				medeleg.load_page_fault := edeleg_w.load_page_fault;
-				medeleg.instruction_page_fault := edeleg_w.instruction_page_fault;
-				medeleg.environment_call_from_m_mode := edeleg_w.environment_call_from_m_mode;
-				medeleg.environment_call_from_s_mode := edeleg_w.environment_call_from_s_mode;
-				medeleg.environment_call_from_u_mode := edeleg_w.environment_call_from_u_mode;
-				medeleg.store_amo_access_fault := edeleg_w.store_amo_access_fault;
-				medeleg.store_amo_address_misaligned := edeleg_w.store_amo_address_misaligned;
-				medeleg.load_access_fault := edeleg_w.load_access_fault;
-				medeleg.load_address_misaligned := edeleg_w.load_address_misaligned;
-				medeleg.breakpoint := edeleg_w.breakpoint;
-				medeleg.illegal_instruction := edeleg_w.illegal_instruction;
-				medeleg.instruction_access_fault := edeleg_w.instruction_access_fault;
-				medeleg.instruction_address_misaligned := edeleg_w.instruction_address_misaligned;
-			}
-			(priv_mode >= MACHINE) && cwadrs == MIDELEG: {
-				ideleg_w = cwdata;
-
-				mideleg.seip := ideleg_w.seip;
-				mideleg.stip := ideleg_w.stip;
-				mideleg.ssip := ideleg_w.ssip;
-			}
-			(priv_mode >= MACHINE) && cwadrs == MIE: {
-				ie_w = cwdata;
-
-				/* Machine mode */
-				mie.meie := ie_w.meie;
-				mie.mtie := ie_w.mtie;
-				mie.msie := ie_w.msie;
-
-				/* Supervisor mode */
-				mie.seie := ie_w.seie;
-				mie.stie := ie_w.stie;
-				mie.ssie := ie_w.ssie;
-				sie.seie := ie_w.seie;
-				sie.stie := ie_w.stie;
-				sie.ssie := ie_w.ssie;
-			}
-			(priv_mode >= MACHINE) && cwadrs == MTVEC: {
-				tvec_w = cwdata;
-				
-				mtvec.base := tvec_w.base;
-				if(tvec_w.mode < 2'b10) {
-					mtvec.mode := tvec_w.mode;
-				}
-			}
-			(priv_mode >= MACHINE) && cwadrs == MSTATUSH: {
-				mstatush := cwdata & 0x00000000;
-			}
-			(priv_mode >= MACHINE) && cwadrs == MSCRATCH: {
-				mscratch := cwdata;
-			}
-			(priv_mode >= MACHINE) && cwadrs == MEPC: {
-				mepc := {cwdata[31:2], (cwdata[1:0] & ~ialign)};
-			}
-			(priv_mode >= MACHINE) && cwadrs == MCAUSE:	{
-				mcause := mcause;
-			}
-			(priv_mode >= MACHINE) && cwadrs == MTVAL: {
-				mtval := cwdata;
-			}
-			(priv_mode >= MACHINE) && cwadrs == MIP: {
-				ip_w = cwdata;
-				
-				/* mip.meip, mip.mtip, mip.msip is read-only */
-				/* Only interrupt controller can set or reset */
-				/* Supervisor mode */
-				mip.ssip := ip_w.ssip;
-				mip.seip := ip_w.seip;
-				mip.stip := ip_w.stip;
-				sip.ssip := ip_w.ssip;
-				sip.seip := ip_w.seip;
-				sip.stip := ip_w.stip;
-			}
-			(priv_mode >= MACHINE) && cwadrs == MCYCLE:	{
-				mcycle	:= {mcycle[63:32], cwdata};
-			}
-			(priv_mode >= MACHINE) && cwadrs == MINSTRET: {
-				minstret := {minstret[63:32], cwdata};
-			}
-			(priv_mode >= MACHINE) && cwadrs == MCYCLEH: {
-				mcycle	:= {cwdata, mcycle[31:0]};
-			}
-			(priv_mode >= MACHINE) && cwadrs == MINSTRETH: {
-				minstret := {cwdata, minstret[31:0]};
-			}
-			(priv_mode >= SUPERVISOR) && cwadrs == SSTATUS: {
-				status_w = cwdata;
-
-				mstatus.sum		:= status_w.sum;
-				sstatus.sum		:= status_w.sum;
-
-				mstatus.mxr		:= status_w.mxr;
-				sstatus.mxr		:= status_w.mxr;
-
-				mstatus.sie		:= status_w.sie;
-				mstatus.spie	:= status_w.spie;
-				mstatus.spp		:= status_w.spp;
-
-				sstatus.sie		:= status_w.sie;
-				sstatus.spie	:= status_w.spie;
-				sstatus.spp		:= status_w.spp;
-			}
-			(priv_mode >= SUPERVISOR) && cwadrs == STVEC: {
-				tvec_w = cwdata;
-				
-				stvec.base := tvec_w.base;
-				if(tvec_w.mode < 2'b10) {
-					stvec.mode := tvec_w.mode;
-				}
-			}
-			(priv_mode >= SUPERVISOR) && cwadrs == SIE: {
-				ie_w = cwdata;
-				
-				mie.seie := ie_w.seie;
-				mie.stie := ie_w.stie;
-				mie.ssie := ie_w.ssie;
-				sie.seie := ie_w.seie;
-				sie.stie := ie_w.stie;
-				sie.ssie := ie_w.ssie;
-			}
-			(priv_mode >= SUPERVISOR) && cwadrs == SIP: {
-				ip_w = cwdata;
-
-				mip.ssip := ip_w.ssip;
-				sip.ssip := ip_w.ssip;
-			}
-			(priv_mode >= SUPERVISOR) && cwadrs == SATP
-				&& !((priv_mode == SUPERVISOR) && (mstatus.tvm)): {
-					satp_w = cwdata;
-
-					satp.mode := satp_w.mode;
-					satp.asid := satp_w.asid;
-					satp.ppn := satp_w.ppn;
-				}
-			(priv_mode >= SUPERVISOR) && cwadrs == SSCRATCH: {
-				sscratch := cwdata;
-			}
-			(priv_mode >= SUPERVISOR) && cwadrs == SEPC: {
-				sepc := {cwdata[31:2], (cwdata[1:0] & ~ialign)};
-			}
-			(priv_mode >= SUPERVISOR) && cwadrs == SCAUSE: {
-				scause := scause;
-			}
-			(priv_mode >= SUPERVISOR) && cwadrs == STVAL: {
-				stval := cwdata;
-			}
-			else: csr_write_not_mapped();
-		}
-#ifdef CV
-	if(SW[6]){
-		if(csr_write_not_mapped){
-				debug_sseg_h12(cwadrs[11:0]);
-				debug_sseg_l12(priv_mode);
-		}
-	}
-#endif
 	}
 	func rv32x.ecall {
 		environment_call();
@@ -535,11 +249,11 @@ module rv32x_core {
 		/* Process exception in preceeding instruction in pipeline */	
 		rv32x.exception_req:	exception();
 	}
-	func rv32x.valid_context{
-		valid_context := 1;
+	func rv32x.validate_pipeline{
+		valid_pipeline := 1;
 	}
-	func abandon_context{
-		valid_context := 0;
+	func invalidate_pipeline{
+		valid_pipeline := 0;
 	}
 	func interrupt {
 		rv32x.stall_ifetch_req();
@@ -551,12 +265,12 @@ module rv32x_core {
 		rv32x.flush_execute();
 		rv32x.flush_memory();
 		rv32x.get_pc_trap();
-		abandon_context();
+		invalidate_pipeline();
 	}
 	func exception{
 		wire delegation;
 		rv32x.get_pc_trap();
-		abandon_context();
+		invalidate_pipeline();
 		any{
 			rv32x.exception_cause == STORE_AMO_PAGE_FAULT: delegation = medeleg.store_amo_page_fault;
 			rv32x.exception_cause == LOAD_PAGE_FAULT: delegation = medeleg.load_page_fault;
@@ -733,77 +447,39 @@ module rv32x_core {
 		if(priv_mode != MACHINE) {
 			illegal_instruction_execute_stage();
 		} else {
-			mtval := 0;
 			rv32x.stall_ifetch_req();
 			rv32x.stall_decode_req();
 			rv32x.flush_ifetch();
 			rv32x.flush_decode();
 		}
-		return mepc;
 	}
 	func rv32x.sret {
 		if((priv_mode == SUPERVISOR) && mstatus.tsr) {
 			illegal_instruction_execute_stage();
 		} else {
-			stval := 0;
 			rv32x.stall_ifetch_req();
 			rv32x.stall_decode_req();
 			rv32x.flush_ifetch();
 			rv32x.flush_decode();
 		}
-		return sepc;
 	}
 	func rv32x.trap_mret {
-		mstatus.mie 	:= mstatus.mpie;
-		mstatus.mpie	:= 1;
-		mstatus.mpp		:= MACHINE;
-		mstatus.mprv 	:= if(mstatus.mpp != MACHINE) 1'b0 else sstatus.mprv;
-		sstatus.mprv 	:= if(mstatus.mpp != MACHINE) 1'b0 else sstatus.mprv;
+		retaddr = csr.trap_ret(MACHINE);
 		priv_mode 		:= mstatus.mpp;
-		rv32x.trap({mepc[31:2], mepc[1:0] & ~ialign});
-		abandon_context();
+		rv32x.trap({retaddr[31:2], retaddr[1:0] & ~ialign});
+		invalidate_pipeline();
 	}
 	func rv32x.trap_sret {
-		mstatus.sie		:= sstatus.spie;
-		sstatus.sie		:= sstatus.spie;
-		mstatus.spie	:= 1;
-		sstatus.spie	:= 1;
-		mstatus.mprv 	:= if(mstatus.mpp != MACHINE) 1'b0 else sstatus.mprv;
-		sstatus.mprv 	:= if(mstatus.mpp != MACHINE) 1'b0 else sstatus.mprv;
+		retaddr = csr.trap_ret(SUPERVISOR);
 		priv_mode 		:= {1'b0, sstatus.spp};	
-		rv32x.trap({sepc[31:2], sepc[1:0] & ~ialign});
-		abandon_context();
+		rv32x.trap({retaddr[31:2], retaddr[1:0] & ~ialign});
+		invalidate_pipeline();
 	}
 	proc trap {
 		wire v[32];
 		mtvec_t wire tvec;
-		
-		any {
-			trap_priv_mode == MACHINE: {
-				priv_mode		:= MACHINE;
-				mstatus.mpie 	:= mstatus.mie;
-				mstatus.mie 	:= 0;
-				mstatus.mpp 	:= priv_mode;
-				mcause 			:= trap_cause;
-				mepc 			:= trap_pc;
-				mtval			:= trap_val;
-				tvec 			= mtvec;
-			}
-			trap_priv_mode == SUPERVISOR: {
-				priv_mode		:= SUPERVISOR;
-				mstatus.spp		:= priv_mode[0];
-				sstatus.spp		:= priv_mode[0];
-				mstatus.spie 	:= sstatus.sie;
-				sstatus.spie 	:= sstatus.sie;
-				mstatus.sie		:= 0;
-				sstatus.sie		:= 0;
-				scause			:= trap_cause;
-				sepc			:= trap_pc;
-				stval			:= trap_val;
-				tvec			= stvec;
-			}
-		}
-
+		priv_mode		:= trap_priv_mode;
+		tvec = csr.trap(trap_priv_mode, trap_cause, trap_pc, trap_val);
 		any {
 			tvec.mode == 2'b00: 					v = {tvec.base, 2'b00};
 			tvec.mode == 2'b01 && !trap_cause[31]:	v = {tvec.base, 2'b00};
@@ -812,9 +488,6 @@ module rv32x_core {
 		rv32x.stall_ifetch_req();
 		rv32x.trap(v);
 		finish();
-#ifdef CV
-		debug_sseg_h8({trap_cause[31:28],trap_cause[3:0]});
-#endif
 	}
 	/* fence.i */
 	func rv32x.fencei {
@@ -854,19 +527,6 @@ module rv32x_core {
 			}
 		}
 	}
-	#ifdef CV
-		if(SW[6]){
-			any{
-				ic_tlb_flush_done: debug_led_1();
-				ic_invalidate_done: debug_led_2();
-				lsu_tlb_flush_done: debug_led_3();
-				lsu_cache_flush_done: debug_led_4();
-				rv32x.fencei: debug_led_5();
-				csr_write_not_mapped: debug_led_6();
-				mstatus.tvm: debug_led_7();
-			}
-		}
-	#endif
 	func ic.instruction_page_fault if(ic.vaddr == rv32x.iaddr){	//check the fault address is not invalid address(the instruction when branch prediction failed and flushed )
 		instruction_page_fault();
 	}
@@ -903,20 +563,6 @@ module rv32x_core {
 			ic_read_data[ic_read_cnt] := inst;
 		}
 	}
-	#ifdef CV
-	if(SW[4]){
-		any{
-			ic_read_cnt[0]: debug_led_1();
-			ic_read_cnt[1]: debug_led_2();
-			ic_read_cnt[2]: debug_led_3();
-			ic_prefetch_cnt[0]:debug_led_4();
-			ic_prefetch_cnt[1]:debug_led_5();
-			ic_prefetch_cnt[2]:debug_led_6();
-			ic.mem_read:	debug_led_8();
-			imem_ready:		debug_sseg_h12(inst[11:0]);
-		}
-	}
-	#endif
 	func ic.walk {
 		lsu.read_tlb(ic.vaddr);
 	}
@@ -935,7 +581,7 @@ module rv32x_core {
 		ic.read(rv32x.iaddr);
 	}
 	func ic.ready {
-		rv32x.inst = ic.inst;
+		rv32x.insts = ic.insts;
 		rv32x.imem_ready();
 	}
 	func rv32x.dmem_read {
