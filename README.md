@@ -44,29 +44,24 @@ in 'logs' directory, we can find instruction execution trace. If tests failed, t
 - Passed Tests [STATUS.md](STATUS.md)
 
 ```bash
-$ cd simulation
-$ make run_riscv_tests
-```
-#### dhrystone
-```bash
-
+scripts/isa_tests_sim.sh
 ```
 #### Sample apps
-#### xv6
+#### Hello World(Newlib)
 ```bash
-cd software/xv6
-make run
-```
-#### OpenSBI
-```bash
-cd software/opensbi
-make run
+scripts/hello_sim.sh
 ```
 #### linux
 ```bash
-git clone https://github.com/koyamanX/linux.git
-cd linux
-# TODO: write instruction to build & run linux on simulator
+scripts/linux_sim.sh
+```
+
+### DE10-lite Configuration(The script cannot run in container)
+#### requirements
+- Arduino SD card shiled(Pin assignment: CS -> Arduino_io[4], MOSI -> Arduino_io[11], MISO -> Arduino_io[12], SCLK -> Arduino_io[13])
+- Arduino RS232 Shield(Pin assignment: TX -> Arduino_io[0], RX ->Arduino_io[1])
+```bash
+./linux_DE10_lite.sh
 ```
 
 ### Executing arbitary executable file
@@ -84,7 +79,7 @@ $ ./rv32x_simulation [Name_Of_ELF_File] [Options]
 #### [Options]
 Options are prefixed with --.
 - print-all (Print execution trace)
-- no-sim-exit (Instruct simulator not to exit on writting data to 0x80001000)
+- dump-vcd=i,[start]-[end]
 
 ### TODO 
 - See Issues and Projetcs pages.

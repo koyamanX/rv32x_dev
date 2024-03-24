@@ -1,4 +1,3 @@
-fpga/*
 simulation/logs/*
 simulation/bootrom.hex
 simulation/bootrom/bootrom.elf
@@ -8,15 +7,23 @@ simulation/elfloader/libelfloader.a
 simulation/failed/
 simulation/obj_dir/
 simulation/out/
-simulation/rv32x_simulation
-simulation/rv32x_simulation.vcd
+*/rv32x_simulation
+*/*/rv32x_simulation
+*/*/*/rv32x_simulation
 simulation/*.log
 software/tests
 software/bootrom/*.dtb
+software/*/gtk.sh
+software/*/rv32x.gtkw
+scripts/tmp
 *.a
 *.o
 *.elf
 *.log
 *.hex
 
-
+*.vcd
+.vscode/*.json
+*.out
+run.sh
+.vscode/*

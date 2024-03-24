@@ -17,10 +17,10 @@ SECTIONS
   . = ALIGN(0x4);
   _bss_end = .;
   _heap_start = .;
-  . = . + 0x02000000;
+  . = . + 0x00006000;
   . = ALIGN(0x4);
   _heap_end = .;
-  . = 0x84008000;
+  . = 0x80008000;
   . = ALIGN(0x10);
   _stack_top = .;
 }

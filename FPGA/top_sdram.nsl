@@ -1,0 +1,351 @@
+#include "rv32x_integration.h"
+#include "opcode.h"
+#include "top_sdram.h"
+#include "SDRAM_CTR.inc"
+#include "ASYNCTX.inc"
+#include "pll.h"
+
+module top_sdram {
+    func_self reset();
+	func_self conflict();
+	func_self init_sseg();
+	wire data[32];
+	func_self ready(data);
+	func_self ff_wait();
+	
+	wire iaddr[32];
+	wire ibyteen[3];
+
+	func_self debug_led_1();
+	func_self debug_led_2();
+	func_self debug_led_3();
+	func_self debug_led_4();
+	func_self debug_led_5();
+	func_self debug_led_6();
+	func_self debug_led_7();
+	func_self debug_led_8();
+	func_self debug_led_9();
+	func_self debug_led_10();
+	wire sseg_l12[12];
+	func_self debug_sseg_l12(sseg_l12);
+	wire sseg_h12[12];
+	func_self debug_sseg_h12(sseg_h12);
+
+	
+	reg req_flag = 1;
+	reg bank[2], row[13], column[10];
+	reg sdram_busy = 1; 
+	reg loc[2] = 0;
+	reg dest[2] = 0;
+	reg pending[2] = 0;	// 00 - empty, 01 - read, 10 - write
+	reg addrbuf[32]  = 0;
+	mem writeback_data[8][16];
+	mem rdata[4][32];
+	proc_name sdram_write(bank, row, column);
+	proc_name sdram_read(bank, row, column);
+
+	reg led[10] = 0;
+	reg sw[10] = 0;
+	reg cnt[10] = 0;
+	mem sseg[6][7];
+	mem encode[16][7];/*={0b1111110, 0b0110000, 0b1101101, 0b1111001,
+						0b0110011, 0b1011011, 0b1011111, 0b1110000,
+						0b1111111, 0b1111011, 0b1110111, 0b0011111,
+						0b1001110, 0b0111101, 0b1001111, 0b1000111};*/
+	reg res_flag = 0;
+	reg init_flag = 0;
+
+	rv32x_integration core;
+	SDRAM_CTR sdram;
+	ASYNCTX tx;
+	
+	sw := SW;
+    core.SW = SW;
+	TXD = core.TXD;
+	core.RXD = RXD;
+	SCLK = core.SCLK;
+	CS = core.CS;
+	MOSI = core.MOSI;
+	core.MISO = MISO;
+	LEDR = led;
+	HEX0 = sseg[0];
+	HEX1 = sseg[1];
+	HEX2 = sseg[2];
+	HEX3 = sseg[3];
+	HEX4 = sseg[4];
+	HEX5 = sseg[5];
+    
+	DRAM_ADDR  = sdram.DRAM_A;
+	DRAM_BA    = sdram.DRAM_BA;
+	DRAM_LDQM  = sdram.DRAM_LDQM;
+	DRAM_UDQM  = sdram.DRAM_UDQM;
+	DRAM_RAS_N = sdram.DRAM_RAS;
+	DRAM_CAS_N = sdram.DRAM_CAS;
+	DRAM_CKE   = sdram.DRAM_CKE;
+	DRAM_WE_N  = sdram.DRAM_WE;
+	DRAM_CS_N  = sdram.DRAM_CS;
+	
+	sdram.m_clock = sdrctr_clk;
+	core.mmc_clk  = mmc_clk;
+
+	// モジュール間IF
+	tx.aTxIn = sdram.rxout;
+	sdram.rxin = tx.aTxOut;
+
+	if(sdram_write) DRAM_DO = sdram.DRAM_DO;
+	else           sdram.DRAM_DI = DRAM_DI;
+	
+	if(!init_flag && sdram.finish_init){
+		init_flag := 1;
+		sdram_busy := 0;
+	}
+	if(~res_flag && sw[9]){
+		res_flag := 1;
+		reset();
+	}
+
+	func reset {
+		core.reset();
+		init_sseg();
+	}
+	func init_sseg{	//avoid initial begin
+		integer i;
+		generate(i=0;i<6;i++){
+			sseg[i] := 0b1111111;
+		}
+		encode[0] := 0b1000000;
+		encode[1] := 0b1111001;
+		encode[2] := 0b0100100;
+		encode[3] := 0b0110000;
+		encode[4] := 0b0011001;
+		encode[5] := 0b0010010;
+		encode[6] := 0b0000010;
+		encode[7] := 0b1111000;
+		encode[8] := 0b0000000;
+		encode[9] := 0b0010000;
+		encode[10] := 0b0001000;
+		encode[11] := 0b0000011;
+		encode[12] := 0b1000110;
+		encode[13] := 0b0100001;
+		encode[14] := 0b0000110;
+		encode[15] := 0b0001110;
+	}
+
+	proc sdram_write{
+		if(req_flag){
+			tx.aTxReq();
+			req_flag := 0;
+		}
+		write();
+
+		// 書込み完了まで送信し続ける
+		sdram.rw_mode = WRITE;
+		sdram.bank    = bank;
+		sdram.row     = row;
+		sdram.column  = column;
+		sdram.datai0   = writeback_data[0];
+		sdram.datai1   = writeback_data[1];
+		sdram.datai2   = writeback_data[2];
+		sdram.datai3   = writeback_data[3];
+		sdram.datai4   = writeback_data[4];
+		sdram.datai5   = writeback_data[5];
+		sdram.datai6   = writeback_data[6];
+		sdram.datai7   = writeback_data[7];
+	}
+
+	proc sdram_read{
+		if(req_flag){
+			tx.aTxReq();
+			req_flag := 0;
+		}
+
+		// 読込み完了まで送信し続ける
+		sdram.rw_mode = READ;
+		sdram.bank    = bank;
+		sdram.row     = row;
+		sdram.column  = column;
+	}
+
+	func tx.aTxAck{
+			sdram_write.finish();
+			sdram_read.finish();
+			req_flag := 1;
+			sdram_busy := 0;
+			dest := loc;
+			rdata[0] := {sdram.datao1[7:0],sdram.datao1[15:8],sdram.datao0[7:0],sdram.datao0[15:8]};
+			rdata[1] := {sdram.datao3[7:0],sdram.datao3[15:8],sdram.datao2[7:0],sdram.datao2[15:8]};
+			rdata[2] := {sdram.datao5[7:0],sdram.datao5[15:8],sdram.datao4[7:0],sdram.datao4[15:8]};
+			rdata[3] := {sdram.datao7[7:0],sdram.datao7[15:8],sdram.datao6[7:0],sdram.datao6[15:8]};
+
+			any{
+				sdram_read: seq{
+					ff_wait();
+					ready(rdata[0]);
+					ready(rdata[1]);
+					ready(rdata[2]);
+					ready(rdata[3]);
+				}
+				sdram_write: seq{
+					ff_wait();
+					ready(0);
+				}
+			}
+	}
+
+	if(pending && !sdram_busy){
+		any{
+			pending == IR:{
+				loc := IMEM;
+				sdram_read(addrbuf[25:24],addrbuf[23:11],{addrbuf[10:4],3'b000});
+			}
+			pending == DR:{
+				loc := DMEM;
+				sdram_read(addrbuf[25:24],addrbuf[23:11],{addrbuf[10:4],3'b000});
+			}
+			pending == DW:{
+				loc := DMEM;
+				sdram_write(addrbuf[25:24],addrbuf[23:11],{addrbuf[10:4],3'b000});
+			}
+		}
+		sdram_busy := 1;
+		pending := 0;
+	}
+
+	func core.imem_read {
+		if(!sdram_busy && !conflict && !pending){
+			sdram_busy := 1;
+			loc := IMEM;
+			sdram_read(core.iaddr[25:24],core.iaddr[23:11],{core.iaddr[10:4],3'b000});
+		}else if(core.iaddr[3:2] == 2'b00){
+			pending := IR;
+			addrbuf := core.iaddr;
+		}
+	}
+	func core.dmem_read {
+		conflict();
+		if(!sdram_busy && !pending){
+			sdram_busy := 1;
+			loc := DMEM;
+			sdram_read(core.daddr[25:24],core.daddr[23:11],{core.daddr[10:4],3'b000});
+		}else if(core.daddr[3:2] == 2'b00){
+			pending := DR;
+			addrbuf := core.daddr;
+		}
+	}
+	func core.dmem_write {
+		conflict();
+		if(!sdram_busy && !pending && core.daddr[3:2] == 2'b11){
+			sdram_busy := 1;
+			loc := DMEM;
+			sdram_write(core.daddr[25:24],core.daddr[23:11],{core.daddr[10:4],3'b000});
+		}else if(core.daddr[3:2] == 2'b11){
+			pending := DW;
+			addrbuf := core.daddr;
+		}
+		writeback_data[{core.daddr[3:2],1'b0}] := {core.wdata[7:0],core.wdata[15:8]};
+		writeback_data[{core.daddr[3:2],1'b1}] := {core.wdata[23:16],core.wdata[31:24]};
+	}
+	func ready{
+		any{
+			dest == ICACHE:{
+				core.inst = data;
+				core.imem_ready();
+			}
+			dest == DCACHE:{
+				core.rdata = data;
+				core.dmem_ready();
+			}
+		}
+	}
+	#ifdef CV
+	//used SW0~3 5p 4 bram, core
+
+	func debug_led_1{
+		led := 10'(0x001);
+	}
+	func debug_led_2{
+		led := 10'(0x002);
+	}
+	func debug_led_3{
+		led := 10'(0x004);
+	}
+	func debug_led_4{
+		led := 10'(0x008);
+	}
+	func debug_led_5{
+		led := 10'(0x010);
+	}
+	func debug_led_6{
+		led := 10'(0x020);
+	}
+	func debug_led_7{
+		led := 10'(0x040);
+	}
+	func debug_led_8{
+		led := 10'(0x080);
+	}
+	func debug_led_9{
+		led := 10'(0x100);
+	}
+	func debug_led_10{
+		led := 10'(0x200);
+	}
+	func debug_sseg_h12{
+		sseg[5] := encode[sseg_h12[11:8]];
+		sseg[4] := encode[sseg_h12[7:4]];
+		sseg[3] := encode[sseg_h12[3:0]];
+	}
+	func debug_sseg_l12{
+		sseg[2] := encode[sseg_l12[11:8]];
+		sseg[1] := encode[sseg_l12[7:4]];
+		sseg[0] := encode[sseg_l12[3:0]];
+	}
+	func core.debug_led_1{
+		led := 10'(0x001);
+	}
+	func core.debug_led_2{
+		led := 10'(0x002);
+	}
+	func core.debug_led_3{
+		led := 10'(0x004);
+	}
+	func core.debug_led_4{
+		led := 10'(0x008);
+	}
+	func core.debug_led_5{
+		led := 10'(0x010);
+	}
+	func core.debug_led_6{
+		led := 10'(0x020);
+	}
+	func core.debug_led_7{
+		led := 10'(0x040);
+	}
+	func core.debug_led_8{
+		led := 10'(0x080);
+	}
+	func core.debug_pc_led{
+		led := core.pc_led;
+	}
+	func core.debug_sseg_h8{
+		sseg[5] := encode[core.sseg_h8[7:4]];
+		sseg[4] := encode[core.sseg_h8[3:0]];
+	}
+	func core.debug_sseg_l16{
+		sseg[3] := encode[core.sseg_l16[15:12]];
+		sseg[2] := encode[core.sseg_l16[11:8]];
+		sseg[1] := encode[core.sseg_l16[7:4]];
+		sseg[0] := encode[core.sseg_l16[3:0]];
+	}
+	func core.debug_sseg_h12{
+		sseg[5] := encode[core.sseg_h12[11:8]];
+		sseg[4] := encode[core.sseg_h12[7:4]];
+		sseg[3] := encode[core.sseg_h12[3:0]];
+	}
+	func core.debug_sseg_l12{
+		sseg[2] := encode[core.sseg_l12[11:8]];
+		sseg[1] := encode[core.sseg_l12[7:4]];
+		sseg[0] := encode[core.sseg_l12[3:0]];
+	}
+	#endif
+}

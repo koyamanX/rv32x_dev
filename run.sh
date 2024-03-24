@@ -1,6 +1,5 @@
 #!/bin/bash
 docker run -it --rm \
-    --net host \
     -e LOCAL_UID=$(id -u $USER) \
     -e LOCAL_GID=$(id -g $USER) \
     -e USER=$USER \
@@ -14,4 +13,10 @@ docker run -it --rm \
     -v $(pwd)/docs:/root/docs \
 	-v $(pwd)/integration:/root/integration \
 	-v $(pwd)/simulation:/root/simulation \
+    -v $(pwd)/FPGA:/root/FPGA \
+    -v $(pwd)/scripts:/root/scripts \
     rv32x_dev:v1.0 $1
+
+
+#    -v $XAUTHORITY:/tmp/.XAuthority \
+#    -e XAUTHORITY=/tmp/.XAuthority \

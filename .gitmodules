@@ -1,12 +1,24 @@
 [submodule "software/riscv-tests"]
 	path = software/riscv-tests
-	url = https://github.com/riscv/riscv-tests.git
-[submodule "integration/sdspi"]
-	path = integration/sdspi
-	url = https://github.com/koyamanX/sdspi.git
+	url = git@github.com:twinkletia/riscv-tests
 [submodule "software/xv6-riscv"]
 	path = software/xv6-riscv
-	url = https://github.com/koyamanX/xv6-riscv
+	url = git@github.com:twinkletia/xv6-riscv
 [submodule "software/opensbi"]
 	path = software/opensbi
-	url = https://github.com/koyamanX/opensbi.git
+	url = git@github.com:twinkletia/opensbi
+[submodule "software/linux"]
+	path = software/linux
+	url = git@github.com:twinkletia/linux
+[submodule "software/busybox"]
+	path = software/busybox
+	url = git@github.com:twinkletia/busybox
+[submodule "integration/mmcspi"]
+	path = integration/mmcspi
+	url = https://github.com/twinkletia/mmcspi
+[submodule "FPGA/SDRAM_Controler"]
+	path = FPGA/SDRAM_Controler
+	url = https://github.com/twinkletia/SDRAM_Controler
+[submodule "software/buildroot"]
+	path = software/buildroot
+	url = https://github.com/twinkletia/buildroot

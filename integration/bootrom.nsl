@@ -1,6 +1,7 @@
 #include "bootrom.h"
 #include "opcode.h"
 
+#ifndef CV
 module bootrom {
 	mem rom[4096][8];
 
@@ -16,3 +17,22 @@ module bootrom {
 		ready();
 	}
 }
+
+#else
+
+#include "bootrom_bram.h"
+
+module bootrom {
+	rom_1p rom;
+
+	rom.clock = m_clock;
+
+	func read seq{
+		rom.address = addr[11:2];
+		{
+			rdata = rom.q;
+			ready();
+		}
+	}
+}
+#endif

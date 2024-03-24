@@ -1,10 +1,15 @@
 #ifndef UART_RECEIVER_H
 #define UART_RECEIVER_H
-#define RX_BAUD_RATE_9600 5208
-#define RX_BAUD_RATE_76800 651
-#define RX_BAUD_RATE_38400 1302
-#define RX_BAUD_RATE_19200 2604
-#define RX_BAUD_RATE_115200 434
+
+#ifndef CPU_FREQ
+#define CPU_FREQ 50000000
+#endif
+
+#define RX_BAUD_RATE_9600 _int(_real(CPU_FREQ) / 9600.0)
+#define RX_BAUD_RATE_19200 _int(_real(CPU_FREQ) / 19200.0)
+#define RX_BAUD_RATE_38400 _int(_real(CPU_FREQ) / 38400.0)
+#define RX_BAUD_RATE_76800 _int(_real(CPU_FREQ) / 76800.0)
+#define RX_BAUD_RATE_115200 _int(_real(CPU_FREQ) / 115200.0)
 #define RX_BAUD_RATE_CNT (RX_BAUD_RATE_38400/8)
 
 declare uart_receiver {

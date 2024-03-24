@@ -1,0 +1,153 @@
+[*]
+[*] GTKWave Analyzer v3.3.100 (w)1999-2019 BSI
+[*] Sat Dec 24 14:03:06 2022
+[*]
+[dumpfile] "1550007000-1650007000.vcd"
+[dumpfile_mtime] "Sat Dec 24 13:52:43 2022"
+[dumpfile_size] 86417907
+[savefile] "\\wsl$\Ubuntu\home\nao\Lab\rv32x_dev2\FPGA\sim\rv32x.gtkw"
+[timestart] 16149350000
+[size] 1280 657
+[pos] -1 -1
+*-16.388018 16149433100 15853440000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] TOP.
+[treeopen] TOP.topsd_sim.
+[treeopen] TOP.topsd_sim.core.
+[treeopen] TOP.topsd_sim.core.core.
+[treeopen] TOP.topsd_sim.core.core.lsu.
+[sst_width] 333
+[signals_width] 352
+[sst_expanded] 1
+[sst_vpaned_height] 380
+@28
+TOP.m_clock
+TOP.sdrclk1
+@22
+TOP.topsd_sim.sdrmodel.tOHcnt[3:0]
+@c00022
+TOP.topsd_sim.sdrmodel.tACcnt[3:0]
+@28
+(0)TOP.topsd_sim.sdrmodel.tACcnt[3:0]
+(1)TOP.topsd_sim.sdrmodel.tACcnt[3:0]
+(2)TOP.topsd_sim.sdrmodel.tACcnt[3:0]
+(3)TOP.topsd_sim.sdrmodel.tACcnt[3:0]
+@1401200
+-group_end
+@22
+TOP.topsd_sim.core.core.rv32x._EMREG_pc[31:0]
+@c00022
+TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+@28
+(0)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(1)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(2)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(3)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(4)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(5)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(6)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(7)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(8)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(9)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(10)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(11)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(12)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(13)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(14)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(15)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(16)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(17)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(18)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(19)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(20)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(21)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(22)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(23)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(24)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(25)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(26)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(27)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(28)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(29)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(30)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+(31)TOP.topsd_sim.core.core.rv32x._DEREG_pc[31:0]
+@1401200
+-group_end
+@22
+TOP.topsd_sim.core.core.rv32x._DEREG_inst[31:0]
+TOP.topsd_sim.core.core.rv32x.PC[31:0]
+@29
+TOP.topsd_sim.core.core.trap
+@22
+TOP.topsd_sim.core.core.trap_cause[31:0]
+TOP.topsd_sim.sdram.DRAM_A[12:0]
+TOP.topsd_sim._core_daddr[31:0]
+@28
+TOP.topsd_sim.core.core.lsu.cacheable_write
+TOP.topsd_sim.core.core.lsu.dcache.cache_hit
+TOP.topsd_sim.core.core.lsu.dcache.allocate
+TOP.p_reset
+TOP.reset
+TOP.topsd_sim._core_imem_read
+TOP.topsd_sim._core_dmem_read
+TOP.topsd_sim._core_dmem_write
+TOP.topsd_sim.sdram_read
+TOP.topsd_sim.sdram_write
+TOP.topsd_sim.req_flag
+TOP.topsd_sim.res_flag
+TOP.topsd_sim.sdram_busy
+TOP.topsd_sim.pending[1:0]
+TOP.topsd_sim.loc[1:0]
+@22
+TOP.topsd_sim._core_daddr[31:0]
+TOP.topsd_sim._core_iaddr[31:0]
+TOP.topsd_sim.core.core.trap_cause[31:0]
+@28
+TOP.topsd_sim.sdram.cmd_rda
+@22
+TOP.topsd_sim.sdrmodel.Dq[15:0]
+TOP.topsd_sim.sdrmodel.Dq_reg[15:0]
+TOP.topsd_sim.sdrmodel.Dq_dqm[15:0]
+@28
+TOP.topsd_sim.sdrmodel.tACset
+TOP.topsd_sim.sdrmodel.tOHset
+TOP.topsd_sim.sdrmodel.Data_out_enable
+TOP.topsd_sim.sdrmodel.Data_in_enable
+TOP.topsd_sim._tx_aTxAck
+@22
+TOP.topsd_sim.sdram.wdata0[15:0]
+TOP.topsd_sim.sdram.wdata1[15:0]
+TOP.topsd_sim.sdram.wdata2[15:0]
+TOP.topsd_sim.sdram.wdata3[15:0]
+TOP.topsd_sim.sdram.wdata4[15:0]
+TOP.topsd_sim.sdram.wdata5[15:0]
+TOP.topsd_sim.sdram.wdata6[15:0]
+TOP.topsd_sim.sdram.wdata7[15:0]
+TOP.topsd_sim.sdram.datao0[15:0]
+TOP.topsd_sim.sdram.datao1[15:0]
+TOP.topsd_sim.sdram.datao2[15:0]
+TOP.topsd_sim.sdram.datao3[15:0]
+TOP.topsd_sim.sdram.datao4[15:0]
+TOP.topsd_sim.sdram.datao5[15:0]
+TOP.topsd_sim.sdram.datao6[15:0]
+TOP.topsd_sim.sdram.datao7[15:0]
+TOP.topsd_sim.addrbuf[31:0]
+@28
+TOP.topsd_sim.conflict
+@22
+TOP.topsd_sim.writeback_data(0)[15:0]
+TOP.topsd_sim.writeback_data(1)[15:0]
+TOP.topsd_sim.writeback_data(2)[15:0]
+TOP.topsd_sim.writeback_data(3)[15:0]
+TOP.topsd_sim.writeback_data(4)[15:0]
+TOP.topsd_sim.writeback_data(5)[15:0]
+TOP.topsd_sim.writeback_data(6)[15:0]
+TOP.topsd_sim.writeback_data(7)[15:0]
+@28
+TOP.topsd_sim.ready
+@22
+TOP.topsd_sim.rdata(0)[31:0]
+TOP.topsd_sim.rdata(1)[31:0]
+TOP.topsd_sim.rdata(2)[31:0]
+TOP.topsd_sim.rdata(3)[31:0]
+[pattern_trace] 1
+[pattern_trace] 0

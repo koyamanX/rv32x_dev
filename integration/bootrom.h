@@ -1,7 +1,8 @@
 #ifndef BOOTROM_H
 #define BOOTROM_H
 
-declare bootrom {
+declare bootrom
+{
 	input addr[12];
 	input byteen[3];
 	output rdata[32];

@@ -20,16 +20,22 @@ module rv32x_core {
 	reg lsu_tlb_flush_done = 0;
 	wire in_memory_operation;
 	reg priv_mode[2];						/* Current priv mode */
+	reg valid_context;
+	func_self abandon_context();
 	
+	reg ic_read_cnt[3] = 0;
+	reg ic_prefetch_cnt[3] = 0;
+	reg lsu_read_cnt[3] = 0;
+	reg lsu_prefetch_cnt[3] = 0;
+
+	reg exception_val[32] = 0;
+
 	/* Trap */
 	reg trap_cause[32];
 	reg trap_pc[32];
 	reg trap_val[32];
 	reg trap_priv_mode[2];
 	proc_name trap(trap_priv_mode, trap_cause, trap_pc, trap_val);
-	proc_name trap_mret();
-	proc_name trap_sret();
-	proc_name trap_uret();
 	/* Interrupts */
 	func_self interrupt();
 	func_self machine_interrupt_enabled();
@@ -89,9 +95,6 @@ module rv32x_core {
 	func_self csr_write(cwadrs, cwdata);
 	func_self csr_read_not_mapped();
 	func_self csr_write_not_mapped();
-#ifdef DEBUG
-	reg debug_einst[32];
-#endif
 
 	/* CSRs */
 	/* Machine mode CSRs */
@@ -121,15 +124,6 @@ module rv32x_core {
 	stval_t reg stval 				= 0;
 	sip_t reg sip					= 0;
 	satp_t reg satp					= 0;
-	/* User mode CSRs */
-	ustatus_t reg ustatus			= 0;
-	uie_t reg uie					= 0;
-	utvec_t reg utvec				= 0;
-	uscratch_t reg uscratch			= 0;
-	uepc_t reg uepc					= 0;
-	ucause_t reg ucause				= 0;
-	utval_t reg utval 				= 0;
-	uip_t reg uip					= 0;
 	/* Hardware Performance Monitor */
 	reg minstret[64]				= 0;
 	reg mcycle[64]					= 0;
@@ -141,9 +135,6 @@ module rv32x_core {
 	wire ssip;
 	wire stip;
 	wire seip;
-	wire usip;
-	wire utip;
-	wire ueip;
 
 	wire sxlen[2];
 	wire uxlen[2];
@@ -169,10 +160,10 @@ module rv32x_core {
 		or not.
 	*/
 	in_memory_operation = rv32x.fencei || rv32x.sfence_vma || rv32x.dmem_read || rv32x.dmem_write || rv32x.load_reserved || rv32x.store_conditional || rv32x.amo_exe;
-	if(((priv_mode < MACHINE) || ((priv_mode == MACHINE) && mstatus.mie)) && !trap && !in_memory_operation) {
+	if(((priv_mode < MACHINE) || ((priv_mode == MACHINE) && mstatus.mie)) && !trap && !in_memory_operation && valid_context && !rv32x.trap_mret) {
 		machine_interrupt_enabled();
 	}
-	if(((priv_mode < SUPERVISOR) || ((priv_mode == SUPERVISOR) && mstatus.sie)) && !trap && !in_memory_operation) {
+	if(((priv_mode < SUPERVISOR) || ((priv_mode == SUPERVISOR) && mstatus.sie)) && !trap && !in_memory_operation && valid_context && !rv32x.trap_sret) {
 		supervisor_interrupt_enabled();
 	}
 	if(meip && mie.meie) {
@@ -184,13 +175,13 @@ module rv32x_core {
 	if(msip && mie.msie) {
 		machine_software_interrupt_pending();
 	}
-	if(seip && mie.seie) {
+	if(seip && sie.seie) {
 		supervisor_external_interrupt_pending();
 	}
-	if(stip && mie.stie) {
+	if(stip && sie.stie) {
 		supervisor_timer_interrupt_pending();
 	}
-	if(ssip && mie.ssie) {
+	if(ssip && sie.ssie) {
 		supervisor_software_interrupt_pending();
 	}
 
@@ -258,7 +249,7 @@ module rv32x_core {
 			(priv_mode >= MACHINE) && cradrs == MEPC:				return mepc;
 			(priv_mode >= MACHINE) && cradrs == MCAUSE:				return mcause;
 			(priv_mode >= MACHINE) && cradrs == MTVAL:				return mtval;
-			(priv_mode >= MACHINE) && cradrs == MIP:				return mip | 32'({meip, 1'b1, seip, ueip, mtip, 1'b0, stip, utip, msip, 1'b0, ssip, usip});
+			(priv_mode >= MACHINE) && cradrs == MIP:				return mip | 32'({meip, 1'b1, seip, 1'b0, mtip, 1'b0, stip, 1'b0, msip, 1'b0, ssip, 1'b0});
 			//(priv_mode >= MACHINE) && cradrs == MTINST:			return mtinst;
 			//(priv_mode >= MACHINE) && cradrs == MTVAL2:			return mtval2;
 			/* Machine Memory Protection */
@@ -284,15 +275,6 @@ module rv32x_core {
 				&& !((priv_mode == SUPERVISOR) && mstatus.tvm):		return satp;
 
 			/* User-mode */
-			(priv_mode >= USER) && cradrs == USTATUS:				return ustatus;
-			(priv_mode >= USER) && cradrs == UIE:					return uie;
-			(priv_mode >= USER) && cradrs == UTVEC:					return utvec;
-			(priv_mode >= USER) && cradrs == USCRATCH:				return uscratch;
-			(priv_mode >= USER) && cradrs == UEPC:					return uepc;
-			(priv_mode >= USER) && cradrs == UCAUSE:				return ucause;
-			(priv_mode >= USER) && cradrs == UTVAL:					return utval;
-			(priv_mode >= USER) && cradrs == UIP:					return uip;
-			//(priv_mode >= USER) && cradrs == FFLAGS:				return fflags;
 			//(priv_mode >= USER) && cradrs == FRM:					return frm;
 			//(priv_mode >= USER) && cradrs == FCSR:				return fcsr;
 			/* User Counter/Timers */
@@ -306,11 +288,7 @@ module rv32x_core {
 		}
 	}
 	func rv32x.csr_write {
-		if(rv32x.csr_write_uimm) {
-			csr_write(rv32x.cwadrs, {csr_read(rv32x.cwadrs)[31:5], rv32x.cwdata[4:0]});
-		} else {
-			csr_write(rv32x.cwadrs, rv32x.cwdata);
-		}
+		csr_write(rv32x.cwadrs, rv32x.cwdata);
 		if(csr_write_not_mapped) {
 			illegal_instruction_memory_stage();
 		}
@@ -349,24 +327,24 @@ module rv32x_core {
 				mstatus.mie		:= status_w.mie;
 				mstatus.sie		:= status_w.sie;
 				sstatus.sie		:= status_w.sie;
-				mstatus.uie		:= status_w.uie;
-				mstatus.upie	:= status_w.upie;
-				ustatus.uie		:= status_w.uie;
-				ustatus.upie	:= status_w.upie;
 			}
 			(priv_mode >= MACHINE) && cwadrs == MEDELEG: {
 				edeleg_w = cwdata;
 
-				medeleg.environment_call_from_u_mode := edeleg_w.environment_call_from_u_mode;
-				medeleg.environment_call_from_s_mode := edeleg_w.environment_call_from_s_mode;
-				medeleg.load_access_fault := edeleg_w.load_access_fault;
-				medeleg.load_page_fault := edeleg_w.load_page_fault;
-				medeleg.store_amo_access_fault := edeleg_w.store_amo_access_fault;
 				medeleg.store_amo_page_fault := edeleg_w.store_amo_page_fault;
-				medeleg.breakpoint := edeleg_w.breakpoint;
-				medeleg.instruction_address_misaligned := edeleg_w.instruction_address_misaligned;
-				medeleg.instruction_access_fault := edeleg_w.instruction_access_fault;
+				medeleg.load_page_fault := edeleg_w.load_page_fault;
 				medeleg.instruction_page_fault := edeleg_w.instruction_page_fault;
+				medeleg.environment_call_from_m_mode := edeleg_w.environment_call_from_m_mode;
+				medeleg.environment_call_from_s_mode := edeleg_w.environment_call_from_s_mode;
+				medeleg.environment_call_from_u_mode := edeleg_w.environment_call_from_u_mode;
+				medeleg.store_amo_access_fault := edeleg_w.store_amo_access_fault;
+				medeleg.store_amo_address_misaligned := edeleg_w.store_amo_address_misaligned;
+				medeleg.load_access_fault := edeleg_w.load_access_fault;
+				medeleg.load_address_misaligned := edeleg_w.load_address_misaligned;
+				medeleg.breakpoint := edeleg_w.breakpoint;
+				medeleg.illegal_instruction := edeleg_w.illegal_instruction;
+				medeleg.instruction_access_fault := edeleg_w.instruction_access_fault;
+				medeleg.instruction_address_misaligned := edeleg_w.instruction_address_misaligned;
 			}
 			(priv_mode >= MACHINE) && cwadrs == MIDELEG: {
 				ideleg_w = cwdata;
@@ -390,17 +368,6 @@ module rv32x_core {
 				sie.seie := ie_w.seie;
 				sie.stie := ie_w.stie;
 				sie.ssie := ie_w.ssie;
-
-				/* User mode */
-				mie.ueie := ie_w.ueie;
-				mie.utie := ie_w.utie;
-				mie.usie := ie_w.usie;
-				sie.ueie := ie_w.ueie;
-				sie.utie := ie_w.utie;
-				sie.usie := ie_w.usie;
-				uie.ueie := ie_w.ueie;
-				uie.utie := ie_w.utie;
-				uie.usie := ie_w.usie;
 			}
 			(priv_mode >= MACHINE) && cwadrs == MTVEC: {
 				tvec_w = cwdata;
@@ -437,17 +404,6 @@ module rv32x_core {
 				sip.ssip := ip_w.ssip;
 				sip.seip := ip_w.seip;
 				sip.stip := ip_w.stip;
-
-				/* User mode */
-				mip.usip := ip_w.usip;
-				mip.ueip := ip_w.ueip;
-				mip.utip := ip_w.utip;
-				sip.usip := ip_w.usip;
-				sip.ueip := ip_w.ueip;
-				sip.utip := ip_w.utip;
-				uip.usip := ip_w.usip;
-				uip.ueip := ip_w.ueip;
-				uip.utip := ip_w.utip;
 			}
 			(priv_mode >= MACHINE) && cwadrs == MCYCLE:	{
 				mcycle	:= {mcycle[63:32], cwdata};
@@ -495,26 +451,12 @@ module rv32x_core {
 				sie.seie := ie_w.seie;
 				sie.stie := ie_w.stie;
 				sie.ssie := ie_w.ssie;
-
-				mip.usip := ip_w.usip;
-				mip.ueip := ip_w.ueip;
-				mip.utip := ip_w.utip;
-				sip.usip := ip_w.usip;
-				sip.ueip := ip_w.ueip;
-				sip.utip := ip_w.utip;
-				uip.usip := ip_w.usip;
-				uip.ueip := ip_w.ueip;
-				uip.utip := ip_w.utip;
 			}
 			(priv_mode >= SUPERVISOR) && cwadrs == SIP: {
 				ip_w = cwdata;
 
 				mip.ssip := ip_w.ssip;
 				sip.ssip := ip_w.ssip;
-
-				mip.usip := ip_w.usip;
-				sip.usip := ip_w.usip;
-				uip.usip := ip_w.usip;
 			}
 			(priv_mode >= SUPERVISOR) && cwadrs == SATP
 				&& !((priv_mode == SUPERVISOR) && (mstatus.tvm)): {
@@ -536,60 +478,15 @@ module rv32x_core {
 			(priv_mode >= SUPERVISOR) && cwadrs == STVAL: {
 				stval := cwdata;
 			}
-			(priv_mode >= USER) && cwadrs == USTATUS: {
-				status_w = cwdata;
-
-				mstatus.uie := status_w.uie;
-				mstatus.upie := status_w.upie;
-				sstatus.uie := status_w.uie;
-				sstatus.upie := status_w.upie;
-				ustatus.uie := status_w.uie;
-				ustatus.upie := status_w.upie;
-			}
-			(priv_mode >= USER) && cwadrs == UIE: {
-				ie_w = cwdata;
-
-				mie.ueie := ie_w.ueie;
-				mie.utie := ie_w.utie;
-				mie.usie := ie_w.usie;
-				sie.ueie := ie_w.ueie;
-				sie.utie := ie_w.utie;
-				sie.usie := ie_w.usie;
-				uie.ueie := ie_w.ueie;
-				uie.utie := ie_w.utie;
-				uie.usie := ie_w.usie;
-			}
-			(priv_mode >= USER) && cwadrs == UTVEC: {
-				tvec_w = cwdata;
-				
-				utvec.base := tvec_w.base;
-				if(tvec_w.mode < 2'b10) {
-					utvec.mode := tvec_w.mode;
-				}
-			}
-			(priv_mode >= USER) && cwadrs == USCRATCH: {
-				uscratch := cwdata;
-			}
-			(priv_mode >= USER) && cwadrs == UEPC: {
-				uepc := cwdata;
-			}
-			(priv_mode >= USER) && cwadrs == UCAUSE: {
-				ucause := cwdata;
-			}
-			(priv_mode >= USER) && cwadrs == UTVAL: {
-				utval := cwdata;
-			}
-			(priv_mode >= USER) && cwadrs == UIP: {
-				ip_w = cwdata;
-
-				mip.usip := ip_w.usip;
-				sip.usip := ip_w.usip;
-				uip.usip := ip_w.usip;
-			}
 			else: csr_write_not_mapped();
 		}
-#ifdef DEBUG
-		debug_csr_write(rv32x.cwadrs, rv32x.cwdata);
+#ifdef CV
+	if(SW[6]){
+		if(csr_write_not_mapped){
+				debug_sseg_h12(cwadrs[11:0]);
+				debug_sseg_l12(priv_mode);
+		}
+	}
 #endif
 	}
 	func rv32x.ecall {
@@ -629,41 +526,57 @@ module rv32x_core {
 					&& supervisor_software_interrupt_pending && ~mideleg.ssip:	supervisor_software_interrupt();
 		machine_interrupt_enabled
 					&& supervisor_timer_interrupt_pending && ~mideleg.stip:		supervisor_timer_interrupt();
-		supervisor_interrupt_enabled && !machine_interrupt_enabled
+		supervisor_interrupt_enabled
 					&& supervisor_external_interrupt_pending && mideleg.seip:	supervisor_external_interrupt();
-		supervisor_interrupt_enabled && !machine_interrupt_enabled
+		supervisor_interrupt_enabled
 					&& supervisor_software_interrupt_pending && mideleg.ssip:	supervisor_software_interrupt();
-		supervisor_interrupt_enabled && !machine_interrupt_enabled
+		supervisor_interrupt_enabled
 					&& supervisor_timer_interrupt_pending && mideleg.stip:		supervisor_timer_interrupt();
 		/* Process exception in preceeding instruction in pipeline */	
-		/* Memory stage */
-		/* memory address is sent out to bus in memory stage process load_store_amo_address_breakpoint at memory stage */
-		illegal_instruction_memory_stage:										illegal_instruction_memory_stage_exception();
-		load_store_amo_address_breakpoint:										load_store_amo_address_breakpoint_exception();
-		store_amo_address_misaligned:											store_amo_address_misaligned_exception();
-		load_address_misaligned:												load_address_misaligned_exception();
-		store_amo_page_fault:													store_amo_page_fault_exception();
-		load_page_fault:														load_page_fault_exception();
-		store_amo_access_fault:													store_amo_access_fault_exception();
-		load_access_fault:														load_access_fault_exception();
-		/* Execute stage */
-		instruction_address_misaligned:											instruction_address_misaligned_exception();	
-		illegal_instruction_execute_stage:										illegal_instruction_execute_stage_exception();
-		environment_call:														environment_call_exception();	
-		environment_break:														environment_break_exception();	
-		/* Ifetch stage */
-		instruction_address_breakpoint:											instruction_address_breakpoint_exception();
-		instruction_page_fault:													instruction_page_fault_exception();
-		instruction_access_fault:												instruction_access_fault_exception();
+		rv32x.exception_req:	exception();
+	}
+	func rv32x.valid_context{
+		valid_context := 1;
+	}
+	func abandon_context{
+		valid_context := 0;
 	}
 	func interrupt {
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
 		rv32x.stall_execute_req();
+		rv32x.stall_memory_req();
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 		rv32x.flush_execute();
-		rv32x.get_pc_execute();
+		rv32x.flush_memory();
+		rv32x.get_pc_trap();
+		abandon_context();
+	}
+	func exception{
+		wire delegation;
+		rv32x.get_pc_trap();
+		abandon_context();
+		any{
+			rv32x.exception_cause == STORE_AMO_PAGE_FAULT: delegation = medeleg.store_amo_page_fault;
+			rv32x.exception_cause == LOAD_PAGE_FAULT: delegation = medeleg.load_page_fault;
+			rv32x.exception_cause == INSTRUCTION_PAGE_FAULT: delegation = medeleg.instruction_page_fault;
+			rv32x.exception_cause == ENVIRONMENT_CALL_FROM_M_MODE: delegation = medeleg.environment_call_from_m_mode;
+			rv32x.exception_cause == ENVIRONMENT_CALL_FROM_S_MODE: delegation = medeleg.environment_call_from_s_mode;
+			rv32x.exception_cause == ENVIRONMENT_CALL_FROM_U_MODE: delegation = medeleg.environment_call_from_u_mode;
+			rv32x.exception_cause == STORE_AMO_ACCESS_FAULT: delegation = medeleg.store_amo_access_fault;
+			rv32x.exception_cause == STORE_AMO_ADDRESS_MISALIGNED: delegation = medeleg.store_amo_address_misaligned;
+			rv32x.exception_cause == LOAD_ACCESS_FAULT: delegation = medeleg.load_access_fault;
+			rv32x.exception_cause == LOAD_ADDRESS_MISALIGNED: delegation = medeleg.load_address_misaligned;
+			rv32x.exception_cause == BREAKPOINT: delegation = medeleg.breakpoint;
+			rv32x.exception_cause == ILLEGAL_INSTRUCTION: delegation = medeleg.illegal_instruction;
+			rv32x.exception_cause == INSTRUCTION_ACCESS_FAULT: delegation = medeleg.instruction_access_fault;
+			rv32x.exception_cause == INSTRUCTION_ADDRESS_MISALIGNED: delegation = medeleg.instruction_address_misaligned;
+		}
+		any {
+			priv_mode <= SUPERVISOR && delegation:	trap(SUPERVISOR, rv32x.exception_cause, rv32x.epc, exception_val);
+			else:	trap(MACHINE, rv32x.exception_cause, rv32x.epc, exception_val);
+		}
 	}
 	func machine_external_interrupt {
 		interrupt();
@@ -698,254 +611,159 @@ module rv32x_core {
 			mideleg.stip: trap(SUPERVISOR, SUPERVISOR_TIMER_INTERRUPT, rv32x.epc, 0x00000000);
 		}
 	}
-	func load_store_amo_address_breakpoint_exception {
-		exception();
-	}
-	func store_amo_address_misaligned_exception {
-		exception();
-		rv32x.get_inst_execute();
-		rv32x.get_pc_execute();
-		trap(MACHINE, STORE_AMO_ADDRESS_MISALIGNED, rv32x.epc, rv32x.misaligned_memory_address);
-		rv32x.stall_ifetch_req();
-		rv32x.stall_decode_req();
-		rv32x.stall_execute_req();
-		rv32x.flush_ifetch();
-		rv32x.flush_decode();
-		rv32x.flush_execute();
-	}
-	func load_address_misaligned_exception {
-		exception();
-		rv32x.get_inst_execute();
-		rv32x.get_pc_execute();
-		trap(MACHINE, LOAD_ADDRESS_MISALIGNED, rv32x.epc, rv32x.misaligned_memory_address);
-		rv32x.stall_ifetch_req();
-		rv32x.stall_decode_req();
-		rv32x.stall_execute_req();
-		rv32x.flush_ifetch();
-		rv32x.flush_decode();
-		rv32x.flush_execute();
-	}
-	func store_amo_page_fault_exception {
-		exception();
-		rv32x.get_pc_memory();
-		rv32x.stall_ifetch_req();
-		rv32x.stall_decode_req();
-		rv32x.stall_execute_req();
-		rv32x.stall_memory_req();
-		rv32x.flush_ifetch();
-		rv32x.flush_decode();
-		rv32x.flush_execute();
-		rv32x.flush_memory();
-		any {
-			medeleg.store_amo_page_fault:	trap(SUPERVISOR, STORE_AMO_PAGE_FAULT, rv32x.epc, rv32x.daddr);
-			~medeleg.store_amo_page_fault:	trap(MACHINE, STORE_AMO_PAGE_FAULT, rv32x.epc, rv32x.daddr);
-		}
-	}
-	func load_page_fault_exception {
-		exception();
-		rv32x.get_pc_memory();
-		rv32x.stall_ifetch_req();
-		rv32x.stall_decode_req();
-		rv32x.stall_execute_req();
-		rv32x.stall_memory_req();
-		rv32x.flush_ifetch();
-		rv32x.flush_decode();
-		rv32x.flush_execute();
-		rv32x.flush_memory();
-		any {
-			medeleg.load_page_fault:	trap(SUPERVISOR, LOAD_PAGE_FAULT, rv32x.epc, rv32x.daddr);
-			~medeleg.load_page_fault:	trap(MACHINE, LOAD_PAGE_FAULT, rv32x.epc, rv32x.daddr);
-		}
-	}
-	func store_amo_access_fault_exception {
-		exception();
-		rv32x.get_pc_memory();
-		rv32x.stall_ifetch_req();
-		rv32x.stall_decode_req();
-		rv32x.stall_execute_req();
-		rv32x.stall_memory_req();
-		rv32x.flush_ifetch();
-		rv32x.flush_decode();
-		rv32x.flush_execute();
-		rv32x.flush_memory();
-		any {
-			medeleg.store_amo_access_fault: trap(SUPERVISOR, STORE_AMO_ACCESS_FAULT, rv32x.epc, rv32x.daddr);
-			~medeleg.store_amo_access_fault: trap(MACHINE, STORE_AMO_ACCESS_FAULT, rv32x.epc, rv32x.daddr);
-		}
-	}
-	func load_access_fault_exception {
-		exception();
-		rv32x.get_pc_memory();
-		rv32x.stall_ifetch_req();
-		rv32x.stall_decode_req();
-		rv32x.stall_execute_req();
-		rv32x.stall_memory_req();
-		rv32x.flush_ifetch();
-		rv32x.flush_decode();
-		rv32x.flush_execute();
-		rv32x.flush_memory();
-		any {
-			medeleg.load_access_fault:	trap(SUPERVISOR, LOAD_ACCESS_FAULT, rv32x.epc, rv32x.daddr);
-			~medeleg.load_access_fault:	trap(MACHINE, LOAD_ACCESS_FAULT, rv32x.epc, rv32x.daddr);
-		}
-	}
-	func illegal_instruction_execute_stage_exception {
-		exception();
-		rv32x.get_pc_execute();
-		rv32x.get_inst_execute();
-		trap(MACHINE, ILLEGAL_INSTRUCTION, rv32x.epc, rv32x.einst);
-		rv32x.stall_ifetch_req();
-		rv32x.stall_decode_req();
-		rv32x.stall_execute_req();
-		rv32x.flush_ifetch();
-		rv32x.flush_decode();
-		rv32x.flush_execute();
-	}
-	func illegal_instruction_memory_stage_exception {
-		exception();
-		rv32x.get_pc_memory();
+	func illegal_instruction_memory_stage{
+		rv32x.memory_exception = {1'b1,ILLEGAL_INSTRUCTION};
 		rv32x.get_inst_memory();
-		trap(MACHINE, ILLEGAL_INSTRUCTION, rv32x.epc, rv32x.einst);
+		exception_val := rv32x.einst;
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
 		rv32x.stall_execute_req();
-		rv32x.stall_memory_req();
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
 		rv32x.flush_execute();
-		rv32x.flush_memory();
 	}
-	func environment_call_exception {
-		exception();
-		rv32x.get_pc_execute();
+	func store_amo_page_fault{
+		rv32x.memory_exception = {1'b1,STORE_AMO_PAGE_FAULT};
+		exception_val := rv32x.daddr;
+		rv32x.stall_ifetch_req();
+		rv32x.stall_decode_req();
+		rv32x.stall_execute_req();
+		rv32x.flush_ifetch();
+		rv32x.flush_decode();
+		rv32x.flush_execute();
+	}
+	func load_page_fault{
+		rv32x.memory_exception = {1'b1,LOAD_PAGE_FAULT};
+		exception_val := rv32x.daddr;
+		rv32x.stall_ifetch_req();
+		rv32x.stall_decode_req();
+		rv32x.stall_execute_req();
+		rv32x.flush_ifetch();
+		rv32x.flush_decode();
+		rv32x.flush_execute();
+	}
+	func store_amo_access_fault{
+		rv32x.memory_exception = {1'b1,STORE_AMO_ACCESS_FAULT};
+		exception_val := rv32x.daddr;
+		rv32x.stall_ifetch_req();
+		rv32x.stall_decode_req();
+		rv32x.stall_execute_req();
+		rv32x.flush_ifetch();
+		rv32x.flush_decode();
+		rv32x.flush_execute();
+	}
+	func load_access_fault{
+		rv32x.memory_exception = {1'b1,LOAD_ACCESS_FAULT};
+		exception_val := rv32x.daddr;
+		rv32x.stall_ifetch_req();
+		rv32x.stall_decode_req();
+		rv32x.stall_execute_req();
+		rv32x.flush_ifetch();
+		rv32x.flush_decode();
+		rv32x.flush_execute();
+	}
+	func illegal_instruction_execute_stage{
+		rv32x.execute_exception = {1'b1,ILLEGAL_INSTRUCTION};
 		rv32x.get_inst_execute();
-
+		exception_val := rv32x.einst;
+		rv32x.stall_ifetch_req();
+		rv32x.stall_decode_req();
+		rv32x.flush_ifetch();
+		rv32x.flush_decode();
+	}
+	func instruction_address_misaligned{
+		rv32x.execute_exception = {1'b1,INSTRUCTION_ADDRESS_MISALIGNED};
+		exception_val := rv32x.misaligned_target_address;
+		rv32x.stall_ifetch_req();
+		rv32x.stall_decode_req();
+		rv32x.flush_ifetch();
+		rv32x.flush_decode();
+	}
+	func store_amo_address_misaligned{
+		rv32x.execute_exception = {1'b1,STORE_AMO_ADDRESS_MISALIGNED};
+		exception_val := rv32x.misaligned_memory_address;
+		rv32x.stall_ifetch_req();
+		rv32x.stall_decode_req();
+		rv32x.flush_ifetch();
+		rv32x.flush_decode();
+	}
+	func load_address_misaligned{
+		rv32x.execute_exception = {1'b1,LOAD_ADDRESS_MISALIGNED};
+		exception_val := rv32x.misaligned_memory_address;
+		rv32x.stall_ifetch_req();
+		rv32x.stall_decode_req();
+		rv32x.flush_ifetch();
+		rv32x.flush_decode();
+	}
+	func environment_call{
 		any {
 			(priv_mode == MACHINE): {
-				trap(MACHINE, ENVIRONMENT_CALL_FROM_M_MODE, rv32x.epc, 0x00000000);
+				rv32x.execute_exception = {1'b1,ENVIRONMENT_CALL_FROM_M_MODE};
 			}
-			(priv_mode == SUPERVISOR) && (~medeleg.environment_call_from_s_mode): {
-				trap(MACHINE, ENVIRONMENT_CALL_FROM_S_MODE, rv32x.epc, 0x00000000);
+			(priv_mode == SUPERVISOR): {
+				rv32x.execute_exception = {1'b1,ENVIRONMENT_CALL_FROM_S_MODE};
 			}
-			(priv_mode == SUPERVISOR) && (medeleg.environment_call_from_s_mode): {
-				trap(SUPERVISOR, ENVIRONMENT_CALL_FROM_S_MODE, rv32x.epc, 0x00000000);
-			}
-			(priv_mode == USER) && (~medeleg.environment_call_from_u_mode): {
-				trap(MACHINE, ENVIRONMENT_CALL_FROM_U_MODE, rv32x.epc, 0x00000000);
-			}
-			(priv_mode == USER) && (medeleg.environment_call_from_u_mode): {
-				trap(SUPERVISOR, ENVIRONMENT_CALL_FROM_U_MODE, rv32x.epc, 0x00000000);
+			(priv_mode == USER): {
+				rv32x.execute_exception = {1'b1,ENVIRONMENT_CALL_FROM_U_MODE};
 			}
 		}
+		exception_val := 0x00000000;
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
-		rv32x.stall_execute_req();
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
-		rv32x.flush_execute();
 	}
-	func environment_break_exception {
-		any {
-			~medeleg.breakpoint: {
-				trap(MACHINE, BREAKPOINT, rv32x.epc, rv32x.epc);
-			}
-			medeleg.breakpoint: {
-				trap(SUPERVISOR, BREAKPOINT, rv32x.epc, rv32x.epc);
-			}
-		}
-		exception();
-		rv32x.get_pc_execute();
-		rv32x.get_inst_execute();
+	func environment_break{
+		rv32x.execute_exception = {1'b1,BREAKPOINT};
+		exception_val := rv32x.epc;
 		rv32x.stall_ifetch_req();
 		rv32x.stall_decode_req();
-		rv32x.stall_execute_req();
 		rv32x.flush_ifetch();
 		rv32x.flush_decode();
-		rv32x.flush_execute();
 	}
-	func instruction_address_misaligned_exception {
-		any {
-			~medeleg.instruction_address_misaligned: trap(MACHINE, INSTRUCTION_ADDRESS_MISALIGNED, rv32x.epc, rv32x.misaligned_target_address);
-			medeleg.instruction_address_misaligned: trap(SUPERVISOR, INSTRUCTION_ADDRESS_MISALIGNED, rv32x.epc, rv32x.misaligned_target_address);
-		}
-		exception();
-		rv32x.get_pc_execute();	
-		rv32x.stall_ifetch_req();
-		rv32x.flush_ifetch();
-		rv32x.stall_decode_req();
-		rv32x.flush_decode();
-		rv32x.stall_execute_req();
-		rv32x.flush_execute();
-		rv32x.get_inst_execute();
+	func instruction_page_fault{
+		rv32x.ifetch_exception = {1'b1,INSTRUCTION_PAGE_FAULT};
+		exception_val := rv32x.iaddr;
 	}
-	func instruction_address_breakpoint_exception {
-		exception();
-	}
-	func instruction_page_fault_exception {
-		exception();
-		rv32x.get_pc_ifetch();	
-		rv32x.stall_ifetch_req();
-		rv32x.flush_ifetch();
-		any {
-			medeleg.instruction_page_fault:	trap(SUPERVISOR, INSTRUCTION_PAGE_FAULT, rv32x.epc, rv32x.iaddr);
-			~medeleg.instruction_page_fault:	trap(MACHINE, INSTRUCTION_PAGE_FAULT, rv32x.epc, rv32x.iaddr);
-		}
-	}
-	func instruction_access_fault_exception {
-		exception();
-		rv32x.get_pc_ifetch();	
-		rv32x.stall_ifetch_req();
-		rv32x.flush_ifetch();
-		trap(MACHINE, INSTRUCTION_ACCESS_FAULT, rv32x.epc, rv32x.iaddr);
+	func instruction_access_fault{
+		rv32x.ifetch_exception = {1'b1,INSTRUCTION_ACCESS_FAULT};
+		exception_val := rv32x.iaddr;
 	}
 	func rv32x.mret {
 		if(priv_mode != MACHINE) {
 			illegal_instruction_execute_stage();
 		} else {
 			mtval := 0;
-			trap_mret();
 			rv32x.stall_ifetch_req();
 			rv32x.stall_decode_req();
 			rv32x.flush_ifetch();
 			rv32x.flush_decode();
 		}
+		return mepc;
 	}
 	func rv32x.sret {
 		if((priv_mode == SUPERVISOR) && mstatus.tsr) {
 			illegal_instruction_execute_stage();
 		} else {
 			stval := 0;
-			trap_sret();
 			rv32x.stall_ifetch_req();
 			rv32x.stall_decode_req();
 			rv32x.flush_ifetch();
 			rv32x.flush_decode();
 		}
+		return sepc;
 	}
-	func rv32x.uret {
-		if(priv_mode != USER) {
-			illegal_instruction_execute_stage();
-		} else {
-			utval := 0;
-			trap_uret();
-			rv32x.stall_ifetch_req();
-			rv32x.stall_decode_req();
-			rv32x.flush_ifetch();
-			rv32x.flush_decode();
-		}
-	}
-	proc trap_mret {
+	func rv32x.trap_mret {
 		mstatus.mie 	:= mstatus.mpie;
 		mstatus.mpie	:= 1;
 		mstatus.mpp		:= MACHINE;
 		mstatus.mprv 	:= if(mstatus.mpp != MACHINE) 1'b0 else sstatus.mprv;
 		sstatus.mprv 	:= if(mstatus.mpp != MACHINE) 1'b0 else sstatus.mprv;
 		priv_mode 		:= mstatus.mpp;
-		rv32x.stall_ifetch_req();
 		rv32x.trap({mepc[31:2], mepc[1:0] & ~ialign});
-		finish();
+		abandon_context();
 	}
-	proc trap_sret {
+	func rv32x.trap_sret {
 		mstatus.sie		:= sstatus.spie;
 		sstatus.sie		:= sstatus.spie;
 		mstatus.spie	:= 1;
@@ -953,23 +771,8 @@ module rv32x_core {
 		mstatus.mprv 	:= if(mstatus.mpp != MACHINE) 1'b0 else sstatus.mprv;
 		sstatus.mprv 	:= if(mstatus.mpp != MACHINE) 1'b0 else sstatus.mprv;
 		priv_mode 		:= {1'b0, sstatus.spp};	
-		rv32x.stall_ifetch_req();
 		rv32x.trap({sepc[31:2], sepc[1:0] & ~ialign});
-		finish();
-	}
-	proc trap_uret {
-		mstatus.uie		:= ustatus.upie;
-		sstatus.uie		:= ustatus.upie;
-		ustatus.uie		:= ustatus.upie;
-		mstatus.upie	:= 1;
-		sstatus.upie	:= 1;
-		ustatus.upie	:= 1;
-		mstatus.mprv 	:= 0;
-		sstatus.mprv 	:= 0;
-		priv_mode		:= USER;
-		rv32x.stall_ifetch_req();
-		rv32x.trap({uepc[31:2], uepc[1:0] & ~ialign});
-		finish();
+		abandon_context();
 	}
 	proc trap {
 		wire v[32];
@@ -999,19 +802,6 @@ module rv32x_core {
 				stval			:= trap_val;
 				tvec			= stvec;
 			}
-			trap_priv_mode == USER: {
-				priv_mode		:= USER;
-				mstatus.upie 	:= ustatus.uie;
-				sstatus.upie 	:= ustatus.uie;
-				ustatus.upie 	:= ustatus.uie;
-				mstatus.uie		:= 0;
-				sstatus.uie		:= 0;
-				ustatus.uie		:= 0;
-				ucause			:= trap_cause;
-				mepc			:= trap_pc;
-				utval			:= trap_val;
-				tvec			= utvec;
-			}
 		}
 
 		any {
@@ -1022,8 +812,8 @@ module rv32x_core {
 		rv32x.stall_ifetch_req();
 		rv32x.trap(v);
 		finish();
-#ifdef DEBUG
-		debug_raise_exception(trap_cause, trap_pc, trap_val, debug_einst);
+#ifdef CV
+		debug_sseg_h8({trap_cause[31:28],trap_cause[3:0]});
 #endif
 	}
 	/* fence.i */
@@ -1064,10 +854,23 @@ module rv32x_core {
 			}
 		}
 	}
-	func ic.instruction_page_fault {
+	#ifdef CV
+		if(SW[6]){
+			any{
+				ic_tlb_flush_done: debug_led_1();
+				ic_invalidate_done: debug_led_2();
+				lsu_tlb_flush_done: debug_led_3();
+				lsu_cache_flush_done: debug_led_4();
+				rv32x.fencei: debug_led_5();
+				csr_write_not_mapped: debug_led_6();
+				mstatus.tvm: debug_led_7();
+			}
+		}
+	#endif
+	func ic.instruction_page_fault if(ic.vaddr == rv32x.iaddr){	//check the fault address is not invalid address(the instruction when branch prediction failed and flushed )
 		instruction_page_fault();
 	}
-	func ic.instruction_access_fault {
+	func ic.instruction_access_fault if(ic.vaddr == rv32x.iaddr){	//same above
 		instruction_access_fault();
 	}
 	func ic.tlb_flush_done {
@@ -1083,23 +886,37 @@ module rv32x_core {
 		lsu_tlb_flush_done		:= 1;
 	}
 	func ic.mem_read {
-		reg ic_read_cnt[3] = 0;
+		#define PREFETCH_BYTES 4
 		mem ic_read_data[4][32];
-		
-		imem_read({ic.mem_addr[31:4], 4'({ic_read_cnt, 2'b00})}, MEM_WORD);
+		if(ic_prefetch_cnt < PREFETCH_BYTES){
+			imem_read({ic.mem_addr[31:4], 4'({ic_prefetch_cnt, 2'b00})}, MEM_WORD);
+			ic_prefetch_cnt++;
+		}
 		if(ic_read_cnt == 4) {
-			if(imem_ready) {
 				ic_read_cnt := 0;
+				ic_prefetch_cnt := 0;
 				ic.mem_rdata = {ic_read_data[3], ic_read_data[2], ic_read_data[1], ic_read_data[0]};
 				ic.mem_ready();
-			}
-		} else {
-			if(imem_ready) {
-				ic_read_cnt++;
-				ic_read_data[ic_read_cnt] := inst;
-			}
+		}
+		if(imem_ready) {
+			ic_read_cnt++;
+			ic_read_data[ic_read_cnt] := inst;
 		}
 	}
+	#ifdef CV
+	if(SW[4]){
+		any{
+			ic_read_cnt[0]: debug_led_1();
+			ic_read_cnt[1]: debug_led_2();
+			ic_read_cnt[2]: debug_led_3();
+			ic_prefetch_cnt[0]:debug_led_4();
+			ic_prefetch_cnt[1]:debug_led_5();
+			ic_prefetch_cnt[2]:debug_led_6();
+			ic.mem_read:	debug_led_8();
+			imem_ready:		debug_sseg_h12(inst[11:0]);
+		}
+	}
+	#endif
 	func ic.walk {
 		lsu.read_tlb(ic.vaddr);
 	}
@@ -1194,24 +1011,24 @@ module rv32x_core {
 	}
 
 	func lsu.dbus_read {
-		reg lsu_read_cnt[3] = 0;
 		mem lsu_read_data[4][32];
 
-		if(lsu.dbus_size == MEM_QUADWORD) {
-			dmem_read({lsu.dbus_addr[31:4], 4'({lsu_read_cnt, 2'b00})}, MEM_WORD);
+		if(lsu.dbus_size == MEM_QUADWORD) { //ram read
+			if(lsu_prefetch_cnt < PREFETCH_BYTES){
+				dmem_read({lsu.dbus_addr[31:4], 4'({lsu_prefetch_cnt, 2'b00})}, MEM_WORD);
+				lsu_prefetch_cnt++;
+			}
 			if(lsu_read_cnt == 4) {
-				if(dmem_ready) {
 					lsu_read_cnt := 0;
+					lsu_prefetch_cnt := 0;
 					lsu.dbus_rdata = {lsu_read_data[3], lsu_read_data[2], lsu_read_data[1], lsu_read_data[0]};
 					lsu.dbus_ready();
-				}
-			} else {
-				if(dmem_ready) {
-					lsu_read_cnt++;
-					lsu_read_data[lsu_read_cnt] := rdata;
-				}
 			}
-		} else {
+			if(dmem_ready) {
+				lsu_read_cnt++;
+				lsu_read_data[lsu_read_cnt] := rdata;
+			}
+		} else {	//memory mapped i/o read
 			dmem_read(lsu.dbus_addr, lsu.dbus_size);
 			if(dmem_ready) {
 				lsu.dbus_rdata = 128'(rdata);
@@ -1227,31 +1044,20 @@ module rv32x_core {
 	}
 	func lsu.dbus_write {
 		reg lsu_write_cnt[3] = 0;
-		mem lsu_write_data[4][32];
 		
-		if(lsu.dbus_size == MEM_QUADWORD) {
-			dmem_write({lsu.dbus_addr[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu_write_data[lsu_write_cnt]);
+		if(lsu.dbus_size == MEM_QUADWORD) {	//writeback cache
 			any {
-				lsu_write_cnt == 0: {
-					lsu_write_data[0] := lsu.dbus_wdata[31:0];
-					lsu_write_data[1] := lsu.dbus_wdata[63:32];
-					lsu_write_data[2] := lsu.dbus_wdata[95:64];
-					lsu_write_data[3] := lsu.dbus_wdata[127:96];
-					lsu_write_cnt++;
+				lsu_write_cnt == 0: dmem_write({lsu.dbus_addr[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu.dbus_wdata[31:0]);
+				lsu_write_cnt == 1: dmem_write({lsu.dbus_addr[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu.dbus_wdata[63:32]);
+				lsu_write_cnt == 2: dmem_write({lsu.dbus_addr[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu.dbus_wdata[95:64]);
+				lsu_write_cnt == 3: dmem_write({lsu.dbus_addr[31:4], 4'({lsu_write_cnt, 2'b00})}, MEM_WORD, lsu.dbus_wdata[127:96]);
+				(lsu_write_cnt == 4 && dmem_ready): {
+					lsu_write_cnt := 0;
+					lsu.dbus_ready();
 				}
-				lsu_write_cnt == 4: {
-					if(dmem_ready) {
-						lsu_write_cnt := 0;
-						lsu.dbus_ready();
-					}
-				}
-				else: {
-					if(dmem_ready) {
-						lsu_write_cnt++;
-					}
-				}
+				lsu_write_cnt < 4: lsu_write_cnt++;
 			}
-		} else {
+		} else {	//memory mapped i/o write
 			dmem_write(lsu.dbus_addr, lsu.dbus_size, lsu.dbus_wdata[31:0]);
 			if(dmem_ready) {
 				lsu.dbus_ready();
@@ -1262,51 +1068,72 @@ module rv32x_core {
 		rv32x.rdata = lsu.load_data;
 		rv32x.dmem_ready();
 	}
-#ifdef DEBUG
-	debug_x0  = rv32x.debug_x0;
-	debug_x1  = rv32x.debug_x1;
-	debug_x2  = rv32x.debug_x2;
-	debug_x3  = rv32x.debug_x3;
-	debug_x4  = rv32x.debug_x4;
-	debug_x5  = rv32x.debug_x5;
-	debug_x6  = rv32x.debug_x6;
-	debug_x7  = rv32x.debug_x7;
-	debug_x8  = rv32x.debug_x8;
-	debug_x9  = rv32x.debug_x9;
-	debug_x10 = rv32x.debug_x10;
-	debug_x11 = rv32x.debug_x11;
-	debug_x12 = rv32x.debug_x12;
-	debug_x13 = rv32x.debug_x13;
-	debug_x14 = rv32x.debug_x14;
-	debug_x15 = rv32x.debug_x15;
-	debug_x16 = rv32x.debug_x16;
-	debug_x17 = rv32x.debug_x17;
-	debug_x18 = rv32x.debug_x18;
-	debug_x19 = rv32x.debug_x19;
-	debug_x20 = rv32x.debug_x20;
-	debug_x21 = rv32x.debug_x21;
-	debug_x22 = rv32x.debug_x22;
-	debug_x23 = rv32x.debug_x23;
-	debug_x24 = rv32x.debug_x24;
-	debug_x25 = rv32x.debug_x25;
-	debug_x26 = rv32x.debug_x26;
-	debug_x27 = rv32x.debug_x27;
-	debug_x28 = rv32x.debug_x28;
-	debug_x29 = rv32x.debug_x29;
-	debug_x30 = rv32x.debug_x30;
-	debug_x31 = rv32x.debug_x31;
-	debug_pc = rv32x.debug_pc;
-	func rv32x.debug_retire {
-		debug_retire(rv32x.debug_retire_pc, rv32x.debug_retire_inst);
-	}
-	func rv32x.debug_wb {
-		debug_wb(rv32x.debug_wb_rd, rv32x.debug_wb_data);
-	}
-	func rv32x.debug_mem_write {
-		debug_mem_write(rv32x.debug_mem_adrs, rv32x.debug_mem_byteen, rv32x.debug_mem_data);
-	}
+#ifdef SIM
 	func lsu.sim_done {
 		sim_done(lsu.tohost);
+	}
+#endif
+#ifdef CV
+	rv32x.SW = SW;
+	func rv32x.debug_led_1{
+		debug_led_1();
+	}	
+	func rv32x.debug_led_2{
+		debug_led_2();
+	}	
+	func rv32x.debug_led_3{
+		debug_led_3();
+	}	
+	func rv32x.debug_led_4{
+		debug_led_4();
+	}	
+	func rv32x.debug_led_5{
+		debug_led_5();
+	}
+	func rv32x.debug_led_6{
+		debug_led_6();
+	}
+	func rv32x.debug_led_7{
+		debug_led_7();
+	}
+	func rv32x.debug_led_8{
+		debug_led_8();
+	}
+	func rv32x.debug_pc_led{
+		debug_pc_led(rv32x.pc_led);
+	}
+	func rv32x.debug_sseg_l16{
+		debug_sseg_l16(rv32x.sseg_l16);
+	}
+	func rv32x.debug_sseg_l12{
+		debug_sseg_l12(rv32x.sseg_l12);
+	}
+	func rv32x.debug_sseg_h12{
+		debug_sseg_h12(rv32x.sseg_h12);
+	}
+	func ic.debug_led_1{
+		debug_led_1();
+	}	
+	func ic.debug_led_2{
+		debug_led_2();
+	}	
+	func ic.debug_led_3{
+		debug_led_3();
+	}	
+	func ic.debug_led_4{
+		debug_led_4();
+	}	
+	func ic.debug_led_5{
+		debug_led_5();
+	}
+	func ic.debug_led_6{
+		debug_led_6();
+	}
+	func ic.debug_led_7{
+		debug_led_7();
+	}
+	func ic.debug_led_8{
+		debug_led_8();
 	}
 #endif
 }

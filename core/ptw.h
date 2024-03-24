@@ -1,6 +1,7 @@
 #ifndef PTW_H
 #define PTW_H
-declare ptw {
+declare ptw
+{
 	func_in reset();
 	input satp[32];
 	input vaddr[32];

@@ -1,17 +1,20 @@
 #ifndef REGS5P_H
 #define REGS5P_H
 
-/* TODO: make compile switch for simulation and FPGA 
-		to remove redunduncy for implementing on FPGA 
+/* TODO: make compile switch for simulation and FPGA
+		to remove redunduncy for implementing on FPGA
 */
-struct idreg_t {
+struct idreg_t
+{
 	pc[32];
 	pc4[32];
 	inst[32];
 	predict_as_taken;
 	predict_as_not_taken;
+	exception[5];
 };
-struct dereg_t {
+struct dereg_t
+{
 	pc[32];
 	pc4[32];
 	inst[32];
@@ -58,8 +61,10 @@ struct dereg_t {
 	predict_as_taken;
 	predict_as_not_taken;
 	amo;
+	exception[5];
 };
-struct emreg_t {
+struct emreg_t
+{
 	pc[32];
 	pc4[32];
 	inst[32];
@@ -83,8 +88,13 @@ struct emreg_t {
 	csrrs;
 	csrrc;
 	amo;
+	mret;
+	sret;
+	nextpc[32];
+	exception[5];
 };
-struct mwreg_t {
+struct mwreg_t
+{
 	pc[32];
 	pc4[32];
 	inst[32];
@@ -100,12 +110,9 @@ struct mwreg_t {
 	wb_value[32];
 	wb;
 	amo;
-#ifdef DEBUG
-	debug_mem_write;
-	debug_mem_adrs[32];
-	debug_mem_byteen[3];
-	debug_mem_data[32];
-	debug_wb;
-#endif
+	mret;
+	sret;
+	nextpc[32];
+	exception[5];
 };
 #endif

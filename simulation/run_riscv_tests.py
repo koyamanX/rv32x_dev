@@ -6,6 +6,8 @@ import sys
 import subprocess
 import shutil
 
+NO_LOG=""
+
 simulator='./rv32x_simulation'
 riscv_tests_directory = '../software/riscv-tests/isa/'
 simulation_log_directory = './logs/'
@@ -50,9 +52,14 @@ def run_tests(tests_list, tests_assertion):
 			skipped += 1
 			continue
 		try:
-			subprocess.run([simulator, riscv_tests_directory+t, '--print-inst-trace', '--print-exception', '--print-disasm'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=8)
+			if NO_LOG == "no_log":
+				subprocess.run([simulator, riscv_tests_directory+t], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=10)
+			else:
+				subprocess.run([simulator, riscv_tests_directory+t, '--print-all'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True, timeout=10)
+				
 		except subprocess.CalledProcessError as err:
 			if(a == 'should_be_passed'):
+				print(err.returncode)
 				print('{:20}\t{:20}  and it\'s FAILED\tNG'.format(t, a))
 				failed_tests.append(t)
 				failed+=1
@@ -71,7 +78,10 @@ def run_tests(tests_list, tests_assertion):
 			print('unexpected error')
 			sys.exit(1)
 		finally:
-			shutil.move(t+'.log', simulation_log_directory)
+			if NO_LOG == "no_log":
+				nop=1
+			else:
+				shutil.move(t+'.log', simulation_log_directory)
 		if(a == 'should_be_passed'):
 			print('{:20}\t{:20}  and it\'s PASSED\tOK'.format(t, a))
 			passed+=1
@@ -111,4 +121,5 @@ def main():
 	subprocess.run(['stty', 'echo'])
 	return exit_code
 if __name__ == '__main__':
+	NO_LOG = str(sys.argv[1])
 	sys.exit(main())

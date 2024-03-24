@@ -6,26 +6,28 @@
 #define VALID 1'b1
 #define INVALID 1'b0
 
-#define CACHE_WRITE	1'b1
-#define CACHE_READ	1'b0
+#define CACHE_WRITE 1'b1
+#define CACHE_READ 1'b0
 
-struct reservation_t {
+struct reservation_t
+{
 	valid;
 	addr[32];
 };
 
-declare load_store_unit {
+declare load_store_unit
+{
 	/* CPU operations (Virtual Address) */
 	func_in reset();
 	input addr[32];
 	input byteen[3];
 	output load_data[32];
 	input store_data[32];
-	func_in load(addr, byteen);					/* must be asserted until ready arrives */
-	func_in store(addr, byteen, store_data);	/* must be asserted until ready arrives */
-	func_in load_reserved();					/* This signal is asserted alongside with load */
-	func_in store_conditional();				/* This signal is asserted alongside with store */
-	func_out ready;								/* operation is done */
+	func_in load(addr, byteen);				 /* must be asserted until ready arrives */
+	func_in store(addr, byteen, store_data); /* must be asserted until ready arrives */
+	func_in load_reserved();				 /* This signal is asserted alongside with load */
+	func_in store_conditional();			 /* This signal is asserted alongside with store */
+	func_out ready;							 /* operation is done */
 
 	input amo_src[32];
 	input amo_addr[32];
@@ -47,7 +49,7 @@ declare load_store_unit {
 	input mstatus_mxr;
 	input priv_mode[2];
 	input sstatus_sum;
-	
+
 	/* Exceptions to CPU */
 	func_out store_amo_page_fault();
 	func_out store_amo_access_fault();
@@ -105,7 +107,7 @@ declare load_store_unit {
 	func_out pbus_flush();
 	func_in pbus_flush_done();
 
-#ifdef DEBUG
+#ifdef SIM
 	output tohost[32];
 	func_out sim_done(tohost);
 #endif
